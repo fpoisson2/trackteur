@@ -129,9 +129,16 @@ def spi_tx(payload):
 
 def parse_gps(data):
     """Extracts latitude, longitude, altitude, and timestamp from GPS data."""
-    global last_tx_time  # Ensure we're accessing the global variable
+    global last_tx_time
     
-    if data.startswith("$GNGGA") or data.startswith("$GPGGA"):  # Look for valid GPS sentences
+    current_time = time.time()
+    
+    # Early exit if it's not time to transmit yet
+    if last_tx_time > 0 and current_time - last_tx_time < TX_INTERVAL:
+        return  # Skip this GPS reading entirely
+    
+    # Process only valid GPS sentences
+    if data.startswith("$GNGGA") or data.startswith("$GPGGA"):
         try:
             msg = pynmea2.parse(data)
             
@@ -143,24 +150,16 @@ def parse_gps(data):
 
             # Pack into a binary format: 4-byte lat, 4-byte lon, 2-byte alt, 4-byte timestamp
             payload = struct.pack(">iiH I", lat, lon, alt, timestamp)
+
+            print(f"TX: lat={lat/1_000_000}, lon={lon/1_000_000}, alt={alt}m, ts={timestamp}")
             
-            current_time = time.time()
-            time_since_last = current_time - last_tx_time
+            # Transmit the payload
+            spi_tx(payload)
             
-            # Debug output to help diagnose the issue
-            print(f"GPS data received. Time since last TX: {time_since_last:.1f}s")
+            # Update the last transmission time AFTER successful transmission
+            last_tx_time = time.time()
             
-            # Only transmit if this is the first transmission or enough time has passed
-            if last_tx_time == 0 or time_since_last >= TX_INTERVAL:
-                print(f"TX: lat={lat/1_000_000}, lon={lon/1_000_000}, alt={alt}m, ts={timestamp}")
-                spi_tx(payload)  # Send optimized binary payload over LoRa
-                
-                # Update the last transmission time - AFTER successful transmission
-                last_tx_time = time.time()  # Use fresh timestamp
-                print(f"Transmission complete. Next TX in {TX_INTERVAL} seconds")
-            else:
-                # Debug output about skipped transmission
-                print(f"Skipping transmission. Next TX in {TX_INTERVAL - time_since_last:.1f} seconds")
+            print(f"Next transmission in {TX_INTERVAL} seconds")
 
         except pynmea2.ParseError as e:
             print(f"Parse error: {e}")
