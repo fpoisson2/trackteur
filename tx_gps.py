@@ -188,62 +188,52 @@ def spi_tx(payload, max_retries=3):
             attempt += 1
             continue
         
-        # --- ACK RECEPTION PHASE ---
-        print("Preparing for ACK reception...")
-        time.sleep(0.01)  # Brief delay after TX to allow ACK sender to respond
-        spi_write(0x24, 0)  # Disable frequency hopping for ACK
-        set_frequency(ACK_CHANNEL)
-        time.sleep(0.01)  # Allow frequency to stabilize
-        print(f"Fixed frequency for ACK reception on channel {ACK_CHANNEL}")
+        # After TX completes
+        if tx_completed:
+            spi_write(0x01, 0x81)  # Switch to standby mode
+            time.sleep(0.01)
+            
+            print("Preparing for ACK reception...")
+            spi_write(0x24, 0)     # Disable frequency hopping
+            set_frequency(902.2)   # Set to 902.2 MHz
+            spi_write(0x40, 0x00)  # DIO0 = RxDone
+            spi_write(0x0F, 0x00)  # RegFifoRxBaseAddr
+            spi_write(0x0D, 0x00)  # RegFifoAddrPtr
+            spi_write(0x12, 0xFF)  # Clear IRQ flags
+            spi_write(0x01, 0x85)  # Switch to continuous RX mode
+            debug_registers()
 
-        spi_write(0x0F, 0x00)  # Set RX FIFO base address
-        spi_write(0x0D, 0x00)  # Reset FIFO pointer
-
-        spi_write(0x40, 0x00)  # Map DIO0 to RxDone
-        time.sleep(0.01)  # Ensure mapping takes effect
-        print(f"DIO0 Mapping: 0b{spi_read(0x40):08b}")  # Verify mapping
-
-        # Do NOT change to Implicit Header mode; keep Explicit mode (0x78) as initialized
-        # No need to set RegPayloadLength (0x22), as payload length is in the header
-
-        spi_write(0x12, 0xFF)  # Clear IRQ flags before RX
-        spi_write(0x01, 0x85)  # Switch to continuous RX mode
-        time.sleep(0.01)  # Allow mode switch
-        print(f"OpMode after RX: 0b{spi_read(0x01):08b}")  # Verify RX mode
-        print("Switched to RX mode, waiting for ACK...")
-        debug_registers()
-
-        start_ack = time.time()
-        while time.time() - start_ack < 10:
-            gpio_state = GPIO.input(DIO0)
-            irq_flags = spi_read(0x12)
-            elapsed = time.time() - start_ack
-            print(f"[ACK Listen] {elapsed:.2f}s - DIO0: {gpio_state}, IRQ Flags: 0b{irq_flags:08b}")
-            if gpio_state == 1 and (irq_flags & 0x40):  # RxDone
-                if irq_flags & 0x20:
-                    print("CRC error in received packet!")
+            start_ack = time.time()
+            while time.time() - start_ack < 10:
+                gpio_state = GPIO.input(DIO0)
+                irq_flags = spi_read(0x12)
+                elapsed = time.time() - start_ack
+                print(f"[ACK Listen] {elapsed:.2f}s - DIO0: {gpio_state}, IRQ Flags: 0b{irq_flags:08b}")
+                if gpio_state == 1 and (irq_flags & 0x40):  # RxDone
+                    if irq_flags & 0x20:
+                        print("CRC error in received packet!")
+                        spi_write(0x12, 0xFF)
+                        continue
+                    nb_bytes = spi_read(0x13)  # Read payload length from received header
+                    current_addr = spi_read(0x10)
+                    spi_write(0x0D, current_addr)
+                    ack_payload = bytearray()
+                    for _ in range(nb_bytes):
+                        ack_payload.append(spi_read(0x00))
+                    print(f"Received ACK payload: {ack_payload.hex()}")
+                    if ack_payload == b"ACK":
+                        print("ACK received successfully!")
+                        ack_received = True
+                    else:
+                        print(f"Unexpected ACK payload: {ack_payload.hex()}")
                     spi_write(0x12, 0xFF)
-                    continue
-                nb_bytes = spi_read(0x13)  # Read payload length from received header
-                current_addr = spi_read(0x10)
-                spi_write(0x0D, current_addr)
-                ack_payload = bytearray()
-                for _ in range(nb_bytes):
-                    ack_payload.append(spi_read(0x00))
-                print(f"Received ACK payload: {ack_payload.hex()}")
-                if ack_payload == b"ACK":
-                    print("ACK received successfully!")
-                    ack_received = True
-                else:
-                    print(f"Unexpected ACK payload: {ack_payload.hex()}")
-                spi_write(0x12, 0xFF)
-                break
-            time.sleep(0.05)
+                    break
+                time.sleep(0.05)
 
-        # Restore original settings
-        spi_write(0x24, 5)     # Re-enable frequency hopping
-        spi_write(0x01, 0x81)  # Return to standby mode
-        time.sleep(0.1)
+            # Restore original settings
+            spi_write(0x24, 5)     # Re-enable frequency hopping
+            spi_write(0x01, 0x81)  # Return to standby mode
+            time.sleep(0.1)
     
     if ack_received:
         print("Transmission successful with ACK.")
