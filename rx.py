@@ -160,6 +160,8 @@ def send_ack():
     
     # Disable frequency hopping for ACK
     spi_write(0x24, 0)  # RegHopPeriod = 0
+
+    time.sleep(0.1)  # Allow time for the module to stabilize
     
     # Set fixed frequency channel for ACK
     set_frequency(ACK_CHANNEL)
@@ -167,6 +169,7 @@ def send_ack():
     
     # Map DIO0 to TxDone
     spi_write(0x40, 0x00)  # DIO0 = TxDone
+    time.sleep(0.1)  # Allow time for the module to stabilize
     
     # Set FIFO TX base address and reset pointer
     spi_write(0x0E, 0x00)
