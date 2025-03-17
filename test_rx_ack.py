@@ -100,7 +100,6 @@ def spi_rx():
             received_data = ''.join(chr(b) for b in payload)
             if received_data == "ACK":
                     print("ACK received. Stopping.")
-                    break
         
         time.sleep(0.1)  # Sleep to avoid busy loop
 
