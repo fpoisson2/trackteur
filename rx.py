@@ -42,7 +42,7 @@ for i in range(64):
 current_channel = 0
 
 # Traccar server configuration
-TRACCAR_URL = "https://trackteur.ve2fpd.com"  # Adjust port if needed
+TRACCAR_URL = "http://trackteur.ve2fpd.com:5055"  # Adjust port if needed
 DEVICE_ID = "212901"  # Replace with your device's unique ID registered in Traccar
 
 def spi_write(addr, val):
