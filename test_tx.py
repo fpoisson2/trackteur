@@ -86,29 +86,22 @@ def init_lora():
     time.sleep(0.1)
 
 def transmit_message(message):
-    payload = message.encode('ascii')  # Convert string to bytes
+    payload = message.encode('ascii')
     print(f"Transmitting: {message} ({len(payload)} bytes)")
-
-    # Reset FIFO pointer
     spi_write(0x0D, 0x00)
-    
-    # Write payload to FIFO
     for byte in payload:
         spi_write(0x00, byte)
-    
-    # Set payload length
     spi_write(0x22, len(payload))
-    
-    # Clear IRQ flags
     spi_write(0x12, 0xFF)
-    
-    # Switch to TX mode
     spi_write(0x01, 0x83)
     
-    # Wait for TxDone interrupt (timeout after 5 seconds)
+    # Wait and monitor DIO0
     start_time = time.time()
     while time.time() - start_time < 5:
-        if GPIO.input(DIO0) == 1:  # TxDone interrupt
+        dio0_state = GPIO.input(DIO0)
+        irq_flags = spi_read(0x12)
+        print(f"DIO0: {dio0_state}, IRQ Flags: {hex(irq_flags)}")
+        if dio0_state == 1:
             print("Transmission complete!")
             break
         time.sleep(0.01)
@@ -116,12 +109,8 @@ def transmit_message(message):
     if time.time() - start_time >= 5:
         print("TX timeout. IRQ flags:", hex(spi_read(0x12)))
     
-    # Clear IRQ flags
     spi_write(0x12, 0xFF)
-    
-    # Return to Standby mode
     spi_write(0x01, 0x81)
-    time.sleep(0.1)
 
 def cleanup():
     spi.close()

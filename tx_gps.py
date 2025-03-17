@@ -156,7 +156,7 @@ def spi_tx(payload):
     time.sleep(0.1)
     
     # Remap DIO0 to TxDone (bit 7:6 = 00)
-    spi_write(0x40, 0x00)
+    #spi_write(0x40, 0x00)
 
     # Handle frequency hopping during transmission
     start = time.time()
