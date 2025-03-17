@@ -116,7 +116,7 @@ def cleanup():
 if __name__ == "__main__":
     try:
         init_lora()
-        message = "Hello, World!"
+        message = "H"
         while True:
             transmit_message(message)
             time.sleep(5)  # Transmit every 5 seconds
