@@ -75,22 +75,39 @@ def init_lora():
 def receive_loop():
     print("Listening for incoming LoRa packets...")
     while True:
-        if GPIO.input(DIO0):
+        if GPIO.input(DIO0):  # Packet received
             irq_flags = spi_read(0x12)
-            if irq_flags & 0x40:
-                spi_write(0x12, 0xFF)
-                nb_bytes = spi_read(0x13)
+            if irq_flags & 0x40:  # RX_DONE flag set
+                spi_write(0x12, 0xFF)  # Clear IRQ flags
+                
+                nb_bytes = spi_read(0x13)  # Get received payload length
                 current_addr = spi_read(0x10)
-                spi_write(0x0D, current_addr)
+                spi_write(0x0D, current_addr)  # Set FIFO read pointer
 
-                payload = []
+                payload = bytearray()
                 for _ in range(nb_bytes):
                     payload.append(spi_read(0x00))
 
-                message = ''.join(chr(b) for b in payload)
-                print(f"Received ({nb_bytes} bytes): {message}")
+                if len(payload) == 14:  # Ensure expected payload size
+                    decode_payload(payload)
+                else:
+                    print(f"Received {len(payload)} bytes, but expected 14 bytes.")
 
         time.sleep(0.01)
+
+def decode_payload(payload):
+    """Decodes binary GPS data from LoRa transmission."""
+    lat, lon, alt, timestamp = struct.unpack(">iiH I", payload)
+
+    latitude = lat / 1_000_000  # Convert back to float
+    longitude = lon / 1_000_000
+    ts_readable = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(timestamp))  # Convert timestamp
+
+    print(f"Received GPS Data:")
+    print(f" - Latitude:  {latitude:.6f}")
+    print(f" - Longitude: {longitude:.6f}")
+    print(f" - Altitude:  {alt} meters")
+    print(f" - Timestamp: {ts_readable} (UTC)")
 
 def cleanup():
     spi.close()
