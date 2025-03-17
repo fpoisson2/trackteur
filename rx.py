@@ -105,7 +105,7 @@ def init_lora():
     # Set initial frequency to channel 0 (902.2 MHz)
     set_frequency(0)
 
-    # RegModemConfig1: BW 125 kHz, CR 4/8, Implicit Header
+    # RegModemConfig1: BW 125 kHz, CR 4/8, Explicit Header
     spi_write(0x1D, 0x78)
     
     # RegModemConfig2: SF12, CRC on
@@ -155,59 +155,68 @@ def send_to_traccar(latitude, longitude, altitude, timestamp):
 
 def send_ack():
     ack_payload = b"ACK"
+    time.sleep(2)
     print("Preparing to send ACK...")
     
-    # Switch to standby mode
-    spi_write(0x01, 0x81)  # RegOpMode = LoRa standby mode
-    time.sleep(0.01)       # Brief delay for mode switch
+    # Disable frequency hopping for ACK
+    spi_write(0x24, 0)  # RegHopPeriod = 0
+
+    time.sleep(0.1)  # Allow time for the module to stabilize
     
-    # Disable frequency hopping
-    spi_write(0x24, 0)     # RegHopPeriod = 0
-    time.sleep(0.01)
-    
-    # Set fixed frequency for ACK (902.2 MHz, channel 0)
-    set_frequency(902.2)   # Adjust based on your frequency-setting function
-    print("Fixed frequency for ACK transmission on 902.2 MHz")
-    time.sleep(0.01)
+    # Set fixed frequency channel for ACK
+    set_frequency(ACK_CHANNEL)
+    print(f"Fixed frequency for ACK transmission on channel {ACK_CHANNEL}")
     
     # Map DIO0 to TxDone
     spi_write(0x40, 0x00)  # DIO0 = TxDone
-    time.sleep(0.01)
+    time.sleep(0.1)  # Allow time for the module to stabilize
     
-    # Reset FIFO pointers
-    spi_write(0x0E, 0x00)  # RegFifoTxBaseAddr
-    spi_write(0x0D, 0x00)  # RegFifoAddrPtr
+    # Set FIFO TX base address and reset pointer
+    spi_write(0x0E, 0x00)
+    spi_write(0x0D, 0x00)
     
     # Write ACK payload to FIFO
     for byte in ack_payload:
         spi_write(0x00, byte)
     
-    spi_write(0x22, len(ack_payload))  # RegPayloadLength = 3
+    spi_write(0x22, len(ack_payload))  # Set payload length
     
     # Clear IRQ flags
     spi_write(0x12, 0xFF)
     
+    debug_registers()
+    
     # Switch to TX mode
-    spi_write(0x01, 0x83)  # RegOpMode = LoRa TX mode
+    spi_write(0x01, 0x83)
     print("Sending ACK...")
     
-    # Wait for TX completion
+    # Wait for TX to complete with extended timeout
     start = time.time()
-    timeout = 5  # 5-second timeout
+    timeout = 5  # Increase timeout to 5 seconds
     while time.time() - start < timeout:
         irq_flags = spi_read(0x12)
-        if irq_flags & 0x08:  # Check TxDone (bit 3)
+        if irq_flags & 0x08:  # Check TxDone bit directly
             print("ACK sent successfully!")
             break
+        elif GPIO.input(DIO0) == 1:  # Additional check for DIO0
+            print("DIO0 high detected, checking TxDone...")
+            if irq_flags & 0x08:
+                print("ACK sent successfully!")
+                break
         time.sleep(0.01)
     else:
-        print("ACK transmission timed out!")
+        print("ACK transmission timed out. Check hardware or configuration.")
+        debug_registers()
     
-    # Restore settings and return to RX mode
-    spi_write(0x12, 0xFF)  # Clear IRQ flags
-    spi_write(0x24, 5)     # Re-enable frequency hopping
-    spi_write(0x40, 0x40)  # Restore DIO0 mapping (e.g., FhssChangeChannel)
-    spi_write(0x01, 0x85)  # Return to continuous RX mode
+    # Clear IRQ flags and restore settings
+    spi_write(0x12, 0xFF)
+    spi_write(0x24, 5)      # Re-enable frequency hopping
+    spi_write(0x40, 0x40)   # Restore DIO0 to FhssChangeChannel
+    spi_write(0x0F, 0x00)   # Reset FIFO RX base addr
+    spi_write(0x0D, 0x00)   # Reset FIFO pointer
+    spi_write(0x01, 0x85)   # Return to continuous RX mode
+    
+    debug_registers()
 
 def receive_loop():
     global current_channel
