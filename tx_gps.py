@@ -198,10 +198,14 @@ def spi_tx(payload, max_retries=3):
         set_frequency(ACK_CHANNEL)  # Fixed frequency for ACK
         print(f"Set frequency to {FREQ_START/1000000} MHz for ACK reception")
         
+
+        spi_write(0x1D, 0x78)  # RegModemConfig1: e.g., BW=125 kHz, CR=4/7, explicit header
+        spi_write(0x1E, 0xC4)  # RegModemConfig2: e.g., SF7, CRC on
+        spi_write(0x26, 0x0C)
         spi_write(0x0F, 0x00)  # Set RX FIFO base address
         spi_write(0x0D, 0x00)  # Reset FIFO pointer
-        spi_write(0x40, 0x00)  # Map DIO0 to RxDone
-        spi_write(0x12, 0xFF)  # Clear IRQ flags
+        #spi_write(0x40, 0x00)  # Map DIO0 to RxDone
+        #spi_write(0x12, 0xFF)  # Clear IRQ flags
         
         spi_write(0x01, 0x85)  # Switch to continuous RX mode
         print("Switched to RX mode, waiting for ACK...")
@@ -222,7 +226,7 @@ def spi_tx(payload, max_retries=3):
                     for _ in range(nb_bytes):
                         ack_payload.append(spi_read(0x00))
                     print(f"Received payload: {ack_payload.hex()}")
-                    if ack_payload == b"ACK":
+                    if ack_payload == "ACK":
                         print("ACK received successfully!")
                         ack_received = True
                     else:

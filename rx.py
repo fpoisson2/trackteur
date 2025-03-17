@@ -154,46 +154,44 @@ def send_to_traccar(latitude, longitude, altitude, timestamp):
         print(f"Error sending data to Traccar: {e}")
 
 def send_ack():
-    ack_payload = b"ACK"
-    print("Preparing to send ACK...")
-    time.sleep(5)
+    """Function to send an ACK message."""
+    payload = "ACK"  # ACK message to send
+    print("\n[Sending ACK]")
     
-    spi_write(0x01, 0x81)  # LoRa standby mode
-    time.sleep(0.01)
+    # Reset FIFO pointer
+    spi_write(0x0D, 0x00)
     
-    spi_write(0x24, 0)     # Disable frequency hopping
-    set_frequency(ACK_CHANNEL)
-    print(f"Set frequency to {FREQ_START/1000000} MHz for ACK transmission")
+    # Write payload bytes into FIFO
+    for char in payload:
+        spi_write(0x00, ord(char))
     
-    spi_write(0x40, 0x40)  # DIO0 = TxDone
-    time.sleep(0.01)
+    # Set payload length
+    spi_write(0x22, len(payload))
     
-    spi_write(0x0E, 0x00)  # RegFifoTxBaseAddr
-    spi_write(0x0D, 0x00)  # RegFifoAddrPtr
+    # Clear IRQ flags
+    spi_write(0x12, 0xFF)
     
-    for byte in ack_payload:
-        spi_write(0x00, byte)
-    spi_write(0x22, len(ack_payload))
+    # Switch to TX mode: RegOpMode = 0x83 (LoRa TX mode)
+    spi_write(0x01, 0x83)
+    print("Transmitting ACK...")
     
-    spi_write(0x12, 0xFF)  # Clear IRQ flags
-    print(f"Pre-TX: RegOpMode={hex(spi_read(0x01))}, DIO0={GPIO.input(DIO0)}, IRQ={hex(spi_read(0x12))}")
-    
-    spi_write(0x01, 0x83)  # TX mode
-    print("Sending ACK...")
-    
+    # Wait for TX done signal (DIO0 high)
     start = time.time()
-    timeout = 5
-    while time.time() - start < timeout:
-        dio0_state = GPIO.input(DIO0)
-        irq_flags = spi_read(0x12)
-        if dio0_state == 1:
-            print(f"DIO0 high detected! IRQ flags: {hex(irq_flags)}")
-            if irq_flags & 0x08:  # TxDone
-                print("ACK sent successfully!")
-                break
+    while time.time() - start < 5:
+        if GPIO.input(DIO0) == 1:
+            print("ACK sent successfully!")
+            break
         time.sleep(0.01)
     else:
-        print("ACK transmission timed out!")
+        irq = spi_read(0x12)
+        print("TX done timeout. IRQ flags:", hex(irq))
+    
+    # Clear IRQ flags
+    spi_write(0x12, 0xFF)
+    
+    # Return to standby mode
+    spi_write(0x01, 0x81)
+    time.sleep(0.1)
 
 def receive_loop():
     global current_channel
