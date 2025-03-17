@@ -122,6 +122,8 @@ def send_to_traccar(latitude, longitude, altitude, timestamp):
     }
     try:
         response = requests.get(TRACCAR_URL, params=params, timeout=10)
+        print(f"Traccar response status: {response.status_code}")
+        print(f"Traccar response content: {response.text}")
         if response.status_code == 200:
             print("Data successfully sent to Traccar server")
         else:
