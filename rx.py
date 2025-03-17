@@ -156,7 +156,7 @@ def send_to_traccar(latitude, longitude, altitude, timestamp):
 def send_ack():
     ack_payload = b"ACK"
     print("Preparing to send ACK...")
-    time.sleep(2)
+    time.sleep(5)
     
     spi_write(0x01, 0x81)  # LoRa standby mode
     time.sleep(0.01)
