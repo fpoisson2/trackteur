@@ -89,18 +89,20 @@ def init_module():
     spi_write(0x0D, 0x00)  # RegFifoAddrPtr
 
 def spi_tx(payload):
-    """Function to transmit payload using LoRa."""
+    """Function to transmit binary payload using LoRa."""
     # Reset FIFO pointer
     spi_write(0x0D, 0x00)
-    # Write payload bytes into FIFO
-    for char in payload:
-        spi_write(0x00, ord(char))
+    
+    # Write binary payload into FIFO
+    for byte in payload:
+        spi_write(0x00, byte)
+    
     spi_write(0x22, len(payload))  # Set payload length
     
     # Switch to TX mode: RegOpMode = 0x83 (LoRa TX mode)
     spi_write(0x01, 0x83)
-    print(f"Transmitting payload: {payload}")
-    
+    print(f"Transmitting {len(payload)} bytes.")
+
     start = time.time()
     while time.time() - start < 5:
         if GPIO.input(DIO0) == 1:
@@ -110,25 +112,29 @@ def spi_tx(payload):
     else:
         irq = spi_read(0x12)
         print("TX done timeout. IRQ flags:", hex(irq))
-    
+
     # Return to standby mode
     spi_write(0x01, 0x81)
     time.sleep(0.1)
 
+
 def parse_gps(data):
-    """Extracts latitude, longitude, and other relevant data from NMEA sentences."""
+    """Extracts latitude, longitude, altitude, and timestamp from GPS data."""
     if data.startswith("$GNGGA") or data.startswith("$GPGGA"):  # Look for valid GPS sentences
         try:
             msg = pynmea2.parse(data)
-            latitude = msg.latitude
-            longitude = msg.longitude
-            altitude = msg.altitude
-            satellites = msg.num_sats
-            fix_quality = msg.gps_qual
+            
+            # Convert to higher precision (6 decimal places)
+            lat = int(msg.latitude * 1_000_000)   # Store latitude as int
+            lon = int(msg.longitude * 1_000_000)  # Store longitude as int
+            alt = int(msg.altitude)               # Store altitude in meters
+            timestamp = int(time.time())          # Get current Unix timestamp (seconds)
 
-            gps_data = f"Lat: {latitude}, Lon: {longitude}, Alt: {altitude}, Sats: {satellites}, Fix: {fix_quality}"
-            print(gps_data)
-            spi_tx(gps_data)  # Send GPS data over LoRa
+            # Pack into a binary format: 4-byte lat, 4-byte lon, 2-byte alt, 4-byte timestamp
+            payload = struct.pack(">iiH I", lat, lon, alt, timestamp)
+
+            print(f"TX: lat={lat/1_000_000}, lon={lon/1_000_000}, alt={alt}m, ts={timestamp}")
+            spi_tx(payload)  # Send optimized binary payload over LoRa
 
         except pynmea2.ParseError as e:
             print(f"Parse error: {e}")
