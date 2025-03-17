@@ -7,7 +7,7 @@ import sys
 # Pin definitions (BCM mode)
 RESET = 17  # Reset pin
 NSS = 25    # SPI Chip Select pin
-DIO0 = 4    # DIO0 pin for RxDone interrupt
+DIO0 = 4    # DIO0 pin for TxDone interrupt
 
 # GPIO setup
 GPIO.setmode(GPIO.BCM)
@@ -71,55 +71,57 @@ def init_lora():
     spi_write(0x20, 0x00)
     spi_write(0x21, 0x08)
 
-    # Set FIFO RX base address and pointer
-    spi_write(0x0F, 0x00)
+    # Set PA configuration: +20 dBm with PA_BOOST
+    spi_write(0x09, 0x8F)
+
+    # Set FIFO TX base address and pointer
+    spi_write(0x0E, 0x00)
     spi_write(0x0D, 0x00)
 
-    # Map DIO0 to RxDone (bit 7:6 = 01)
-    spi_write(0x40, 0x40)
+    # Map DIO0 to TxDone (bit 7:6 = 00)
+    spi_write(0x40, 0x00)
 
-    # Set to Continuous RX mode
-    spi_write(0x01, 0x85)
+    # Set to Standby mode
+    spi_write(0x01, 0x81)
+    time.sleep(0.1)
 
-def receive_loop():
-    print("Listening for incoming LoRa packets...")
-    while True:
-        irq_flags = spi_read(0x12)
-        
-        # Check for RxDone (bit 6)
-        if GPIO.input(DIO0) == 1 and (irq_flags & 0x40):
-            print(f"IRQ Flags: {bin(irq_flags)} (0x{irq_flags:02x})")
-            
-            # Clear IRQ flags
-            spi_write(0x12, 0xFF)
-            
-            # Read payload length
-            nb_bytes = spi_read(0x13)
-            print(f"Packet size: {nb_bytes} bytes")
-            
-            # Read current FIFO address
-            current_addr = spi_read(0x10)
-            
-            # Set FIFO address pointer
-            spi_write(0x0D, current_addr)
-            
-            # Read payload
-            payload = bytearray()
-            for _ in range(nb_bytes):
-                payload.append(spi_read(0x00))
-            
-            # Convert payload to string
-            try:
-                message = payload.decode('ascii')
-                print(f"Received: {message} ({len(payload)} bytes)")
-            except UnicodeDecodeError:
-                print(f"Received raw bytes: {payload.hex()} ({len(payload)} bytes)")
-            
-            # Check for CRC error
-            if irq_flags & 0x20:
-                print("CRC error detected")
-        
-        time.sleep(0.01)  # Small delay to prevent CPU hogging
+def transmit_message(message):
+    payload = message.encode('ascii')  # Convert string to bytes
+    print(f"Transmitting: {message} ({len(payload)} bytes)")
+
+    # Reset FIFO pointer
+    spi_write(0x0D, 0x00)
+    
+    # Write payload to FIFO
+    for byte in payload:
+        spi_write(0x00, byte)
+    
+    # Set payload length
+    spi_write(0x22, len(payload))
+    
+    # Clear IRQ flags
+    spi_write(0x12, 0xFF)
+    
+    # Switch to TX mode
+    spi_write(0x01, 0x83)
+    
+    # Wait for TxDone interrupt (timeout after 5 seconds)
+    start_time = time.time()
+    while time.time() - start_time < 5:
+        if GPIO.input(DIO0) == 1:  # TxDone interrupt
+            print("Transmission complete!")
+            break
+        time.sleep(0.01)
+    
+    if time.time() - start_time >= 5:
+        print("TX timeout. IRQ flags:", hex(spi_read(0x12)))
+    
+    # Clear IRQ flags
+    spi_write(0x12, 0xFF)
+    
+    # Return to Standby mode
+    spi_write(0x01, 0x81)
+    time.sleep(0.1)
 
 def cleanup():
     spi.close()
@@ -128,7 +130,10 @@ def cleanup():
 if __name__ == "__main__":
     try:
         init_lora()
-        receive_loop()
+        message = "Hello, World!"
+        while True:
+            transmit_message(message)
+            time.sleep(5)  # Transmit every 5 seconds
     except KeyboardInterrupt:
         print("\nTerminating...")
         cleanup()
