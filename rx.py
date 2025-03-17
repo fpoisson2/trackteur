@@ -130,6 +130,42 @@ def send_to_traccar(latitude, longitude, altitude, timestamp):
             print(f"Failed to send data to Traccar. Status code: {response.status_code}")
     except requests.RequestException as e:
         print(f"Error sending data to Traccar: {e}")
+def send_ack():
+    """Send an ACK packet back to the transmitter."""
+    ack_payload = b"ACK"  # Simple ACK payload
+    
+    # Reset FIFO pointer
+    spi_write(0x0D, 0x00)
+    
+    # Write ACK payload to FIFO
+    for byte in ack_payload:
+        spi_write(0x00, byte)
+    
+    spi_write(0x22, len(ack_payload))  # Set payload length
+    
+    # Clear IRQ flags
+    spi_write(0x12, 0xFF)
+    
+    # Set channel (use the current channel from FHSS)
+    set_frequency(current_channel)
+    
+    # Switch to TX mode
+    spi_write(0x01, 0x83)
+    print("Sending ACK...")
+    
+    # Wait for TX to complete
+    start = time.time()
+    while time.time() - start < 2:
+        if spi_read(0x12) & 0x08:  # TxDone
+            print("ACK sent successfully!")
+            break
+        time.sleep(0.01)
+    
+    # Clear IRQ flags
+    spi_write(0x12, 0xFF)
+    
+    # Return to RX mode
+    spi_write(0x01, 0x85)
 
 def receive_loop():
     global current_channel
@@ -154,9 +190,6 @@ def receive_loop():
         if irq_flags & 0x40:
             print(f"IRQ Flags: {bin(irq_flags)} (0x{irq_flags:02x})")
             
-            # Clear IRQ flags
-            spi_write(0x12, 0xFF)
-            
             # Read payload length
             nb_bytes = spi_read(0x13)
             print(f"Packet size: {nb_bytes} bytes")
@@ -174,31 +207,38 @@ def receive_loop():
 
             print(f"Raw RX Payload ({len(payload)} bytes): {payload.hex()}")
             
-            # Decode payload if 14 bytes
-            if len(payload) == 14:
+            # Check for CRC error
+            crc_error = irq_flags & 0x20
+            
+            # Clear IRQ flags
+            spi_write(0x12, 0xFF)
+            
+            # Process payload if no CRC error
+            if not crc_error and len(payload) == 14:
                 try:
                     lat, lon, alt, timestamp = struct.unpack(">iiHI", payload)
                     latitude = lat / 1_000_000.0
                     longitude = lon / 1_000_000.0
-                    time_str = time.strftime("%Y-%m-d %H:%M:%S", time.gmtime(timestamp))
+                    time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(timestamp))
                     print(f"Received: Latitude={latitude}, Longitude={longitude}, Altitude={alt}m, Timestamp={time_str}")
                     
                     # Send data to Traccar
                     send_to_traccar(latitude, longitude, alt, timestamp)
+                    
+                    # Send ACK
+                    send_ack()
                 except struct.error as e:
                     print("Error decoding payload:", e)
+            elif crc_error:
+                print("CRC error detected, no ACK sent.")
             else:
-                print(f"Unexpected payload size: {nb_bytes} bytes (expected 14)")
+                print(f"Unexpected payload size: {nb_bytes} bytes (expected 14), no ACK sent.")
                 try:
                     message = ''.join(chr(b) for b in payload if 32 <= b <= 126)
                     print(f"Raw data: {payload.hex()}")
                     print(f"As text: {message}")
                 except Exception as e:
                     print(f"Error processing raw payload: {e}")
-            
-            # Check for CRC error
-            if irq_flags & 0x20:
-                print("CRC error detected")
         
         time.sleep(0.01)  # Small delay to prevent CPU hogging
 
