@@ -23,6 +23,23 @@ spi.open(0, 0)
 spi.max_speed_hz = 5000000
 spi.mode = 0b00
 
+# Frequency hopping channels (902.2 MHz to 927.8 MHz, 400 kHz spacing)
+FREQ_START = 902200000  # 902.2 MHz
+FREQ_STEP = 400000      # 400 kHz
+FXTAL = 32000000
+FRF_FACTOR = 2**19
+
+HOP_CHANNELS = []
+for i in range(64):
+    freq = FREQ_START + i * FREQ_STEP
+    frf = int((freq * FRF_FACTOR) / FXTAL)
+    msb = (frf >> 16) & 0xFF
+    mid = (frf >> 8) & 0xFF
+    lsb = frf & 0xFF
+    HOP_CHANNELS.append((msb, mid, lsb))
+
+current_channel = 0
+
 def spi_write(addr, val):
     GPIO.output(NSS, GPIO.LOW)
     spi.xfer2([addr | 0x80, val])
@@ -41,6 +58,13 @@ def reset_module():
     GPIO.output(RESET, GPIO.HIGH)
     time.sleep(0.1)
 
+def set_frequency(channel_idx):
+    global HOP_CHANNELS
+    msb, mid, lsb = HOP_CHANNELS[channel_idx]
+    spi_write(0x06, msb)  # RegFrfMsb
+    spi_write(0x07, mid)  # RegFrfMid
+    spi_write(0x08, lsb)  # RegFrfLsb
+
 def init_lora():
     reset_module()
     version = spi_read(0x42)
@@ -53,107 +77,104 @@ def init_lora():
     spi_write(0x01, 0x80)  # LoRa sleep mode
     time.sleep(0.1)
 
-    frequency = 915000000
-    frf = int(frequency / 61.03515625)
-    spi_write(0x06, (frf >> 16) & 0xFF)
-    spi_write(0x07, (frf >> 8) & 0xFF)
-    spi_write(0x08, frf & 0xFF)
+    # Set initial frequency to channel 0 (902.2 MHz)
+    set_frequency(0)
 
-    # RegModemConfig1 (0x1D): BW + CR + Explicit/Implicit Header
-    # BW = 0b0110 (62.5 kHz) [bits 7-4]
-    # CR = 0b100 (4/8) [bits 3-1]
-    # Explicit header = 0 [bit 0]
+    # RegModemConfig1: BW 62.5 kHz, CR 4/8, Implicit Header
     # 0110 100 0 = 0x68
-    spi_write(0x1D, 0x78)
+    spi_write(0x1D, 0x68)
     
-    # RegModemConfig2 (0x1E): SF + other settings
-    # SF = 12 (0b1100) [bits 7-4]
-    # TxContinuousMode = 0 [bit 3]
-    # RxPayloadCrcOn = 1 [bit 2]
-    # SymbTimeout MSB = 00 [bits 1-0]
+    # RegModemConfig2: SF12, CRC on
     # 1100 1 1 00 = 0xC4
     spi_write(0x1E, 0xC4)
     
-    # RegModemConfig3 (0x26): Low Data Rate Optimization + others
-    # Low Data Rate Optimization = 1 [bit 3]
-    # AgcAutoOn = 1 [bit 2]
-    # Reserved = 00000 (other bits)
+    # RegModemConfig3: LDRO on, AGC on
     # 0000 1 1 00 = 0x0C
     spi_write(0x26, 0x0C)
 
-    spi_write(0x20, 0x00)  # Preamble length MSB
-    spi_write(0x21, 0x08)  # Preamble length LSB
+    # Preamble length: 8 symbols
+    spi_write(0x20, 0x00)
+    spi_write(0x21, 0x08)
 
-    spi_write(0x40, 0x00)  # DIO0 mapped to RX done
+    # Enable frequency hopping: Hop every 5 symbols (~327.7 ms at 62.5 kHz)
+    spi_write(0x24, 5)  # RegHopPeriod
 
-    spi_write(0x0F, 0x00)  # FIFO RX base addr
-    spi_write(0x0D, 0x00)  # FIFO addr ptr
+    # Map DIO0 to FhssChangeChannel (bit 7:6 = 01)
+    spi_write(0x40, 0x40)
 
-    spi_write(0x01, 0x85)  # Continuous RX mode
+    # Set FIFO RX base addr and pointer
+    spi_write(0x0F, 0x00)
+    spi_write(0x0D, 0x00)
+
+    # Continuous RX mode
+    spi_write(0x01, 0x85)
 
 def receive_loop():
-    print("Listening for incoming LoRa packets...")
+    global current_channel
+    print("Listening for incoming LoRa packets with frequency hopping...")
     while True:
-        if GPIO.input(DIO0):
-            irq_flags = spi_read(0x12)
+        irq_flags = spi_read(0x12)
+        
+        # Check for FhssChangeChannel interrupt (bit 2)
+        if GPIO.input(DIO0) and (irq_flags & 0x04):
+            hop_channel = spi_read(0x1C)
+            current_channel = hop_channel & 0x3F
+            print(f"FHSS interrupt: Current channel {current_channel}")
+            
+            # Update to next channel
+            current_channel = (current_channel + 1) % len(HOP_CHANNELS)
+            set_frequency(current_channel)
+            
+            # Clear FhssChangeChannel interrupt
+            spi_write(0x12, 0x04)
+        
+        # Check for RX Done (bit 6)
+        if irq_flags & 0x40:
             print(f"IRQ Flags: {bin(irq_flags)} (0x{irq_flags:02x})")
             
-            # Check if RX done flag is set (bit 6)
-            if irq_flags & 0x40:
-                # Clear IRQ flags
-                spi_write(0x12, 0xFF)
-                
-                # Read payload length
-                nb_bytes = spi_read(0x13)
-                print(f"Packet size: {nb_bytes} bytes")
-                
-                # Read current FIFO address
-                current_addr = spi_read(0x10)
-                
-                # Set FIFO address pointer
-                spi_write(0x0D, current_addr)
-                
-                # Read payload
-                payload = bytearray()
-                for _ in range(nb_bytes):
-                    payload.append(spi_read(0x00))
-
-                print(f"Raw RX Payload ({len(payload)} bytes): {payload.hex()}")
-                
-                # If payload size is as expected (14 bytes), decode it
-                if len(payload) == 14:
-                    try:
-                        # Unpack binary payload using big-endian format:
-                        # >   : big-endian
-                        # i   : 4-byte signed integer (latitude)
-                        # i   : 4-byte signed integer (longitude)
-                        # H   : 2-byte unsigned integer (altitude) - CAPITAL H for unsigned
-                        # I   : 4-byte unsigned integer (timestamp)
-                        lat, lon, alt, timestamp = struct.unpack(">iiHI", payload)
-                        
-                        # Convert back to float with 6 decimal precision
-                        latitude = lat / 1_000_000.0
-                        longitude = lon / 1_000_000.0
-                        time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(timestamp))
-                        
-                        print(f"Received: Latitude={latitude}, Longitude={longitude}, Altitude={alt}m, Timestamp={time_str}")
-                    except struct.error as e:
-                        print("Error decoding payload:", e)
-                else:
-                    # Fallback: print raw payload if size doesn't match
-                    print(f"Unexpected payload size: {nb_bytes} bytes (expected 14)")
-                    try:
-                        message = ''.join(chr(b) for b in payload if 32 <= b <= 126)  # Convert printable ASCII only
-                        print(f"Raw data: {payload.hex()}")
-                        print(f"As text: {message}")
-                    except Exception as e:
-                        print(f"Error processing raw payload: {e}")
+            # Clear IRQ flags
+            spi_write(0x12, 0xFF)
             
-            # Also check for other IRQ flags for debugging
-            if irq_flags & 0x20:  # PayloadCrcError
+            # Read payload length
+            nb_bytes = spi_read(0x13)
+            print(f"Packet size: {nb_bytes} bytes")
+            
+            # Read current FIFO address
+            current_addr = spi_read(0x10)
+            
+            # Set FIFO address pointer
+            spi_write(0x0D, current_addr)
+            
+            # Read payload
+            payload = bytearray()
+            for _ in range(nb_bytes):
+                payload.append(spi_read(0x00))
+
+            print(f"Raw RX Payload ({len(payload)} bytes): {payload.hex()}")
+            
+            # Decode payload if 14 bytes
+            if len(payload) == 14:
+                try:
+                    lat, lon, alt, timestamp = struct.unpack(">iiHI", payload)
+                    latitude = lat / 1_000_000.0
+                    longitude = lon / 1_000_000.0
+                    time_str = time.strftime("%Y-%m-d %H:%M:%S", time.gmtime(timestamp))
+                    print(f"Received: Latitude={latitude}, Longitude={longitude}, Altitude={alt}m, Timestamp={time_str}")
+                except struct.error as e:
+                    print("Error decoding payload:", e)
+            else:
+                print(f"Unexpected payload size: {nb_bytes} bytes (expected 14)")
+                try:
+                    message = ''.join(chr(b) for b in payload if 32 <= b <= 126)
+                    print(f"Raw data: {payload.hex()}")
+                    print(f"As text: {message}")
+                except Exception as e:
+                    print(f"Error processing raw payload: {e}")
+            
+            # Check for CRC error
+            if irq_flags & 0x20:
                 print("CRC error detected")
-                spi_write(0x12, 0xFF)  # Clear all IRQ flags
-                
+        
         time.sleep(0.01)  # Small delay to prevent CPU hogging
 
 def cleanup():
