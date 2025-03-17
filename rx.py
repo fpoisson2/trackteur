@@ -59,7 +59,7 @@ def init_lora():
     spi_write(0x07, (frf >> 8) & 0xFF)
     spi_write(0x08, frf & 0xFF)
 
-    spi_write(0x1D, 0x62)  # BW=125kHz, CR=4/7
+    spi_write(0x1D, 0x6A)  # BW=125kHz, CR=4/7
     spi_write(0x1E, 0xC4)  # SF7, CRC on
 
     spi_write(0x20, 0x00)  # Preamble length MSB
