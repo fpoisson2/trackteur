@@ -4,6 +4,7 @@ import spidev
 import RPi.GPIO as GPIO
 import time
 import sys
+import struct
 
 # Pin definitions (BCM mode)
 RESET = 17
