@@ -17,7 +17,7 @@ DIO0  = 4    # DIO0 pin for interrupts
 
 # Global variables
 last_tx_time = 0
-TX_INTERVAL = 10  # Seconds between transmissions
+TX_INTERVAL = 60  # Seconds between transmissions
 
 # Frequency hopping configuration
 FREQ_START = 902200000  # 902.2 MHz
