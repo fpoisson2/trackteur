@@ -1,4 +1,3 @@
-#rx.py
 #!/usr/bin/env python3
 import spidev
 import RPi.GPIO as GPIO
@@ -76,39 +75,43 @@ def init_lora():
 def receive_loop():
     print("Listening for incoming LoRa packets...")
     while True:
-        if GPIO.input(DIO0):  # Packet received
+        if GPIO.input(DIO0):
             irq_flags = spi_read(0x12)
-            if irq_flags & 0x40:  # RX_DONE flag set
-                spi_write(0x12, 0xFF)  # Clear IRQ flags
-                
-                nb_bytes = spi_read(0x13)  # Get received payload length
+            # Check if RX done flag is set (bit 6)
+            if irq_flags & 0x40:
+                # Clear IRQ flags
+                spi_write(0x12, 0xFF)
+                nb_bytes = spi_read(0x13)
                 current_addr = spi_read(0x10)
-                spi_write(0x0D, current_addr)  # Set FIFO read pointer
+                spi_write(0x0D, current_addr)
 
                 payload = bytearray()
                 for _ in range(nb_bytes):
                     payload.append(spi_read(0x00))
 
-                if len(payload) == 14:  # Ensure expected payload size
-                    decode_payload(payload)
+                # If payload size is as expected (14 bytes), decode it
+                if len(payload) == 14:
+                    try:
+                        # Unpack binary payload using big-endian format:
+                        # >   : big-endian
+                        # i   : 4-byte signed integer (latitude)
+                        # i   : 4-byte signed integer (longitude)
+                        # h   : 2-byte signed integer (altitude)
+                        # I   : 4-byte unsigned integer (timestamp)
+                        lat, lon, alt, timestamp = struct.unpack(">iihI", payload)
+                        # Convert back to float with 6 decimal precision
+                        latitude = lat / 1_000_000.0
+                        longitude = lon / 1_000_000.0
+                        time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(timestamp))
+                        print(f"Received: Latitude={latitude}, Longitude={longitude}, Altitude={alt}m, Timestamp={time_str}")
+                    except struct.error as e:
+                        print("Error decoding payload:", e)
                 else:
-                    print(f"Received {len(payload)} bytes, but expected 14 bytes.")
+                    # Fallback: print raw payload if size doesn't match
+                    message = ''.join(chr(b) for b in payload)
+                    print(f"Received ({nb_bytes} bytes): {message}")
 
         time.sleep(0.01)
-
-def decode_payload(payload):
-    """Decodes binary GPS data from LoRa transmission."""
-    lat, lon, alt, timestamp = struct.unpack(">iiH I", payload)
-
-    latitude = lat / 1_000_000  # Convert back to float
-    longitude = lon / 1_000_000
-    ts_readable = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(timestamp))  # Convert timestamp
-
-    print(f"Received GPS Data:")
-    print(f" - Latitude:  {latitude:.6f}")
-    print(f" - Longitude: {longitude:.6f}")
-    print(f" - Altitude:  {alt} meters")
-    print(f" - Timestamp: {ts_readable} (UTC)")
 
 def cleanup():
     spi.close()
@@ -122,4 +125,3 @@ if __name__ == "__main__":
         print("\nTerminating...")
         cleanup()
         sys.exit(0)
-
