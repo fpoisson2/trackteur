@@ -91,6 +91,8 @@ def init_module():
 
 def spi_tx(payload):
     """Function to transmit binary payload using LoRa."""
+    print(f"Raw TX Payload ({len(payload)} bytes): {payload.hex()}")  # Print raw hex data
+
     # Reset FIFO pointer
     spi_write(0x0D, 0x00)
     
