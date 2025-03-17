@@ -154,11 +154,8 @@ def send_to_traccar(latitude, longitude, altitude, timestamp):
         print(f"Error sending data to Traccar: {e}")
 
 def send_ack():
-    """Send an ACK packet back to the transmitter using fixed channel."""
-    ack_payload = b"ACK"  # Simple ACK payload
-    
+    ack_payload = b"ACK"
     time.sleep(2)
-
     print("Preparing to send ACK...")
     
     # Disable frequency hopping for ACK
@@ -168,12 +165,12 @@ def send_ack():
     set_frequency(ACK_CHANNEL)
     print(f"Fixed frequency for ACK transmission on channel {ACK_CHANNEL}")
     
-    # Map DIO0 to TxDone for ACK transmission
+    # Map DIO0 to TxDone
     spi_write(0x40, 0x00)  # DIO0 = TxDone
     
     # Set FIFO TX base address and reset pointer
-    spi_write(0x0E, 0x00)  # FIFO TX base address
-    spi_write(0x0D, 0x00)  # Reset FIFO address pointer
+    spi_write(0x0E, 0x00)
+    spi_write(0x0D, 0x00)
     
     # Write ACK payload to FIFO
     for byte in ack_payload:
@@ -190,23 +187,28 @@ def send_ack():
     spi_write(0x01, 0x83)
     print("Sending ACK...")
     
-    # Wait for TX to complete by checking DIO0 pin directly
+    # Wait for TX to complete with extended timeout
     start = time.time()
-    while time.time() - start < 2:
-        if GPIO.input(DIO0) == 1:  # TxDone indication
-            irq_flags = spi_read(0x12)
-            if irq_flags & 0x08:  # TxDone bit
+    timeout = 5  # Increase timeout to 5 seconds
+    while time.time() - start < timeout:
+        irq_flags = spi_read(0x12)
+        if irq_flags & 0x08:  # Check TxDone bit directly
+            print("ACK sent successfully!")
+            break
+        elif GPIO.input(DIO0) == 1:  # Additional check for DIO0
+            print("DIO0 high detected, checking TxDone...")
+            if irq_flags & 0x08:
                 print("ACK sent successfully!")
                 break
         time.sleep(0.01)
-    
-    # Short delay to ensure transmission is complete
-    time.sleep(0.1)
+    else:
+        print("ACK transmission timed out. Check hardware or configuration.")
+        debug_registers()
     
     # Clear IRQ flags and restore settings
     spi_write(0x12, 0xFF)
     spi_write(0x24, 5)      # Re-enable frequency hopping
-    spi_write(0x40, 0x40)   # Restore DIO0 mapping to FhssChangeChannel
+    spi_write(0x40, 0x40)   # Restore DIO0 to FhssChangeChannel
     spi_write(0x0F, 0x00)   # Reset FIFO RX base addr
     spi_write(0x0D, 0x00)   # Reset FIFO pointer
     spi_write(0x01, 0x85)   # Return to continuous RX mode
