@@ -178,12 +178,14 @@ def spi_tx(payload, max_retries=3):
             continue
         
         # Switch to RX mode to listen for ACK
+        spi_write(0x40, 0x00)  # Map DIO0 to RxDone
         spi_write(0x01, 0x85)  # Continuous RX mode
-        print("Switched to RX mode, waiting for ACK...")
+        time.sleep(0.5)  # Wait 500 ms to ensure RX mode is stable
+        print(f"Switched to RX mode on channel {current_channel}, waiting for ACK...")
         
         # Wait for ACK (timeout after 2 seconds)
         start = time.time()
-        while time.time() - start < 2:
+        while time.time() - start < 5:
             irq_flags = spi_read(0x12)
             if irq_flags & 0x40:  # RxDone
                 nb_bytes = spi_read(0x13)

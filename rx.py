@@ -134,6 +134,10 @@ def send_ack():
     """Send an ACK packet back to the transmitter."""
     ack_payload = b"ACK"  # Simple ACK payload
     
+    # Increased delay to ensure transmitter is in RX mode
+    print(f"Preparing to send ACK on channel {current_channel}, waiting 500 ms...")
+    time.sleep(0.5)  # Wait 500 ms before sending ACK
+    
     # Reset FIFO pointer
     spi_write(0x0D, 0x00)
     
