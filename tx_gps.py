@@ -14,6 +14,9 @@ RESET = 17   # Reset pin
 NSS   = 25   # SPI Chip Select pin (manual control)
 DIO0  = 4    # DIO0 pin; WiringPi pin 7 corresponds to BCM GPIO4
 
+# Device ID (you can modify this as needed)
+DEVICE_ID = "001"
+
 # Setup GPIO in BCM mode
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
@@ -72,9 +75,13 @@ def init_module():
     spi_write(0x07, (frf >> 8) & 0xFF)   # RegFrfMid
     spi_write(0x08, frf & 0xFF)          # RegFrfLsb
     
-    # Minimal modem configuration (example values)
-    spi_write(0x1D, 0x72)  # RegModemConfig1: e.g., BW=125 kHz, CR=4/7, explicit header
-    spi_write(0x1E, 0x74)  # RegModemConfig2: e.g., SF7, CRC on
+    # --- Modem Configuration ---
+    # RegModemConfig1: BW=62.5 kHz (0x6 <<4) and CR=4/8 (0x4<<1) for explicit header (bit0=0)
+    spi_write(0x1D, 0x68)
+    # RegModemConfig2: SF12 (0xC <<4) with CRC on (0x04)
+    spi_write(0x1E, 0xC4)
+    # RegModemConfig3: Enable Low Data Rate Optimization (bit3 set)
+    spi_write(0x26, 0x08)
     
     # Set preamble length to 8 symbols
     spi_write(0x20, 0x00)  # RegPreambleMsb
@@ -115,7 +122,7 @@ def spi_tx(payload):
     time.sleep(0.1)
 
 def parse_gps(data):
-    """Extracts latitude, longitude, and other relevant data from NMEA sentences."""
+    """Extracts latitude, longitude, and other relevant data from NMEA sentences and sends a packet."""
     if data.startswith("$GNGGA") or data.startswith("$GPGGA"):  # Look for valid GPS sentences
         try:
             msg = pynmea2.parse(data)
@@ -125,7 +132,11 @@ def parse_gps(data):
             satellites = msg.num_sats
             fix_quality = msg.gps_qual
 
-            gps_data = f"Lat: {latitude}, Lon: {longitude}, Alt: {altitude}, Sats: {satellites}, Fix: {fix_quality}"
+            # Get current timestamp (UTC)
+            timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+
+            # Form a packet with header including device number, timestamp, and GPS data
+            gps_data = f"ID:{DEVICE_ID};TS:{timestamp};Lat:{latitude},Lon:{longitude},Alt:{altitude},Sats:{satellites},Fix:{fix_quality}"
             print(gps_data)
             spi_tx(gps_data)  # Send GPS data over LoRa
 

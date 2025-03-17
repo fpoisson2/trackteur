@@ -58,8 +58,13 @@ def init_lora():
     spi_write(0x07, (frf >> 8) & 0xFF)
     spi_write(0x08, frf & 0xFF)
 
-    spi_write(0x1D, 0x72)  # BW=125kHz, CR=4/7
-    spi_write(0x1E, 0x74)  # SF7, CRC on
+    # --- Modem Configuration ---
+    # RegModemConfig1: BW=62.5 kHz, CR=4/8
+    spi_write(0x1D, 0x68)
+    # RegModemConfig2: SF12 with CRC on
+    spi_write(0x1E, 0xC4)
+    # RegModemConfig3: Enable Low Data Rate Optimization
+    spi_write(0x26, 0x08)
 
     spi_write(0x20, 0x00)  # Preamble length MSB
     spi_write(0x21, 0x08)  # Preamble length LSB
@@ -77,6 +82,7 @@ def receive_loop():
         if GPIO.input(DIO0):
             irq_flags = spi_read(0x12)
             if irq_flags & 0x40:
+                # Clear IRQ flags
                 spi_write(0x12, 0xFF)
                 nb_bytes = spi_read(0x13)
                 current_addr = spi_read(0x10)
@@ -103,4 +109,3 @@ if __name__ == "__main__":
         print("\nTerminating...")
         cleanup()
         sys.exit(0)
-
