@@ -164,7 +164,7 @@ def send_ack():
     set_frequency(ACK_CHANNEL)
     print(f"Set frequency to {FREQ_START/1000000} MHz for ACK transmission")
     
-    spi_write(0x40, 0x00)  # DIO0 = TxDone
+    spi_write(0x40, 0x40)  # DIO0 = TxDone
     time.sleep(0.01)
     
     spi_write(0x0E, 0x00)  # RegFifoTxBaseAddr
