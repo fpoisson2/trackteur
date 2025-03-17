@@ -179,35 +179,38 @@ def spi_tx(payload, max_retries=3):
         
         # Switch to RX mode to listen for ACK
         spi_write(0x40, 0x00)  # Map DIO0 to RxDone
+        spi_write(0x0F, 0x00)  # Set RX FIFO base address
+        spi_write(0x0D, 0x00)  # Reset FIFO pointer
         spi_write(0x01, 0x85)  # Continuous RX mode
-        time.sleep(0.5)  # Wait 500 ms to ensure RX mode is stable
         print(f"Switched to RX mode on channel {current_channel}, waiting for ACK...")
-        
-        # Wait for ACK (timeout after 2 seconds)
+
+        # Wait for ACK (timeout after 5 seconds)
         start = time.time()
         while time.time() - start < 5:
-            irq_flags = spi_read(0x12)
-            if irq_flags & 0x40:  # RxDone
-                nb_bytes = spi_read(0x13)
-                current_addr = spi_read(0x10)
-                spi_write(0x0D, current_addr)
-                
-                # Read ACK payload
-                ack_payload = bytearray()
-                for _ in range(nb_bytes):
-                    ack_payload.append(spi_read(0x00))
-                
-                # Define expected ACK (e.g., "ACK" in bytes)
-                expected_ack = b"ACK"
-                if ack_payload == expected_ack:
-                    print("ACK received successfully!")
-                    ack_received = True
-                else:
-                    print(f"Unexpected ACK payload: {ack_payload.hex()}")
-                
-                # Clear IRQ flags
-                spi_write(0x12, 0xFF)
-                break
+            if GPIO.input(DIO0) == 1:  # Check pin directly
+                irq_flags = spi_read(0x12)
+                if irq_flags & 0x40:  # RxDone
+                    nb_bytes = spi_read(0x13)
+                    current_addr = spi_read(0x10)
+                    spi_write(0x0D, current_addr)
+                    
+                    # Read ACK payload
+                    ack_payload = bytearray()
+                    for _ in range(nb_bytes):
+                        ack_payload.append(spi_read(0x00))
+                    
+                    print(f"Received payload: {ack_payload.hex()}")
+                    # Define expected ACK
+                    expected_ack = b"ACK"
+                    if ack_payload == expected_ack:
+                        print("ACK received successfully!")
+                        ack_received = True
+                    else:
+                        print(f"Unexpected ACK payload: {ack_payload.hex()}")
+                    
+                    # Clear IRQ flags
+                    spi_write(0x12, 0xFF)
+                    break
             
             time.sleep(0.01)
         

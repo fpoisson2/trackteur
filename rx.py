@@ -130,13 +130,13 @@ def send_to_traccar(latitude, longitude, altitude, timestamp):
             print(f"Failed to send data to Traccar. Status code: {response.status_code}")
     except requests.RequestException as e:
         print(f"Error sending data to Traccar: {e}")
+
 def send_ack():
     """Send an ACK packet back to the transmitter."""
     ack_payload = b"ACK"  # Simple ACK payload
     
-    # Increased delay to ensure transmitter is in RX mode
-    print(f"Preparing to send ACK on channel {current_channel}, waiting 500 ms...")
-    time.sleep(0.5)  # Wait 500 ms before sending ACK
+    # First, change DIO0 mapping to TxDone
+    spi_write(0x40, 0x00)  # Map DIO0 to TxDone
     
     # Reset FIFO pointer
     spi_write(0x0D, 0x00)
@@ -152,23 +152,24 @@ def send_ack():
     
     # Set channel (use the current channel from FHSS)
     set_frequency(current_channel)
-
-    time.sleep(1)
     
     # Switch to TX mode
     spi_write(0x01, 0x83)
     print("Sending ACK...")
     
-    # Wait for TX to complete
+    # Wait for TX to complete by checking DIO0 pin directly
     start = time.time()
     while time.time() - start < 2:
-        if spi_read(0x12) & 0x08:  # TxDone
+        if GPIO.input(DIO0) == 1:  # TxDone
             print("ACK sent successfully!")
             break
         time.sleep(0.01)
     
     # Clear IRQ flags
     spi_write(0x12, 0xFF)
+    
+    # Restore DIO0 mapping to FhssChangeChannel
+    spi_write(0x40, 0x40)
     
     # Return to RX mode
     spi_write(0x01, 0x85)
