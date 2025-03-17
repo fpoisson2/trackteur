@@ -59,8 +59,27 @@ def init_lora():
     spi_write(0x07, (frf >> 8) & 0xFF)
     spi_write(0x08, frf & 0xFF)
 
-    spi_write(0x1D, 0x72)  # BW=125kHz, CR=4/7
-    spi_write(0x1E, 0x74)  # SF7, CRC on
+    # RegModemConfig1 (0x1D): BW + CR + Explicit/Implicit Header
+    # BW = 0b0110 (62.5 kHz) [bits 7-4]
+    # CR = 0b100 (4/8) [bits 3-1]
+    # Explicit header = 0 [bit 0]
+    # 0110 100 0 = 0x68
+    spi_write(0x1D, 0x68)
+    
+    # RegModemConfig2 (0x1E): SF + other settings
+    # SF = 12 (0b1100) [bits 7-4]
+    # TxContinuousMode = 0 [bit 3]
+    # RxPayloadCrcOn = 1 [bit 2]
+    # SymbTimeout MSB = 00 [bits 1-0]
+    # 1100 1 1 00 = 0xC4
+    spi_write(0x1E, 0xC4)
+    
+    # RegModemConfig3 (0x26): Low Data Rate Optimization + others
+    # Low Data Rate Optimization = 1 [bit 3]
+    # AgcAutoOn = 1 [bit 2]
+    # Reserved = 00000 (other bits)
+    # 0000 1 1 00 = 0x0C
+    spi_write(0x26, 0x0C)
 
     spi_write(0x20, 0x00)  # Preamble length MSB
     spi_write(0x21, 0x08)  # Preamble length LSB
