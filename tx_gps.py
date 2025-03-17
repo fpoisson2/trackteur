@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import serial
 import pynmea2
 import spidev
@@ -6,6 +5,7 @@ import RPi.GPIO as GPIO
 import time
 import sys
 import struct
+import threading
 
 # GPS Serial Port Configuration
 GPS_PORT = "/dev/ttyAMA0"
@@ -19,15 +19,16 @@ DIO0  = 4    # DIO0 pin for interrupts
 # Global variables
 last_tx_time = 0
 TX_INTERVAL = 10  # Seconds between transmissions
+waiting_for_ack = False
+ack_received = False
+ack_timeout = 3  # Seconds to wait for ACK
+message_id = 0   # Incrementing message ID for ACK matching
 
 # Frequency hopping configuration
 FREQ_START = 902200000  # 902.2 MHz
 FREQ_STEP = 400000      # 400 kHz
 FXTAL = 32000000
 FRF_FACTOR = 2**19
-
-# Define fixed ACK channel
-ACK_CHANNEL = 0  # Using channel 0 (902.2 MHz) for ACK
 
 HOP_CHANNELS = []
 for i in range(64):
@@ -78,26 +79,9 @@ def reset_module():
 def set_frequency(channel_idx):
     global HOP_CHANNELS
     msb, mid, lsb = HOP_CHANNELS[channel_idx]
-    freq_hz = (((msb << 16) | (mid << 8) | lsb) * FXTAL) / FRF_FACTOR
-    print(f"Setting frequency to {freq_hz/1000000:.3f} MHz (channel {channel_idx})")
     spi_write(0x06, msb)  # RegFrfMsb
     spi_write(0x07, mid)  # RegFrfMid
     spi_write(0x08, lsb)  # RegFrfLsb
-
-def debug_registers():
-    """Print important register values for debugging."""
-    print("--- DEBUG REGISTERS ---")
-    print(f"RegOpMode (0x01): 0b{spi_read(0x01):08b}")
-    print(f"RegDioMapping1 (0x40): 0b{spi_read(0x40):08b}")
-    print(f"RegIrqFlags (0x12): 0b{spi_read(0x12):08b}")
-    print(f"RegFifoRxBaseAddr (0x0F): 0x{spi_read(0x0F):02x}")
-    print(f"RegFifoAddrPtr (0x0D): 0x{spi_read(0x0D):02x}")
-    print(f"RegModemConfig1 (0x1D): 0b{spi_read(0x1D):08b}")
-    print(f"RegModemConfig2 (0x1E): 0b{spi_read(0x1E):08b}")
-    print(f"RegModemConfig3 (0x26): 0b{spi_read(0x26):08b}")
-    print(f"RegSymbTimeoutLsb (0x1F): {spi_read(0x1F)}")
-    print(f"RegHopPeriod (0x24): {spi_read(0x24)}")
-    print("----------------------")
 
 def init_module():
     reset_module()
@@ -108,16 +92,17 @@ def init_module():
         cleanup()
         sys.exit(1)
     
-    spi_write(0x01, 0x80)  # Sleep mode with LoRa enabled
+    # Put module in Sleep mode with LoRa enabled
+    spi_write(0x01, 0x80)
     time.sleep(0.1)
     
-    # Map DIO0 to FhssChangeChannel (bit 7:6 = 01)
-    spi_write(0x40, 0x40)
+    # Map DIO0 to RxDone in receive mode (we'll change this for TX)
+    spi_write(0x40, 0x00)
     
     # Set initial frequency to channel 0 (902.2 MHz)
     set_frequency(0)
     
-    # RegModemConfig1: BW 125 kHz, CR 4/8, Explicit Header
+    # RegModemConfig1: BW 125 kHz, CR 4/8, Implicit Header
     spi_write(0x1D, 0x78)
     
     # RegModemConfig2: SF12, CRC on
@@ -126,29 +111,124 @@ def init_module():
     # RegModemConfig3: LDRO on, AGC on
     spi_write(0x26, 0x0C)
     
-    # Preamble length: 8 symbols
+    # Set preamble length to 8 symbols
     spi_write(0x20, 0x00)
     spi_write(0x21, 0x08)
     
-    # Enable frequency hopping: Hop every 5 symbols
-    spi_write(0x24, 5)
+    # Enable frequency hopping: Hop every 5 symbols (~327.7 ms at 62.5 kHz)
+    spi_write(0x24, 5)  # RegHopPeriod
     
-    # PA configuration: +20 dBm with PA_BOOST
+    # Set PA configuration: +20 dBm with PA_BOOST
     spi_write(0x09, 0x8F)
     
-    # Set FIFO TX base address and pointer
-    spi_write(0x0E, 0x00)
-    spi_write(0x0D, 0x00)
+    # Set FIFO TX/RX base address
+    spi_write(0x0E, 0x00)  # TX base address
+    spi_write(0x0F, 0x00)  # RX base address
     
-    spi_write(0x01, 0x81)  # Standby mode
+    # Put module in standby mode
+    spi_write(0x01, 0x81)
+    time.sleep(0.1)
+
+def setup_rx_mode():
+    # Set FIFO address pointer to RX base address
+    spi_write(0x0D, spi_read(0x0F))
+    
+    # Set DIO0 mapping for RxDone
+    spi_write(0x40, 0x00)
+    
+    # Clear all IRQ flags
+    spi_write(0x12, 0xFF)
+    
+    # Set to continuous RX mode
+    spi_write(0x01, 0x85)
+    print("Waiting for ACK...")
+
+def setup_tx_mode():
+    # Set FIFO address pointer to TX base address
+    spi_write(0x0D, spi_read(0x0E))
+    
+    # Set DIO0 mapping for TxDone
+    spi_write(0x40, 0x40)  # For frequency hopping
+    
+    # Clear all IRQ flags
+    spi_write(0x12, 0xFF)
+    
+    # Go to standby mode first
+    spi_write(0x01, 0x81)
+    time.sleep(0.1)
+
+def receive_ack():
+    global ack_received, waiting_for_ack, current_channel
+    
+    # Setup RX mode
+    setup_rx_mode()
+    
+    # Wait for ACK with timeout
+    start_time = time.time()
+    while time.time() - start_time < ack_timeout:
+        irq_flags = spi_read(0x12)
+        
+        # Check for RX Done (bit 6)
+        if irq_flags & 0x40:
+            # Clear IRQ flags
+            spi_write(0x12, 0xFF)
+            
+            # Read payload length
+            nb_bytes = spi_read(0x13)
+            
+            # Read current FIFO address
+            current_addr = spi_read(0x10)
+            
+            # Set FIFO address pointer
+            spi_write(0x0D, current_addr)
+            
+            # Read payload
+            payload = bytearray()
+            for _ in range(nb_bytes):
+                payload.append(spi_read(0x00))
+            
+            print(f"Received ACK payload ({len(payload)} bytes): {payload.hex()}")
+            
+            # Check if this is an ACK with matching message ID
+            if len(payload) == 3 and payload[0] == 0xAA and payload[1] == message_id:
+                ack_received = True
+                print(f"ACK received for message ID {message_id}")
+                break
+        
+        time.sleep(0.01)
+    
+    waiting_for_ack = False
+    
+    # Go back to standby mode
+    spi_write(0x01, 0x81)
     time.sleep(0.1)
     
-    debug_registers()
+    if not ack_received:
+        print(f"ACK timeout for message ID {message_id}")
 
-def spi_tx(payload, max_retries=3):
-    global current_channel
-    attempt = 0
-    ack_received = False
+def spi_tx(payload):
+    global current_channel, message_id, waiting_for_ack, ack_received
+    
+    # Add message ID to payload (use first byte as message type = 0x01 for data)
+    message_id = (message_id + 1) % 256
+    full_payload = bytes([0x01, message_id]) + payload
+    
+    print(f"Raw TX Payload ({len(full_payload)} bytes): {full_payload.hex()}")
+
+    # Setup for TX mode
+    setup_tx_mode()
+    
+    # Reset FIFO pointer
+    spi_write(0x0D, 0x00)
+    
+    # Write binary payload into FIFO
+    for byte in full_payload:
+        spi_write(0x00, byte)
+    
+    spi_write(0x22, len(full_payload))  # Set payload length
+    
+    # Clear IRQ flags
+    spi_write(0x12, 0xFF)
     
     # Set initial channel
     current_channel = 0
@@ -156,118 +236,65 @@ def spi_tx(payload, max_retries=3):
     
     # Switch to TX mode
     spi_write(0x01, 0x83)
-    print(f"Transmitting {len(payload)} bytes with frequency hopping.")
-
-    # Give a moment for transmission to start
-    time.sleep(0.1)
-    
-    # Remap DIO0 to TxDone (bit 7:6 = 00)
-    spi_write(0x40, 0x00)
+    print(f"Transmitting {len(full_payload)} bytes with frequency hopping (Message ID: {message_id})")
 
     # Handle frequency hopping during transmission
     start = time.time()
     while time.time() - start < 5:  # Timeout after 5 seconds
-        if GPIO.input(DIO0) == 1:  # FhssChangeChannel interrupt
-            # Read current channel and IRQ flags
-            hop_channel = spi_read(0x1C)
-            current_channel = hop_channel & 0x3F
-            print(f"FHSS interrupt: Current channel {current_channel}")
+        if GPIO.input(DIO0) == 1:
+            irq_flags = spi_read(0x12)
             
-            # Update to next channel
-            current_channel = (current_channel + 1) % len(HOP_CHANNELS)
-            set_frequency(current_channel)
+            # Check for FhssChangeChannel (bit 2)
+            if irq_flags & 0x04:
+                hop_channel = spi_read(0x1C)
+                current_channel = hop_channel & 0x3F
+                print(f"FHSS interrupt: Current channel {current_channel}")
+                
+                # Update to next channel
+                current_channel = (current_channel + 1) % len(HOP_CHANNELS)
+                set_frequency(current_channel)
+                
+                # Clear FhssChangeChannel interrupt
+                spi_write(0x12, 0x04)
             
-            # Clear FhssChangeChannel interrupt
-            spi_write(0x12, 0x04)
+            # Check for TX Done (bit 3)
+            if irq_flags & 0x08:
+                print("Transmission complete!")
+                break
         
-        # Check for TX Done (bit 3 in RegIrqFlags)
-        irq_flags = spi_read(0x12)
-        if irq_flags & 0x08:  # TxDone flag
-            print("Transmission complete!")
-            break   
-        
-        # Put module in Sleep mode with LoRa enabled (RegOpMode)
-        spi_write(0x01, 0x80)
-        time.sleep(0.1)
-        
-        # Explicitly set DIO mapping: Map DIO0 to TX done.
-        spi_write(0x40, 0x40)  # DIO0 mapped to TxDone (bits 7-6 = 01)
-        
-        # Set frequency to 915 MHz (matching RX script)
-        frequency = 915000000
-        frf = int(frequency / 61.03515625)
-        spi_write(0x06, (frf >> 16) & 0xFF)  # RegFrfMsb
-        spi_write(0x07, (frf >> 8) & 0xFF)   # RegFrfMid
-        spi_write(0x08, frf & 0xFF)          # RegFrfLsb
-        
-        # Modem configuration (matching RX script)
-        spi_write(0x1D, 0x78)  # RegModemConfig1: BW=125 kHz, CR=4/7, explicit header
-        spi_write(0x1E, 0xC4)  # RegModemConfig2: SF7, CRC on
-        spi_write(0x26, 0x0C)  # RegModemConfig3: LDRO on, AGC on
-        
-        # Set preamble length to 8 symbols
-        spi_write(0x20, 0x00)  # RegPreambleMsb
-        spi_write(0x21, 0x08)  # RegPreambleLsb
-        
-        # Set PA configuration (example value; adjust if needed)
-        spi_write(0x09, 0x8F)  # RegPaConfig: +20 dBm with PA_BOOST
-        
-        # Set FIFO TX base address to 0 and reset FIFO pointer
-        spi_write(0x0E, 0x00)  # RegFifoTxBaseAddr
-        spi_write(0x0D, 0x00)  # RegFifoAddrPtr
-        spi_write(0x1D, 0x78)  # RegModemConfig1: e.g., BW=125 kHz, CR=4/7, explicit header
-        spi_write(0x1E, 0xC4)  # RegModemConfig2: e.g., SF7, CRC on
-        spi_write(0x26, 0x0C)
-        spi_write(0x0F, 0x00)  # Set RX FIFO base address
-        spi_write(0x0D, 0x00)  # Reset FIFO pointer
-        #spi_write(0x40, 0x00)  # Map DIO0 to RxDone
-        #spi_write(0x12, 0xFF)  # Clear IRQ flags
-        
-        spi_write(0x01, 0x85)  # Switch to continuous RX mode
-        print("Switched to RX mode, waiting for ACK...")
-        
-        start_ack = time.time()
-        while time.time() - start_ack < 10:  # 10-second timeout
-            if GPIO.input(DIO0) == 1:
-                irq_flags = spi_read(0x12)
-                if irq_flags & 0x40:  # RxDone
-                    if irq_flags & 0x20:  # CRC error
-                        print("CRC error in received ACK!")
-                        spi_write(0x12, 0xFF)
-                        continue
-                    nb_bytes = spi_read(0x13)
-                    current_addr = spi_read(0x10)
-                    spi_write(0x0D, current_addr)
-                    ack_payload = bytearray()
-                    for _ in range(nb_bytes):
-                        ack_payload.append(spi_read(0x00))
-                    print(f"Received payload: {ack_payload.hex()}")
-                    if ack_payload == "ACK":
-                        print("ACK received successfully!")
-                        ack_received = True
-                    else:
-                        print(f"Unexpected payload: {ack_payload.hex()}")
-                    spi_write(0x12, 0xFF)  # Clear IRQ flags
-                    break
-            time.sleep(0.05)
-        
-        # Restore settings for next transmission
-        spi_write(0x01, 0x81)  # Standby mode
         time.sleep(0.01)
-        spi_write(0x24, 5)     # Re-enable frequency hopping
-        spi_write(0x40, 0x40)  # Restore DIO0 to FhssChangeChannel
     
-    if ack_received:
-        print("Transmission successful with ACK.")
-    else:
-        print(f"Failed to receive ACK after {max_retries} attempts.")
+    if time.time() - start >= 5:
+        print("TX timeout. IRQ flags:", hex(spi_read(0x12)))
+    
+    # Clear all IRQ flags
+    spi_write(0x12, 0xFF)
+    
+    # Return to standby mode
+    spi_write(0x01, 0x81)
+    time.sleep(0.1)
+    
+    # Wait for ACK
+    waiting_for_ack = True
+    ack_received = False
+    
+    # Start ACK receiver in a separate thread
+    ack_thread = threading.Thread(target=receive_ack)
+    ack_thread.daemon = True
+    ack_thread.start()
+    
+    # Wait for ACK thread to complete
+    ack_thread.join()
+    
     return ack_received
 
 def parse_gps(data):
     global last_tx_time
+    
     current_time = time.time()
     if last_tx_time > 0 and (current_time - last_tx_time) < TX_INTERVAL:
         return
+    
     if data.startswith("$GNGGA") or data.startswith("$GPGGA"):
         try:
             msg = pynmea2.parse(data)
@@ -276,12 +303,18 @@ def parse_gps(data):
             alt = int(msg.altitude)
             timestamp = int(time.time())
             payload = struct.pack(">iiHI", lat, lon, alt, timestamp)
+            
             print(f"TX: lat={lat/1_000_000}, lon={lon/1_000_000}, alt={alt}m, ts={timestamp}")
+            
+            # Send data and wait for ACK
             if spi_tx(payload):
-                last_tx_time = time.time()
-                print(f"Next transmission in {TX_INTERVAL} seconds")
+                print("Successfully sent with ACK")
             else:
-                print("Transmission failed, will retry on next GPS fix.")
+                print("Failed to receive ACK, will retry next cycle")
+                
+            last_tx_time = time.time()
+            print(f"Next transmission in {TX_INTERVAL} seconds")
+        
         except pynmea2.ParseError as e:
             print(f"Parse error: {e}")
         except Exception as e:
