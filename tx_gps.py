@@ -74,7 +74,7 @@ def init_module():
     spi_write(0x08, frf & 0xFF)          # RegFrfLsb
     
     # Minimal modem configuration (example values)
-    spi_write(0x1D, 0x72)  # RegModemConfig1: e.g., BW=125 kHz, CR=4/7, explicit header
+    spi_write(0x1D, 0x62)  # RegModemConfig1: e.g., BW=125 kHz, CR=4/7, explicit header
     spi_write(0x1E, 0x74)  # RegModemConfig2: e.g., SF7, CRC on
     
     # Set preamble length to 8 symbols
