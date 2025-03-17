@@ -65,43 +65,6 @@ def set_frequency(channel_idx):
     spi_write(0x07, mid)  # RegFrfMid
     spi_write(0x08, lsb)  # RegFrfLsb
 
-def read_frequency_error():
-    """
-    Read the frequency error registers (MSB, MID, LSB) from the SX1276.
-    Returns the signed error value.
-    """
-    fei_msb = spi_read(0x28)
-    fei_mid = spi_read(0x29)
-    fei_lsb = spi_read(0x2A)
-    # Combine into a 20-bit value
-    error = (fei_msb << 16) | (fei_mid << 8) | fei_lsb
-    # Convert to signed value (20-bit two's complement)
-    if error & 0x80000:
-        error = error - 0x100000
-    return error
-
-def adjust_frequency():
-    """
-    Calculates the frequency error in Hz and adjusts the current frequency.
-    The correction calculation depends on the oscillator frequency (FXTAL)
-    and the FRF conversion factor.
-    """
-    error = read_frequency_error()
-    # Calculate offset in Hz; conversion factor: FXTAL / (2^19)
-    correction = error * (FXTAL / (2**19))
-    # Determine current frequency based on hopping channel
-    current_freq = FREQ_START + current_channel * FREQ_STEP
-    new_freq = current_freq - correction
-    # Convert new frequency to register values
-    frf = int((new_freq * FRF_FACTOR) / FXTAL)
-    msb = (frf >> 16) & 0xFF
-    mid = (frf >> 8) & 0xFF
-    lsb = frf & 0xFF
-    spi_write(0x06, msb)
-    spi_write(0x07, mid)
-    spi_write(0x08, lsb)
-    print(f"Applied frequency correction: {correction:.2f} Hz, new frequency: {new_freq:.2f} Hz")
-
 def init_lora():
     reset_module()
     version = spi_read(0x42)
@@ -117,13 +80,16 @@ def init_lora():
     # Set initial frequency to channel 0 (902.2 MHz)
     set_frequency(0)
 
-    # RegModemConfig1: BW 125 kHz, CR 4/8, Implicit Header Mode
+    # RegModemConfig1: BW 125 kHz, CR 4/8, Implicit Header
+    # 0110 100 0 = 0x68
     spi_write(0x1D, 0x78)
     
     # RegModemConfig2: SF12, CRC on
+    # 1100 1 1 00 = 0xC4
     spi_write(0x1E, 0xC4)
     
     # RegModemConfig3: LDRO on, AGC on
+    # 0000 1 1 00 = 0x0C
     spi_write(0x26, 0x0C)
 
     # Preamble length: 8 symbols
@@ -136,7 +102,7 @@ def init_lora():
     # Map DIO0 to FhssChangeChannel (bit 7:6 = 01)
     spi_write(0x40, 0x40)
 
-    # Set FIFO RX base address and pointer
+    # Set FIFO RX base addr and pointer
     spi_write(0x0F, 0x00)
     spi_write(0x0D, 0x00)
 
@@ -192,7 +158,7 @@ def receive_loop():
                     lat, lon, alt, timestamp = struct.unpack(">iiHI", payload)
                     latitude = lat / 1_000_000.0
                     longitude = lon / 1_000_000.0
-                    time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(timestamp))
+                    time_str = time.strftime("%Y-%m-d %H:%M:%S", time.gmtime(timestamp))
                     print(f"Received: Latitude={latitude}, Longitude={longitude}, Altitude={alt}m, Timestamp={time_str}")
                 except struct.error as e:
                     print("Error decoding payload:", e)
@@ -208,9 +174,6 @@ def receive_loop():
             # Check for CRC error
             if irq_flags & 0x20:
                 print("CRC error detected")
-            
-            # Apply automatic frequency correction after processing the packet
-            adjust_frequency()
         
         time.sleep(0.01)  # Small delay to prevent CPU hogging
 
