@@ -111,7 +111,7 @@ def receive_loop():
                     message = ''.join(chr(b) for b in payload)
                     print(f"Received ({nb_bytes} bytes): {message}")
 
-        time.sleep(60)
+        time.sleep(0.01)
 
 def cleanup():
     spi.close()

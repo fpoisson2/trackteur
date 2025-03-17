@@ -149,6 +149,7 @@ def read_gps():
                 line = ser.readline().decode('ascii', errors='replace').strip()
                 if line:
                     parse_gps(line)
+                time.sleep(60)
     except serial.SerialException as e:
         print(f"Serial error: {e}")
 
