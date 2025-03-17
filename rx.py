@@ -77,42 +77,65 @@ def receive_loop():
     while True:
         if GPIO.input(DIO0):
             irq_flags = spi_read(0x12)
+            print(f"IRQ Flags: {bin(irq_flags)} (0x{irq_flags:02x})")
+            
             # Check if RX done flag is set (bit 6)
             if irq_flags & 0x40:
                 # Clear IRQ flags
                 spi_write(0x12, 0xFF)
+                
+                # Read payload length
                 nb_bytes = spi_read(0x13)
+                print(f"Packet size: {nb_bytes} bytes")
+                
+                # Read current FIFO address
                 current_addr = spi_read(0x10)
+                
+                # Set FIFO address pointer
                 spi_write(0x0D, current_addr)
-
+                
+                # Read payload
                 payload = bytearray()
                 for _ in range(nb_bytes):
                     payload.append(spi_read(0x00))
 
+                print(f"Raw RX Payload ({len(payload)} bytes): {payload.hex()}")
+                
                 # If payload size is as expected (14 bytes), decode it
                 if len(payload) == 14:
                     try:
-                        print(f"Raw RX Payload ({len(payload)} bytes): {payload.hex()}")
                         # Unpack binary payload using big-endian format:
                         # >   : big-endian
                         # i   : 4-byte signed integer (latitude)
                         # i   : 4-byte signed integer (longitude)
-                        # h   : 2-byte signed integer (altitude)
+                        # H   : 2-byte unsigned integer (altitude) - CAPITAL H for unsigned
                         # I   : 4-byte unsigned integer (timestamp)
-                        lat, lon, alt, timestamp = struct.unpack(">iihI", payload)
+                        lat, lon, alt, timestamp = struct.unpack(">iiHI", payload)
+                        
                         # Convert back to float with 6 decimal precision
                         latitude = lat / 1_000_000.0
                         longitude = lon / 1_000_000.0
                         time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(timestamp))
+                        
                         print(f"Received: Latitude={latitude}, Longitude={longitude}, Altitude={alt}m, Timestamp={time_str}")
                     except struct.error as e:
                         print("Error decoding payload:", e)
                 else:
                     # Fallback: print raw payload if size doesn't match
-                    message = ''.join(chr(b) for b in payload)
-                    print(f"Received ({nb_bytes} bytes): {message}")
-
-        time.sleep(0.01)
+                    print(f"Unexpected payload size: {nb_bytes} bytes (expected 14)")
+                    try:
+                        message = ''.join(chr(b) for b in payload if 32 <= b <= 126)  # Convert printable ASCII only
+                        print(f"Raw data: {payload.hex()}")
+                        print(f"As text: {message}")
+                    except Exception as e:
+                        print(f"Error processing raw payload: {e}")
+            
+            # Also check for other IRQ flags for debugging
+            if irq_flags & 0x20:  # PayloadCrcError
+                print("CRC error detected")
+                spi_write(0x12, 0xFF)  # Clear all IRQ flags
+                
+        time.sleep(0.01)  # Small delay to prevent CPU hogging
 
 def cleanup():
     spi.close()
