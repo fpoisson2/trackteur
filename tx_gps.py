@@ -195,10 +195,43 @@ def spi_tx(payload, max_retries=3):
         time.sleep(0.01)       # Stabilize
         
         spi_write(0x24, 0)     # Disable frequency hopping
-        set_frequency(ACK_CHANNEL)  # Fixed frequency for ACK
-        print(f"Set frequency to {FREQ_START/1000000} MHz for ACK reception")
+        reset_module()
+        version = spi_read(0x42)
+        print(f"SX1276 Version: {hex(version)}")
+        if version != 0x12:
+            print("Module not detected! Check wiring and power.")
+            cleanup()
+            sys.exit(1)
         
-
+        # Put module in Sleep mode with LoRa enabled (RegOpMode)
+        spi_write(0x01, 0x80)
+        time.sleep(0.1)
+        
+        # Explicitly set DIO mapping: Map DIO0 to TX done.
+        spi_write(0x40, 0x40)  # DIO0 mapped to TxDone (bits 7-6 = 01)
+        
+        # Set frequency to 915 MHz (matching RX script)
+        frequency = 915000000
+        frf = int(frequency / 61.03515625)
+        spi_write(0x06, (frf >> 16) & 0xFF)  # RegFrfMsb
+        spi_write(0x07, (frf >> 8) & 0xFF)   # RegFrfMid
+        spi_write(0x08, frf & 0xFF)          # RegFrfLsb
+        
+        # Modem configuration (matching RX script)
+        spi_write(0x1D, 0x78)  # RegModemConfig1: BW=125 kHz, CR=4/7, explicit header
+        spi_write(0x1E, 0xC4)  # RegModemConfig2: SF7, CRC on
+        spi_write(0x26, 0x0C)  # RegModemConfig3: LDRO on, AGC on
+        
+        # Set preamble length to 8 symbols
+        spi_write(0x20, 0x00)  # RegPreambleMsb
+        spi_write(0x21, 0x08)  # RegPreambleLsb
+        
+        # Set PA configuration (example value; adjust if needed)
+        spi_write(0x09, 0x8F)  # RegPaConfig: +20 dBm with PA_BOOST
+        
+        # Set FIFO TX base address to 0 and reset FIFO pointer
+        spi_write(0x0E, 0x00)  # RegFifoTxBaseAddr
+        spi_write(0x0D, 0x00)  # RegFifoAddrPtr
         spi_write(0x1D, 0x78)  # RegModemConfig1: e.g., BW=125 kHz, CR=4/7, explicit header
         spi_write(0x1E, 0xC4)  # RegModemConfig2: e.g., SF7, CRC on
         spi_write(0x26, 0x0C)
