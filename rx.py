@@ -118,7 +118,7 @@ def init_lora():
     set_frequency(0)
 
     # RegModemConfig1: BW 125 kHz, CR 4/8, Implicit Header Mode
-    spi_write(0x1D, 0x78)
+    spi_write(0x1D, 0x68)
     
     # RegModemConfig2: SF12, CRC on
     spi_write(0x1E, 0xC4)
