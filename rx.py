@@ -93,6 +93,20 @@ def init_lora():
     spi_write(0x0F, 0x00)  # FIFO RX base addr
     spi_write(0x0D, 0x00)  # FIFO addr ptr
 
+    # Setup GPIO interrupt for FhssChangeChannel
+    try:
+        GPIO.remove_event_detect(DIO0)  # Remove any existing event
+    except:
+        pass  # Ignore if no event exists
+    try:
+        GPIO.add_event_detect(DIO0, GPIO.RISING, callback=fhss_callback)
+        print(f"Added edge detection on DIO0 (BCM {DIO0})")
+    except RuntimeError as e:
+        print(f"Failed to add edge detection: {e}")
+        print("Try running with sudo or check GPIO conflicts.")
+        cleanup()
+        sys.exit(1)
+
     spi_write(0x01, 0x85)  # Continuous RX mode
 
 def fhss_callback(channel):
@@ -107,22 +121,16 @@ def fhss_callback(channel):
     print(f"FHSS interrupt: Switched to channel {current_channel}")
 
 def get_frequency_error():
-    # Read FEI registers (20-bit signed value)
-    fei_msb = spi_read(0x1C) & 0x0F  # Only 4 LSBs are used
+    fei_msb = spi_read(0x1C) & 0x0F
     fei_mid = spi_read(0x1D)
     fei_lsb = spi_read(0x1E)
     fei = (fei_msb << 16) | (fei_mid << 8) | fei_lsb
-    
-    # Sign-extend the 20-bit value
-    if fei & 0x80000:  # If sign bit is set
+    if fei & 0x80000:  # Sign-extend 20-bit value
         fei -= 1 << 20
-    
-    # Convert to Hz
     freq_error_hz = fei * FREQUENCY_STEP
     return freq_error_hz, fei
 
 def receive_loop():
-    GPIO.add_event_detect(DIO0, GPIO.RISING, callback=fhss_callback)
     print("Listening for LoRa packets with frequency hopping and correction...")
     while True:
         irq_flags = spi_read(0x12)
@@ -130,15 +138,11 @@ def receive_loop():
             print(f"IRQ Flags: {bin(irq_flags)} (0x{irq_flags:02x})")
             spi_write(0x12, 0xFF)  # Clear IRQ flags
             
-            # Measure frequency error
             freq_error_hz, fei = get_frequency_error()
             print(f"Frequency Error: {freq_error_hz:.1f} Hz (FEI: {fei})")
-            
-            # Adjust current frequency
-            current_frf -= fei  # Subtract FEI to correct drift
+            current_frf -= fei
             set_frequency(current_frf)
             
-            # Read payload
             nb_bytes = spi_read(0x13)
             print(f"Packet size: {nb_bytes} bytes")
             current_addr = spi_read(0x10)
@@ -164,10 +168,13 @@ def receive_loop():
             if irq_flags & 0x20:  # CRC Error
                 print("CRC error detected")
         
-        time.sleep(0.01)  # Small delay to prevent CPU hogging
+        time.sleep(0.01)
 
 def cleanup():
-    GPIO.remove_event_detect(DIO0)
+    try:
+        GPIO.remove_event_detect(DIO0)
+    except:
+        pass
     spi.close()
     GPIO.cleanup()
 
