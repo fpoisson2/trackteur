@@ -152,6 +152,12 @@ def spi_tx(payload):
     spi_write(0x01, 0x83)
     print(f"Transmitting {len(payload)} bytes with frequency hopping.")
 
+    # Give a moment for transmission to start
+    time.sleep(0.1)
+    
+    # Remap DIO0 to TxDone (bit 7:6 = 00)
+    spi_write(0x40, 0x00)
+
     # Handle frequency hopping during transmission
     start = time.time()
     while time.time() - start < 5:  # Timeout after 5 seconds
@@ -172,7 +178,7 @@ def spi_tx(payload):
         irq_flags = spi_read(0x12)
         if irq_flags & 0x08:  # TxDone flag
             print("Transmission complete!")
-            break
+            break   
         
         time.sleep(0.01)
     
