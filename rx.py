@@ -30,6 +30,9 @@ FREQ_STEP = 400000      # 400 kHz
 FXTAL = 32000000
 FRF_FACTOR = 2**19
 
+# Define fixed ACK channel
+ACK_CHANNEL = 0  # Using channel 0 (902.2 MHz) for ACK
+
 HOP_CHANNELS = []
 for i in range(64):
     freq = FREQ_START + i * FREQ_STEP
@@ -72,6 +75,21 @@ def set_frequency(channel_idx):
     spi_write(0x07, mid)  # RegFrfMid
     spi_write(0x08, lsb)  # RegFrfLsb
 
+def debug_registers():
+    """Print important register values for debugging."""
+    print("--- DEBUG REGISTERS ---")
+    print(f"RegOpMode (0x01): 0b{spi_read(0x01):08b}")
+    print(f"RegDioMapping1 (0x40): 0b{spi_read(0x40):08b}")
+    print(f"RegIrqFlags (0x12): 0b{spi_read(0x12):08b}")
+    print(f"RegFifoRxBaseAddr (0x0F): 0x{spi_read(0x0F):02x}")
+    print(f"RegFifoAddrPtr (0x0D): 0x{spi_read(0x0D):02x}")
+    print(f"RegModemConfig1 (0x1D): 0b{spi_read(0x1D):08b}")
+    print(f"RegModemConfig2 (0x1E): 0b{spi_read(0x1E):08b}")
+    print(f"RegModemConfig3 (0x26): 0b{spi_read(0x26):08b}")
+    print(f"RegSymbTimeoutLsb (0x1F): {spi_read(0x1F)}")
+    print(f"RegHopPeriod (0x24): {spi_read(0x24)}")
+    print("----------------------")
+
 def init_lora():
     reset_module()
     version = spi_read(0x42)
@@ -112,6 +130,8 @@ def init_lora():
 
     # Continuous RX mode
     spi_write(0x01, 0x85)
+    
+    debug_registers()
 
 def send_to_traccar(latitude, longitude, altitude, timestamp):
     """Send GPS data to Traccar server using the OSMAnd protocol."""
@@ -134,17 +154,26 @@ def send_to_traccar(latitude, longitude, altitude, timestamp):
         print(f"Error sending data to Traccar: {e}")
 
 def send_ack():
-    """Send an ACK packet back to the transmitter."""
-    print("Sending ACK immediately...")
+    """Send an ACK packet back to the transmitter using fixed channel."""
+    ack_payload = b"ACK"  # Simple ACK payload
     
-    # First map DIO0 to TxDone (0x40 bit 7-6 = 00)
-    spi_write(0x40, 0x00)
+    print("Preparing to send ACK...")
     
-    # Reset FIFO pointer
-    spi_write(0x0D, 0x00)
+    # Disable frequency hopping for ACK
+    spi_write(0x24, 0)  # RegHopPeriod = 0
+    
+    # Set fixed frequency channel for ACK
+    set_frequency(ACK_CHANNEL)
+    print(f"Fixed frequency for ACK transmission on channel {ACK_CHANNEL}")
+    
+    # Map DIO0 to TxDone for ACK transmission
+    spi_write(0x40, 0x00)  # DIO0 = TxDone
+    
+    # Set FIFO TX base address and reset pointer
+    spi_write(0x0E, 0x00)  # FIFO TX base address
+    spi_write(0x0D, 0x00)  # Reset FIFO address pointer
     
     # Write ACK payload to FIFO
-    ack_payload = b"ACK"
     for byte in ack_payload:
         spi_write(0x00, byte)
     
@@ -153,25 +182,39 @@ def send_ack():
     # Clear IRQ flags
     spi_write(0x12, 0xFF)
     
-    # Set TX mode
-    spi_write(0x01, 0x83)
+    debug_registers()
     
-    # Wait for TX to complete
+    # Switch to TX mode
+    spi_write(0x01, 0x83)
+    print("Sending ACK...")
+    
+    # Wait for TX to complete by checking DIO0 pin directly
     start = time.time()
-    while time.time() - start < 1:
+    while time.time() - start < 2:
         if GPIO.input(DIO0) == 1:  # TxDone
-            print("ACK sent successfully!")
-            break
+            irq_flags = spi_read(0x12)
+            if irq_flags & 0x08:  # TxDone bit
+                print("ACK sent successfully!")
+                break
         time.sleep(0.01)
     
     # Clear IRQ flags
     spi_write(0x12, 0xFF)
     
-    # Restore DIO0 mapping to FhssChangeChannel (0x40 bit 7-6 = 01)
+    # Re-enable frequency hopping
+    spi_write(0x24, 5)  # RegHopPeriod
+    
+    # Restore DIO0 mapping to FhssChangeChannel
     spi_write(0x40, 0x40)
+    
+    # Reset FIFO RX base address and pointer
+    spi_write(0x0F, 0x00)
+    spi_write(0x0D, 0x00)
     
     # Return to RX mode
     spi_write(0x01, 0x85)
+    
+    debug_registers()
 
 def receive_loop():
     global current_channel
@@ -186,7 +229,6 @@ def receive_loop():
             print(f"FHSS interrupt: Current channel {current_channel}")
             
             # Update to next channel
-            current_channel = (current_channel + 1) % len(HOP_CHANNELS)
             set_frequency(current_channel)
             
             # Clear FhssChangeChannel interrupt
@@ -194,7 +236,14 @@ def receive_loop():
         
         # Check for RX Done (bit 6)
         if irq_flags & 0x40:
-            print(f"IRQ Flags: {bin(irq_flags)} (0x{irq_flags:02x})")
+            print(f"IRQ Flags: 0b{irq_flags:08b} (0x{irq_flags:02x})")
+            
+            # Check for CRC error
+            crc_error = irq_flags & 0x20
+            if crc_error:
+                print("CRC error detected, no ACK sent.")
+                spi_write(0x12, 0xFF)  # Clear flags
+                continue
             
             # Read payload length
             nb_bytes = spi_read(0x13)
@@ -213,14 +262,11 @@ def receive_loop():
 
             print(f"Raw RX Payload ({len(payload)} bytes): {payload.hex()}")
             
-            # Check for CRC error
-            crc_error = irq_flags & 0x20
-            
             # Clear IRQ flags
             spi_write(0x12, 0xFF)
             
-            # Process payload if no CRC error
-            if not crc_error and len(payload) == 14:
+            # Process payload
+            if len(payload) == 14:  # Expected size for our GPS packet
                 try:
                     lat, lon, alt, timestamp = struct.unpack(">iiHI", payload)
                     latitude = lat / 1_000_000.0
@@ -231,12 +277,10 @@ def receive_loop():
                     # Send data to Traccar
                     send_to_traccar(latitude, longitude, alt, timestamp)
                     
-                    # Send ACK
+                    # Send ACK with fixed channel approach
                     send_ack()
                 except struct.error as e:
                     print("Error decoding payload:", e)
-            elif crc_error:
-                print("CRC error detected, no ACK sent.")
             else:
                 print(f"Unexpected payload size: {nb_bytes} bytes (expected 14), no ACK sent.")
                 try:
