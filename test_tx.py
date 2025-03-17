@@ -53,10 +53,13 @@ def init_lora():
     spi_write(0x01, 0x80)
     time.sleep(0.1)
 
-    # Set frequency to 902.2 MHz (fixed)
-    spi_write(0x06, 0x6C)  # RegFrfMsb
-    spi_write(0x07, 0x19)  # RegFrfMid
-    spi_write(0x08, 0x9A)  # RegFrfLsb
+    # Set frequency to 915 MHz (adjust if needed)
+    frequency = 915000000
+    # Frequency step Fstep ≈ 32e6 / 2^19 ≈ 61.035 Hz
+    frf = int(frequency / 61.03515625)
+    spi_write(0x06, (frf >> 16) & 0xFF)  # RegFrfMsb
+    spi_write(0x07, (frf >> 8) & 0xFF)   # RegFrfMid
+    spi_write(0x08, frf & 0xFF)          # RegFrfLsb
 
     # RegModemConfig1: BW 125 kHz, CR 4/8, Implicit Header
     spi_write(0x1D, 0x78)
