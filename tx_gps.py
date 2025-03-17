@@ -1,4 +1,3 @@
-#tx_gps.py
 import serial
 import pynmea2
 import spidev
@@ -6,12 +5,8 @@ import RPi.GPIO as GPIO
 import time
 import sys
 import struct
-
-
-# Add these at the top of your script with your other global variables
-last_tx_time = 0
-TX_INTERVAL = 10  # seconds between transmissions
-
+import threading
+import queue
 
 # GPS Serial Port Configuration
 GPS_PORT = "/dev/ttyAMA0"  # Confirmed UART for Dragino GPS HAT
@@ -21,6 +16,12 @@ BAUD_RATE = 9600           # Default baud rate for Dragino GPS
 RESET = 17   # Reset pin
 NSS   = 25   # SPI Chip Select pin (manual control)
 DIO0  = 4    # DIO0 pin; WiringPi pin 7 corresponds to BCM GPIO4
+
+# Transmission interval (seconds)
+TX_INTERVAL = 10
+
+# Create a queue for storing GPS data
+gps_queue = queue.Queue(maxsize=1)  # Only store the most recent data
 
 # Setup GPIO in BCM mode
 GPIO.setmode(GPIO.BCM)
@@ -126,19 +127,9 @@ def spi_tx(payload):
     spi_write(0x01, 0x81)
     time.sleep(0.1)
 
-
 def parse_gps(data):
     """Extracts latitude, longitude, altitude, and timestamp from GPS data."""
-    global last_tx_time
-    
-    current_time = time.time()
-    
-    # Early exit if it's not time to transmit yet
-    if last_tx_time > 0 and current_time - last_tx_time < TX_INTERVAL:
-        return  # Skip this GPS reading entirely
-    
-    # Process only valid GPS sentences
-    if data.startswith("$GNGGA") or data.startswith("$GPGGA"):
+    if data.startswith("$GNGGA") or data.startswith("$GPGGA"):  # Look for valid GPS sentences
         try:
             msg = pynmea2.parse(data)
             
@@ -149,39 +140,90 @@ def parse_gps(data):
             timestamp = int(time.time())          # Get current Unix timestamp (seconds)
 
             # Pack into a binary format: 4-byte lat, 4-byte lon, 2-byte alt, 4-byte timestamp
-            payload = struct.pack(">iiH I", lat, lon, alt, timestamp)
-
-            print(f"TX: lat={lat/1_000_000}, lon={lon/1_000_000}, alt={alt}m, ts={timestamp}")
+            payload = struct.pack(">iiHI", lat, lon, alt, timestamp)
             
-            # Transmit the payload
-            spi_tx(payload)
+            # Update the GPS data in the queue - replace old data if queue is full
+            try:
+                # Put without blocking, which will silently drop if queue is full
+                gps_queue.put_nowait({
+                    'lat': lat,
+                    'lon': lon,
+                    'alt': alt,
+                    'timestamp': timestamp,
+                    'payload': payload
+                })
+            except queue.Full:
+                # Get the old item out
+                gps_queue.get_nowait()
+                # Put the new item in
+                gps_queue.put({
+                    'lat': lat,
+                    'lon': lon,
+                    'alt': alt,
+                    'timestamp': timestamp,
+                    'payload': payload
+                })
             
-            # Update the last transmission time AFTER successful transmission
-            last_tx_time = time.time()
-            
-            print(f"Next transmission in {TX_INTERVAL} seconds")
+            print(f"GPS: lat={lat/1_000_000}, lon={lon/1_000_000}, alt={alt}m, ts={timestamp}")
 
         except pynmea2.ParseError as e:
             print(f"Parse error: {e}")
         except Exception as e:
             print(f"Error in parse_gps: {e}")
 
-def read_gps():
-    """Reads GPS data from the serial port and parses it."""
+def gps_thread_function():
+    """Thread function to continuously read GPS data."""
     try:
         with serial.Serial(GPS_PORT, BAUD_RATE, timeout=1) as ser:
-            print("Reading GPS data...")
+            print("GPS thread started. Reading GPS data...")
             while True:
                 line = ser.readline().decode('ascii', errors='replace').strip()
                 if line:
                     parse_gps(line)
+                time.sleep(0.01)  # Small delay to prevent CPU hogging
     except serial.SerialException as e:
         print(f"Serial error: {e}")
+    except Exception as e:
+        print(f"Error in GPS thread: {e}")
+
+def tx_thread_function():
+    """Thread function to transmit GPS data at regular intervals."""
+    print("TX thread started. Will transmit every", TX_INTERVAL, "seconds")
+    while True:
+        try:
+            # Check if we have GPS data to transmit
+            if not gps_queue.empty():
+                # Get the latest GPS data
+                gps_data = gps_queue.get()
+                
+                # Transmit the data
+                print(f"TX: lat={gps_data['lat']/1_000_000}, lon={gps_data['lon']/1_000_000}, alt={gps_data['alt']}m, ts={gps_data['timestamp']}")
+                spi_tx(gps_data['payload'])
+                
+                # Mark the queue task as done
+                gps_queue.task_done()
+            
+            # Wait for the next transmission interval
+            time.sleep(TX_INTERVAL)
+        except Exception as e:
+            print(f"Error in TX thread: {e}")
+            time.sleep(TX_INTERVAL)  # Keep the timing consistent even if there's an error
 
 def main():
     init_module()
+    
+    # Create and start GPS thread
+    gps_thread = threading.Thread(target=gps_thread_function, daemon=True)
+    gps_thread.start()
+    
+    # Create and start TX thread
+    tx_thread = threading.Thread(target=tx_thread_function, daemon=True)
+    tx_thread.start()
+    
     try:
-        read_gps()
+        # Keep the main thread alive
+        while True:
+            time.sleep(1)
     except KeyboardInterrupt:
         print("Interrupted by user. Exiting.")
         cleanup()
