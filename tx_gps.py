@@ -160,12 +160,26 @@ def setup_tx_mode():
 def receive_ack():
     global ack_received, waiting_for_ack, current_channel
     
+    # Reset to initial channel
+    current_channel = 0
+    set_frequency(current_channel)
+    
     # Setup RX mode
     setup_rx_mode()
     
     # Wait for ACK with timeout
     start_time = time.time()
-    while time.time() - start_time < ack_timeout:
+    channel_switch_time = start_time
+    
+    # Increase timeout slightly
+    while time.time() - start_time < ack_timeout + 1:
+        # Try different channels periodically
+        if time.time() - channel_switch_time > 0.2:
+            current_channel = (current_channel + 1) % len(HOP_CHANNELS)
+            set_frequency(current_channel)
+            channel_switch_time = time.time()
+            print(f"Trying to receive ACK on channel {current_channel}")
+        
         irq_flags = spi_read(0x12)
         
         # Check for RX Done (bit 6)
