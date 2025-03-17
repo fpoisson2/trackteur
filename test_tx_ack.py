@@ -1,45 +1,42 @@
-import time
+#!/usr/bin/env python3
 import spidev
 import RPi.GPIO as GPIO
+import time
+import sys
 
-# Pin definitions (BCM mode)
-RESET = 17
-NSS = 25
-DIO0 = 4
+# --- Pin configuration (using BCM numbering) ---
+RESET = 17   # Reset pin
+NSS   = 25   # SPI Chip Select pin (manual control)
+DIO0  = 4    # DIO0 pin; WiringPi pin 7 corresponds to BCM GPIO4
 
-# GPIO setup
+# Setup GPIO in BCM mode
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 GPIO.setup(RESET, GPIO.OUT)
 GPIO.setup(NSS, GPIO.OUT)
 GPIO.setup(DIO0, GPIO.IN)
 
-# SPI setup
+# --- SPI initialization ---
 spi = spidev.SpiDev()
-spi.open(0, 0)
+spi.open(0, 0)       # Bus 0, device 0
 spi.max_speed_hz = 5000000
 spi.mode = 0b00
 
-# Frequency settings for 902.2 MHz
-FREQ_START = 902200000  # 902.2 MHz
-FXTAL = 32000000
-FRF_FACTOR = 2**19
-frf = int((FREQ_START * FRF_FACTOR) / FXTAL)
-msb = (frf >> 16) & 0xFF
-mid = (frf >> 8) & 0xFF
-lsb = frf & 0xFF
+def cleanup():
+    spi.close()
+    GPIO.cleanup()
 
-def spi_write(addr, val):
+def spi_write(addr, value):
     GPIO.output(NSS, GPIO.LOW)
-    spi.xfer2([addr | 0x80, val])
+    spi.xfer2([addr | 0x80, value])
     GPIO.output(NSS, GPIO.HIGH)
 
 def spi_read(addr):
     GPIO.output(NSS, GPIO.LOW)
     spi.xfer2([addr & 0x7F])
-    val = spi.xfer2([0x00])[0]
+    result = spi.xfer2([0x00])[0]
     GPIO.output(NSS, GPIO.HIGH)
-    return val
+    return result
 
 def reset_module():
     GPIO.output(RESET, GPIO.LOW)
@@ -47,43 +44,96 @@ def reset_module():
     GPIO.output(RESET, GPIO.HIGH)
     time.sleep(0.1)
 
-def set_frequency():
-    spi_write(0x06, msb)  # RegFrfMsb
-    spi_write(0x07, mid)  # RegFrfMid
-    spi_write(0x08, lsb)  # RegFrfLsb
-
-def init_lora():
+def init_module():
     reset_module()
-    spi_write(0x01, 0x80)  # Sleep mode, LoRa mode
+    version = spi_read(0x42)
+    print(f"SX1276 Version: {hex(version)}")
+    if version != 0x12:
+        print("Module not detected! Check wiring and power.")
+        cleanup()
+        sys.exit(1)
+    
+    # Put module in Sleep mode with LoRa enabled (RegOpMode)
+    spi_write(0x01, 0x80)
     time.sleep(0.1)
-    set_frequency()
-    spi_write(0x1D, 0x78)  # RegModemConfig1: e.g., BW=125 kHz, CR=4/7, explicit header
-    spi_write(0x1E, 0xC4)  # RegModemConfig2: e.g., SF7, CRC on
-    spi_write(0x26, 0x0C)
-    spi_write(0x20, 0x00)  # Preamble length MSB
-    spi_write(0x21, 0x08)  # Preamble length LSB: 8 symbols
-    spi_write(0x24, 0)     # Disable frequency hopping
-    spi_write(0x01, 0x81)  # Standby mode
+    
+    # Explicitly set DIO mapping: Map DIO0 to TX done.
+    spi_write(0x40, 0x40)  # DIO0 mapped to TxDone (bits 7-6 = 01)
+    
+    # Set frequency to 915 MHz (matching RX script)
+    frequency = 915000000
+    frf = int(frequency / 61.03515625)
+    spi_write(0x06, (frf >> 16) & 0xFF)  # RegFrfMsb
+    spi_write(0x07, (frf >> 8) & 0xFF)   # RegFrfMid
+    spi_write(0x08, frf & 0xFF)          # RegFrfLsb
+    
+    # Modem configuration (matching RX script)
+    spi_write(0x1D, 0x78)  # RegModemConfig1: BW=125 kHz, CR=4/7, explicit header
+    spi_write(0x1E, 0xC4)  # RegModemConfig2: SF7, CRC on
+    spi_write(0x26, 0x0C)  # RegModemConfig3: LDRO on, AGC on
+    
+    # Set preamble length to 8 symbols
+    spi_write(0x20, 0x00)  # RegPreambleMsb
+    spi_write(0x21, 0x08)  # RegPreambleLsb
+    
+    # Set PA configuration (example value; adjust if needed)
+    spi_write(0x09, 0x8F)  # RegPaConfig: +20 dBm with PA_BOOST
+    
+    # Set FIFO TX base address to 0 and reset FIFO pointer
+    spi_write(0x0E, 0x00)  # RegFifoTxBaseAddr
+    spi_write(0x0D, 0x00)  # RegFifoAddrPtr
 
 def send_ack():
-    ack_payload = b"ACK"
-    spi_write(0x0E, 0x00)  # FIFO TX base address
-    spi_write(0x0D, 0x00)  # FIFO pointer
-    for byte in ack_payload:
-        spi_write(0x00, byte)
-    spi_write(0x22, len(ack_payload))  # Payload length
-    spi_write(0x12, 0xFF)  # Clear IRQ flags
-    spi_write(0x40, 0x00)  # Map DIO0 to TxDone
-    spi_write(0x01, 0x83)  # TX mode
-    while not (spi_read(0x12) & 0x08):  # Wait for TxDone
+    """Function to send an ACK message."""
+    payload = "ACK"  # ACK message to send
+    print("\n[Sending ACK]")
+    
+    # Reset FIFO pointer
+    spi_write(0x0D, 0x00)
+    
+    # Write payload bytes into FIFO
+    for char in payload:
+        spi_write(0x00, ord(char))
+    
+    # Set payload length
+    spi_write(0x22, len(payload))
+    
+    # Clear IRQ flags
+    spi_write(0x12, 0xFF)
+    
+    # Switch to TX mode: RegOpMode = 0x83 (LoRa TX mode)
+    spi_write(0x01, 0x83)
+    print("Transmitting ACK...")
+    
+    # Wait for TX done signal (DIO0 high)
+    start = time.time()
+    while time.time() - start < 5:
+        if GPIO.input(DIO0) == 1:
+            print("ACK sent successfully!")
+            break
         time.sleep(0.01)
-    print("ACK sent!")
-    spi_write(0x12, 0xFF)  # Clear IRQ flags
+    else:
+        irq = spi_read(0x12)
+        print("TX done timeout. IRQ flags:", hex(irq))
+    
+    # Clear IRQ flags
+    spi_write(0x12, 0xFF)
+    
+    # Return to standby mode
+    spi_write(0x01, 0x81)
+    time.sleep(0.1)
 
-# Initialize LoRa module
-init_lora()
+def main():
+    init_module()
+    # Remove other test functions, focus on sending ACK periodically
+    while True:
+        send_ack()
+        time.sleep(5)  # Send ACK every 5 seconds
 
-# Send ACK every 5 seconds
-while True:
-    send_ack()
-    time.sleep(5)
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("Interrupted by user. Exiting.")
+        cleanup()
+        sys.exit(0)
