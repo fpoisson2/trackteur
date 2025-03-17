@@ -164,6 +164,7 @@ def spi_tx(payload, max_retries=3):
                 irq_flags = spi_read(0x12)
                 if irq_flags & 0x08:  # TxDone
                     print("Transmission complete!")
+                    time.sleep(0.5)  # Add a small delay
                     break
                 elif irq_flags & 0x04:  # FhssChangeChannel
                     current_channel = (current_channel + 1) % len(HOP_CHANNELS)

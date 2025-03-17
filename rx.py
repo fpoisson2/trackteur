@@ -155,7 +155,7 @@ def send_ack():
     
     # Wait for TX to complete
     start = time.time()
-    while time.time() - start < 2:
+    while time.time() - start < 5:
         if spi_read(0x12) & 0x08:  # TxDone
             print("ACK sent successfully!")
             break
