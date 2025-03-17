@@ -203,9 +203,8 @@ def spi_tx(payload, max_retries=3):
         time.sleep(0.01)  # Ensure mapping takes effect
         print(f"DIO0 Mapping: 0b{spi_read(0x40):08b}")  # Verify mapping
 
-        # Configure for implicit header mode (assuming ACK sender uses it)
-        spi_write(0x1D, 0x79)  # Set Implicit Header mode (bit 0 = 1)
-        spi_write(0x22, 3)     # Set payload length to 3 bytes ("ACK")
+        # Do NOT change to Implicit Header mode; keep Explicit mode (0x78) as initialized
+        # No need to set RegPayloadLength (0x22), as payload length is in the header
 
         spi_write(0x12, 0xFF)  # Clear IRQ flags before RX
         spi_write(0x01, 0x85)  # Switch to continuous RX mode
@@ -225,7 +224,7 @@ def spi_tx(payload, max_retries=3):
                     print("CRC error in received packet!")
                     spi_write(0x12, 0xFF)
                     continue
-                nb_bytes = spi_read(0x13)
+                nb_bytes = spi_read(0x13)  # Read payload length from received header
                 current_addr = spi_read(0x10)
                 spi_write(0x0D, current_addr)
                 ack_payload = bytearray()
@@ -242,7 +241,6 @@ def spi_tx(payload, max_retries=3):
             time.sleep(0.05)
 
         # Restore original settings
-        spi_write(0x1D, 0x78)  # Revert to explicit header mode
         spi_write(0x24, 5)     # Re-enable frequency hopping
         spi_write(0x01, 0x81)  # Return to standby mode
         time.sleep(0.1)
