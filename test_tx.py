@@ -95,13 +95,10 @@ def transmit_message(message):
     spi_write(0x12, 0xFF)
     spi_write(0x01, 0x83)
     
-    # Wait and monitor DIO0
     start_time = time.time()
     while time.time() - start_time < 5:
-        dio0_state = GPIO.input(DIO0)
         irq_flags = spi_read(0x12)
-        print(f"DIO0: {dio0_state}, IRQ Flags: {hex(irq_flags)}")
-        if dio0_state == 1:
+        if irq_flags & 0x08:  # TxDone flag
             print("Transmission complete!")
             break
         time.sleep(0.01)
