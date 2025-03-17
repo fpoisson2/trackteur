@@ -190,7 +190,6 @@ def spi_tx(payload, max_retries=3):
         
         # --- ACK RECEPTION PHASE ---
         print("Preparing for ACK reception...")
-        time.sleep(0.5)  # Short delay before switching modes
         
         spi_write(0x24, 0)  # Disable frequency hopping for ACK
         set_frequency(ACK_CHANNEL)
@@ -206,7 +205,7 @@ def spi_tx(payload, max_retries=3):
         debug_registers()
         
         start_ack = time.time()
-        while time.time() - start_ack < 5:
+        while time.time() - start_ack < 10:
             gpio_state = GPIO.input(DIO0)
             irq_flags = spi_read(0x12)
             elapsed = time.time() - start_ack
