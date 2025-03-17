@@ -77,7 +77,9 @@ def receive_loop():
     while True:
         if GPIO.input(DIO0):
             irq_flags = spi_read(0x12)
+            # Check if RX done flag is set (bit 6)
             if irq_flags & 0x40:
+                # Clear IRQ flags
                 spi_write(0x12, 0xFF)
                 nb_bytes = spi_read(0x13)
                 current_addr = spi_read(0x10)
@@ -87,12 +89,17 @@ def receive_loop():
                 for _ in range(nb_bytes):
                     payload.append(spi_read(0x00))
 
-                print(f"Raw payload ({len(payload)} bytes): {payload.hex()}")  # Debugging
-
+                # If payload size is as expected (14 bytes), decode it
                 if len(payload) == 14:
                     try:
-                        # Decode in LITTLE-ENDIAN to match the architecture
-                        lat, lon, alt, timestamp = struct.unpack("<iihI", payload)  
+                        # Unpack binary payload using big-endian format:
+                        # >   : big-endian
+                        # i   : 4-byte signed integer (latitude)
+                        # i   : 4-byte signed integer (longitude)
+                        # h   : 2-byte signed integer (altitude)
+                        # I   : 4-byte unsigned integer (timestamp)
+                        lat, lon, alt, timestamp = struct.unpack(">iihI", payload)
+                        # Convert back to float with 6 decimal precision
                         latitude = lat / 1_000_000.0
                         longitude = lon / 1_000_000.0
                         time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(timestamp))
@@ -100,11 +107,11 @@ def receive_loop():
                     except struct.error as e:
                         print("Error decoding payload:", e)
                 else:
+                    # Fallback: print raw payload if size doesn't match
                     message = ''.join(chr(b) for b in payload)
                     print(f"Received ({nb_bytes} bytes): {message}")
 
         time.sleep(0.01)
-
 
 def cleanup():
     spi.close()
