@@ -205,11 +205,14 @@ def spi_tx(payload, max_retries=3):
         
         debug_registers()
         
-        start = time.time()
-        while time.time() - start < 5:
-            if GPIO.input(DIO0) == 1:
-                irq_flags = spi_read(0x12)
-                print(f"RX IRQ Flags: 0b{irq_flags:08b}")
+        start_ack = time.time()
+        while time.time() - start_ack < 5:
+            gpio_state = GPIO.input(DIO0)
+            irq_flags = spi_read(0x12)
+            elapsed = time.time() - start_ack
+            print(f"[ACK Listen] {elapsed:.2f}s - DIO0: {gpio_state}, IRQ Flags: 0b{irq_flags:08b}")
+            
+            if gpio_state == 1:
                 if irq_flags & 0x40:  # RxDone
                     if irq_flags & 0x20:
                         print("CRC error in received packet!")
@@ -229,7 +232,7 @@ def spi_tx(payload, max_retries=3):
                         print(f"Unexpected ACK payload: {ack_payload.hex()}")
                     spi_write(0x12, 0xFF)
                     break
-            time.sleep(0.01)
+            time.sleep(0.05)
         
         if not ack_received:
             print("No ACK received within timeout.")
