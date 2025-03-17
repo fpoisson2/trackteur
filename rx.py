@@ -4,6 +4,7 @@ import RPi.GPIO as GPIO
 import time
 import sys
 import struct
+import requests  # Import the requests library for HTTP communication
 
 # Pin definitions (BCM mode)
 RESET = 17
@@ -39,6 +40,10 @@ for i in range(64):
     HOP_CHANNELS.append((msb, mid, lsb))
 
 current_channel = 0
+
+# Traccar server configuration
+TRACCAR_URL = "https://trackteur.ve2fpd.com"  # Adjust port if needed
+DEVICE_ID = "212901"  # Replace with your device's unique ID registered in Traccar
 
 def spi_write(addr, val):
     GPIO.output(NSS, GPIO.LOW)
@@ -81,15 +86,12 @@ def init_lora():
     set_frequency(0)
 
     # RegModemConfig1: BW 125 kHz, CR 4/8, Implicit Header
-    # 0110 100 0 = 0x68
     spi_write(0x1D, 0x78)
     
     # RegModemConfig2: SF12, CRC on
-    # 1100 1 1 00 = 0xC4
     spi_write(0x1E, 0xC4)
     
     # RegModemConfig3: LDRO on, AGC on
-    # 0000 1 1 00 = 0x0C
     spi_write(0x26, 0x0C)
 
     # Preamble length: 8 symbols
@@ -108,6 +110,24 @@ def init_lora():
 
     # Continuous RX mode
     spi_write(0x01, 0x85)
+
+def send_to_traccar(latitude, longitude, altitude, timestamp):
+    """Send GPS data to Traccar server using the OSMAnd protocol."""
+    params = {
+        "id": DEVICE_ID,
+        "lat": latitude,
+        "lon": longitude,
+        "altitude": altitude,
+        "timestamp": timestamp
+    }
+    try:
+        response = requests.get(TRACCAR_URL, params=params, timeout=10)
+        if response.status_code == 200:
+            print("Data successfully sent to Traccar server")
+        else:
+            print(f"Failed to send data to Traccar. Status code: {response.status_code}")
+    except requests.RequestException as e:
+        print(f"Error sending data to Traccar: {e}")
 
 def receive_loop():
     global current_channel
@@ -160,6 +180,9 @@ def receive_loop():
                     longitude = lon / 1_000_000.0
                     time_str = time.strftime("%Y-%m-d %H:%M:%S", time.gmtime(timestamp))
                     print(f"Received: Latitude={latitude}, Longitude={longitude}, Altitude={alt}m, Timestamp={time_str}")
+                    
+                    # Send data to Traccar
+                    send_to_traccar(latitude, longitude, alt, timestamp)
                 except struct.error as e:
                     print("Error decoding payload:", e)
             else:
