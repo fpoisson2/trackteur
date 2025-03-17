@@ -190,54 +190,60 @@ def spi_tx(payload, max_retries=3):
         
         # --- ACK RECEPTION PHASE ---
         print("Preparing for ACK reception...")
-        
+        time.sleep(0.01)  # Brief delay after TX to allow ACK sender to respond
         spi_write(0x24, 0)  # Disable frequency hopping for ACK
         set_frequency(ACK_CHANNEL)
+        time.sleep(0.01)  # Allow frequency to stabilize
         print(f"Fixed frequency for ACK reception on channel {ACK_CHANNEL}")
-        
+
         spi_write(0x0F, 0x00)  # Set RX FIFO base address
         spi_write(0x0D, 0x00)  # Reset FIFO pointer
-        
+
         spi_write(0x40, 0x00)  # Map DIO0 to RxDone
+        time.sleep(0.01)  # Ensure mapping takes effect
+        print(f"DIO0 Mapping: 0b{spi_read(0x40):08b}")  # Verify mapping
+
+        # Configure for implicit header mode (assuming ACK sender uses it)
+        spi_write(0x1D, 0x79)  # Set Implicit Header mode (bit 0 = 1)
+        spi_write(0x22, 3)     # Set payload length to 3 bytes ("ACK")
+
+        spi_write(0x12, 0xFF)  # Clear IRQ flags before RX
         spi_write(0x01, 0x85)  # Switch to continuous RX mode
+        time.sleep(0.01)  # Allow mode switch
+        print(f"OpMode after RX: 0b{spi_read(0x01):08b}")  # Verify RX mode
         print("Switched to RX mode, waiting for ACK...")
-        
         debug_registers()
-        
+
         start_ack = time.time()
         while time.time() - start_ack < 10:
             gpio_state = GPIO.input(DIO0)
             irq_flags = spi_read(0x12)
             elapsed = time.time() - start_ack
             print(f"[ACK Listen] {elapsed:.2f}s - DIO0: {gpio_state}, IRQ Flags: 0b{irq_flags:08b}")
-            
-            if gpio_state == 1:
-                if irq_flags & 0x40:  # RxDone
-                    if irq_flags & 0x20:
-                        print("CRC error in received packet!")
-                        spi_write(0x12, 0xFF)
-                        continue
-                    nb_bytes = spi_read(0x13)
-                    current_addr = spi_read(0x10)
-                    spi_write(0x0D, current_addr)
-                    ack_payload = bytearray()
-                    for _ in range(nb_bytes):
-                        ack_payload.append(spi_read(0x00))
-                    print(f"Received ACK payload: {ack_payload.hex()}")
-                    if ack_payload == b"ACK":
-                        print("ACK received successfully!")
-                        ack_received = True
-                    else:
-                        print(f"Unexpected ACK payload: {ack_payload.hex()}")
+            if gpio_state == 1 and (irq_flags & 0x40):  # RxDone
+                if irq_flags & 0x20:
+                    print("CRC error in received packet!")
                     spi_write(0x12, 0xFF)
-                    break
+                    continue
+                nb_bytes = spi_read(0x13)
+                current_addr = spi_read(0x10)
+                spi_write(0x0D, current_addr)
+                ack_payload = bytearray()
+                for _ in range(nb_bytes):
+                    ack_payload.append(spi_read(0x00))
+                print(f"Received ACK payload: {ack_payload.hex()}")
+                if ack_payload == b"ACK":
+                    print("ACK received successfully!")
+                    ack_received = True
+                else:
+                    print(f"Unexpected ACK payload: {ack_payload.hex()}")
+                spi_write(0x12, 0xFF)
+                break
             time.sleep(0.05)
-        
-        if not ack_received:
-            print("No ACK received within timeout.")
-            attempt += 1
-        
-        spi_write(0x24, 5)  # Re-enable frequency hopping
+
+        # Restore original settings
+        spi_write(0x1D, 0x78)  # Revert to explicit header mode
+        spi_write(0x24, 5)     # Re-enable frequency hopping
         spi_write(0x01, 0x81)  # Return to standby mode
         time.sleep(0.1)
     
