@@ -150,58 +150,41 @@ def spi_tx(payload, max_retries=3):
     attempt = 0
     ack_received = False
     
-    while attempt < max_retries and not ack_received:
-        print(f"Attempt {attempt + 1}/{max_retries}")
-        print(f"Raw TX Payload ({len(payload)} bytes): {payload.hex()}")
+    # Set initial channel
+    current_channel = 0
+    set_frequency(current_channel)
+    
+    # Switch to TX mode
+    spi_write(0x01, 0x83)
+    print(f"Transmitting {len(payload)} bytes with frequency hopping.")
+
+    # Give a moment for transmission to start
+    time.sleep(0.1)
+    
+    # Remap DIO0 to TxDone (bit 7:6 = 00)
+    spi_write(0x40, 0x00)
+
+    # Handle frequency hopping during transmission
+    start = time.time()
+    while time.time() - start < 5:  # Timeout after 5 seconds
+        if GPIO.input(DIO0) == 1:  # FhssChangeChannel interrupt
+            # Read current channel and IRQ flags
+            hop_channel = spi_read(0x1C)
+            current_channel = hop_channel & 0x3F
+            print(f"FHSS interrupt: Current channel {current_channel}")
+            
+            # Update to next channel
+            current_channel = (current_channel + 1) % len(HOP_CHANNELS)
+            set_frequency(current_channel)
+            
+            # Clear FhssChangeChannel interrupt
+            spi_write(0x12, 0x04)
         
-        # Reset FIFO pointer
-        spi_write(0x0D, 0x00)
-        for byte in payload:
-            spi_write(0x00, byte)
-        spi_write(0x22, len(payload))
-        spi_write(0x12, 0xFF)  # Clear IRQ flags
-        
-        # Transmit GPS data with frequency hopping
-        current_channel = 0
-        set_frequency(current_channel)
-        spi_write(0x24, 5)     # Enable frequency hopping
-        spi_write(0x40, 0x40)  # Map DIO0 to FhssChangeChannel
-        spi_write(0x01, 0x83)  # TX mode
-        print(f"Transmitting {len(payload)} bytes with frequency hopping.")
-        
-        start = time.time()
-        tx_completed = False
-        while time.time() - start < 5 and not tx_completed:
-            if GPIO.input(DIO0) == 1:
-                irq_flags = spi_read(0x12)
-                if irq_flags & 0x08:  # TxDone
-                    print("Transmission complete!")
-                    tx_completed = True
-                    break
-                elif irq_flags & 0x04:  # FhssChangeChannel
-                    current_channel = (current_channel + 1) % len(HOP_CHANNELS)
-                    set_frequency(current_channel)
-                    spi_write(0x12, 0x04)  # Clear FhssChangeChannel flag
-            time.sleep(0.01)
-        
-        if not tx_completed:
-            print("TX timeout. IRQ flags:", hex(spi_read(0x12)))
-            attempt += 1
-            continue
-        
-        # --- ACK Reception Phase ---
-        print("Preparing for ACK reception...")
-        spi_write(0x01, 0x81)  # Switch to standby mode
-        time.sleep(0.01)       # Stabilize
-        
-        spi_write(0x24, 0)     # Disable frequency hopping
-        reset_module()
-        version = spi_read(0x42)
-        print(f"SX1276 Version: {hex(version)}")
-        if version != 0x12:
-            print("Module not detected! Check wiring and power.")
-            cleanup()
-            sys.exit(1)
+        # Check for TX Done (bit 3 in RegIrqFlags)
+        irq_flags = spi_read(0x12)
+        if irq_flags & 0x08:  # TxDone flag
+            print("Transmission complete!")
+            break   
         
         # Put module in Sleep mode with LoRa enabled (RegOpMode)
         spi_write(0x01, 0x80)
