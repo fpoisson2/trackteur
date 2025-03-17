@@ -58,107 +58,77 @@ def init_module():
     time.sleep(0.1)
     
     # Explicitly set DIO mapping: Map DIO0 to TX done.
-    # For RegDioMapping1 (0x40), bits 7-6 control DIO0.
-    # Setting them to '01' (i.e. value 0x40) makes DIO0 indicate TX done.
-    spi_write(0x40, 0x40)
+    spi_write(0x40, 0x40)  # DIO0 mapped to TxDone (bits 7-6 = 01)
     
-    # Set frequency to 915 MHz (adjust if needed)
+    # Set frequency to 915 MHz (matching RX script)
     frequency = 915000000
-    # Frequency step Fstep ≈ 32e6 / 2^19 ≈ 61.035 Hz
     frf = int(frequency / 61.03515625)
     spi_write(0x06, (frf >> 16) & 0xFF)  # RegFrfMsb
     spi_write(0x07, (frf >> 8) & 0xFF)   # RegFrfMid
     spi_write(0x08, frf & 0xFF)          # RegFrfLsb
     
-    # Minimal modem configuration (example values)
-    spi_write(0x1D, 0x78)  # RegModemConfig1: e.g., BW=125 kHz, CR=4/7, explicit header
-    spi_write(0x1E, 0xC4)  # RegModemConfig2: e.g., SF7, CRC on
-    spi_write(0x26, 0x0C)
+    # Modem configuration (matching RX script)
+    spi_write(0x1D, 0x78)  # RegModemConfig1: BW=125 kHz, CR=4/7, explicit header
+    spi_write(0x1E, 0xC4)  # RegModemConfig2: SF7, CRC on
+    spi_write(0x26, 0x0C)  # RegModemConfig3: LDRO on, AGC on
     
     # Set preamble length to 8 symbols
     spi_write(0x20, 0x00)  # RegPreambleMsb
     spi_write(0x21, 0x08)  # RegPreambleLsb
     
-    # Set PA configuration (example value; ensure PA_BOOST is used if wired that way)
-    spi_write(0x09, 0x8F)  # RegPaConfig
+    # Set PA configuration (example value; adjust if needed)
+    spi_write(0x09, 0x8F)  # RegPaConfig: +20 dBm with PA_BOOST
     
     # Set FIFO TX base address to 0 and reset FIFO pointer
     spi_write(0x0E, 0x00)  # RegFifoTxBaseAddr
     spi_write(0x0D, 0x00)  # RegFifoAddrPtr
 
-def test_register_rw():
-    print("\n[Register R/W Test]")
-    original = spi_read(0x0D)  # Read FIFO pointer register
-    print(f"Original RegFifoAddrPtr (0x0D): {hex(original)}")
-    test_val = 0x55
-    spi_write(0x0D, test_val)
-    read_back = spi_read(0x0D)
-    print(f"Value after writing {hex(test_val)}: {hex(read_back)}")
-    spi_write(0x0D, original)  # Restore original value
-    if read_back == test_val:
-        print("Register R/W test passed!")
-    else:
-        print("Register R/W test failed!")
-
-def test_tx_mode():
-    payload = "test_tx"
-    print("\n[TX Mode Test]")
+def send_ack():
+    """Function to send an ACK message."""
+    payload = "ACK"  # ACK message to send
+    print("\n[Sending ACK]")
+    
     # Reset FIFO pointer
     spi_write(0x0D, 0x00)
+    
     # Write payload bytes into FIFO
     for char in payload:
         spi_write(0x00, ord(char))
-    spi_write(0x22, len(payload))  # Set payload length
+    
+    # Set payload length
+    spi_write(0x22, len(payload))
+    
+    # Clear IRQ flags
+    spi_write(0x12, 0xFF)
     
     # Switch to TX mode: RegOpMode = 0x83 (LoRa TX mode)
     spi_write(0x01, 0x83)
-    print("Payload transmitted, waiting for TX done signal...")
+    print("Transmitting ACK...")
     
+    # Wait for TX done signal (DIO0 high)
     start = time.time()
     while time.time() - start < 5:
         if GPIO.input(DIO0) == 1:
-            print("TX done signal received!")
+            print("ACK sent successfully!")
             break
         time.sleep(0.01)
     else:
         irq = spi_read(0x12)
         print("TX done timeout. IRQ flags:", hex(irq))
     
-    # Return to standby mode
-    spi_write(0x01, 0x81)
-    time.sleep(0.1)
-
-def test_rx_mode():
-    print("\n[RX Mode Test]")
-    # Set module to RX continuous mode (RegOpMode = 0x85)
-    spi_write(0x01, 0x85)
-    start = time.time()
-    received = False
-    while time.time() - start < 5:
-        if GPIO.input(DIO0) == 1:
-            print("RX done signal detected!")
-            # Read number of received bytes from RegRxNbBytes (0x13)
-            nb_bytes = spi_read(0x13)
-            print("Payload length:", nb_bytes)
-            payload = []
-            for i in range(nb_bytes):
-                payload.append(spi_read(0x00))
-            print("Received payload:", ''.join(chr(b) for b in payload))
-            received = True
-            break
-        time.sleep(0.01)
-    if not received:
-        print("No packet received in RX mode.")
+    # Clear IRQ flags
+    spi_write(0x12, 0xFF)
+    
     # Return to standby mode
     spi_write(0x01, 0x81)
     time.sleep(0.1)
 
 def main():
     init_module()
-    test_register_rw()
-    test_tx_mode()
-    test_rx_mode()
-    cleanup()
+    # Remove other test functions, focus on sending ACK periodically
+    while True:
+        send_ack()
+        time.sleep(5)  # Send ACK every 5 seconds
 
 if __name__ == "__main__":
     try:

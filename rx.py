@@ -4,7 +4,7 @@ import RPi.GPIO as GPIO
 import time
 import sys
 import struct
-import requests  # Import the requests library for HTTP communication
+import requests  # HTTP communication
 
 # Pin definitions (BCM mode)
 RESET = 17
@@ -29,6 +29,9 @@ FREQ_START = 902200000  # 902.2 MHz
 FREQ_STEP = 400000      # 400 kHz
 FXTAL = 32000000
 FRF_FACTOR = 2**19
+
+# Define fixed ACK channel
+ACK_CHANNEL = 0  # Using channel 0 (902.2 MHz) for ACK
 
 HOP_CHANNELS = []
 for i in range(64):
@@ -66,9 +69,26 @@ def reset_module():
 def set_frequency(channel_idx):
     global HOP_CHANNELS
     msb, mid, lsb = HOP_CHANNELS[channel_idx]
+    freq_hz = (((msb << 16) | (mid << 8) | lsb) * FXTAL) / FRF_FACTOR
+    print(f"Setting frequency to {freq_hz/1000000:.3f} MHz (channel {channel_idx})")
     spi_write(0x06, msb)  # RegFrfMsb
     spi_write(0x07, mid)  # RegFrfMid
     spi_write(0x08, lsb)  # RegFrfLsb
+
+def debug_registers():
+    """Print important register values for debugging."""
+    print("--- DEBUG REGISTERS ---")
+    print(f"RegOpMode (0x01): 0b{spi_read(0x01):08b}")
+    print(f"RegDioMapping1 (0x40): 0b{spi_read(0x40):08b}")
+    print(f"RegIrqFlags (0x12): 0b{spi_read(0x12):08b}")
+    print(f"RegFifoRxBaseAddr (0x0F): 0x{spi_read(0x0F):02x}")
+    print(f"RegFifoAddrPtr (0x0D): 0x{spi_read(0x0D):02x}")
+    print(f"RegModemConfig1 (0x1D): 0b{spi_read(0x1D):08b}")
+    print(f"RegModemConfig2 (0x1E): 0b{spi_read(0x1E):08b}")
+    print(f"RegModemConfig3 (0x26): 0b{spi_read(0x26):08b}")
+    print(f"RegSymbTimeoutLsb (0x1F): {spi_read(0x1F)}")
+    print(f"RegHopPeriod (0x24): {spi_read(0x24)}")
+    print("----------------------")
 
 def init_lora():
     reset_module()
@@ -85,7 +105,7 @@ def init_lora():
     # Set initial frequency to channel 0 (902.2 MHz)
     set_frequency(0)
 
-    # RegModemConfig1: BW 125 kHz, CR 4/8, Implicit Header
+    # RegModemConfig1: BW 125 kHz, CR 4/8, Explicit Header
     spi_write(0x1D, 0x78)
     
     # RegModemConfig2: SF12, CRC on
@@ -110,6 +130,8 @@ def init_lora():
 
     # Continuous RX mode
     spi_write(0x01, 0x85)
+    
+    debug_registers()
 
 def send_to_traccar(latitude, longitude, altitude, timestamp):
     """Send GPS data to Traccar server using the OSMAnd protocol."""
@@ -131,6 +153,85 @@ def send_to_traccar(latitude, longitude, altitude, timestamp):
     except requests.RequestException as e:
         print(f"Error sending data to Traccar: {e}")
 
+def send_ack():
+    """Function to send an ACK message."""
+    reset_module()
+    version = spi_read(0x42)
+    print(f"SX1276 Version: {hex(version)}")
+    if version != 0x12:
+        print("Module not detected! Check wiring and power.")
+        cleanup()
+        sys.exit(1)
+    
+    # Put module in Sleep mode with LoRa enabled (RegOpMode)
+    spi_write(0x01, 0x80)
+    time.sleep(0.1)
+    
+    # Explicitly set DIO mapping: Map DIO0 to TX done.
+    spi_write(0x40, 0x40)  # DIO0 mapped to TxDone (bits 7-6 = 01)
+    
+    # Set frequency to 915 MHz (matching RX script)
+    frequency = 915000000
+    frf = int(frequency / 61.03515625)
+    spi_write(0x06, (frf >> 16) & 0xFF)  # RegFrfMsb
+    spi_write(0x07, (frf >> 8) & 0xFF)   # RegFrfMid
+    spi_write(0x08, frf & 0xFF)          # RegFrfLsb
+    
+    # Modem configuration (matching RX script)
+    spi_write(0x1D, 0x78)  # RegModemConfig1: BW=125 kHz, CR=4/7, explicit header
+    spi_write(0x1E, 0xC4)  # RegModemConfig2: SF7, CRC on
+    spi_write(0x26, 0x0C)  # RegModemConfig3: LDRO on, AGC on
+    
+    # Set preamble length to 8 symbols
+    spi_write(0x20, 0x00)  # RegPreambleMsb
+    spi_write(0x21, 0x08)  # RegPreambleLsb
+    
+    # Set PA configuration (example value; adjust if needed)
+    spi_write(0x09, 0x8F)  # RegPaConfig: +20 dBm with PA_BOOST
+    
+    # Set FIFO TX base address to 0 and reset FIFO pointer
+    spi_write(0x0E, 0x00)  # RegFifoTxBaseAddr
+    spi_write(0x0D, 0x00)  # RegFifoAddrPtr
+    
+    payload = "ACK"  # ACK message to send
+    time.sleep(2)
+    print("\n[Sending ACK]")
+    
+    # Reset FIFO pointer
+    spi_write(0x0D, 0x00)
+    
+    # Write payload bytes into FIFO
+    for char in payload:
+        spi_write(0x00, ord(char))
+    
+    # Set payload length
+    spi_write(0x22, len(payload))
+    
+    # Clear IRQ flags
+    spi_write(0x12, 0xFF)
+    
+    # Switch to TX mode: RegOpMode = 0x83 (LoRa TX mode)
+    spi_write(0x01, 0x83)
+    print("Transmitting ACK...")
+    
+    # Wait for TX done signal (DIO0 high)
+    start = time.time()
+    while time.time() - start < 5:
+        if GPIO.input(DIO0) == 1:
+            print("ACK sent successfully!")
+            break
+        time.sleep(0.01)
+    else:
+        irq = spi_read(0x12)
+        print("TX done timeout. IRQ flags:", hex(irq))
+    
+    # Clear IRQ flags
+    spi_write(0x12, 0xFF)
+    
+    # Return to standby mode
+    spi_write(0x01, 0x81)
+    time.sleep(0.1)
+
 def receive_loop():
     global current_channel
     print("Listening for incoming LoRa packets with frequency hopping...")
@@ -142,65 +243,55 @@ def receive_loop():
             hop_channel = spi_read(0x1C)
             current_channel = hop_channel & 0x3F
             print(f"FHSS interrupt: Current channel {current_channel}")
-            
-            # Update to next channel
-            current_channel = (current_channel + 1) % len(HOP_CHANNELS)
             set_frequency(current_channel)
-            
-            # Clear FhssChangeChannel interrupt
-            spi_write(0x12, 0x04)
+            spi_write(0x12, 0x04)  # Clear FhssChangeChannel interrupt flag
         
         # Check for RX Done (bit 6)
         if irq_flags & 0x40:
-            print(f"IRQ Flags: {bin(irq_flags)} (0x{irq_flags:02x})")
+            print(f"IRQ Flags: 0b{irq_flags:08b} (0x{irq_flags:02x})")
+            if irq_flags & 0x20:
+                print("CRC error detected, no ACK sent.")
+                spi_write(0x12, 0xFF)
+                continue
             
-            # Clear IRQ flags
-            spi_write(0x12, 0xFF)
-            
-            # Read payload length
             nb_bytes = spi_read(0x13)
             print(f"Packet size: {nb_bytes} bytes")
             
-            # Read current FIFO address
             current_addr = spi_read(0x10)
-            
-            # Set FIFO address pointer
             spi_write(0x0D, current_addr)
             
-            # Read payload
             payload = bytearray()
             for _ in range(nb_bytes):
                 payload.append(spi_read(0x00))
-
             print(f"Raw RX Payload ({len(payload)} bytes): {payload.hex()}")
             
-            # Decode payload if 14 bytes
-            if len(payload) == 14:
+            spi_write(0x12, 0xFF)  # Clear IRQ flags
+            
+            if len(payload) == 14:  # Expected GPS packet size
                 try:
                     lat, lon, alt, timestamp = struct.unpack(">iiHI", payload)
                     latitude = lat / 1_000_000.0
                     longitude = lon / 1_000_000.0
-                    time_str = time.strftime("%Y-%m-d %H:%M:%S", time.gmtime(timestamp))
+                    time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(timestamp))
                     print(f"Received: Latitude={latitude}, Longitude={longitude}, Altitude={alt}m, Timestamp={time_str}")
                     
-                    # Send data to Traccar
+                    # Send GPS data to Traccar
                     send_to_traccar(latitude, longitude, alt, timestamp)
+                    
+                    # Send ACK on fixed channel
+                    send_ack()
                 except struct.error as e:
                     print("Error decoding payload:", e)
             else:
-                print(f"Unexpected payload size: {nb_bytes} bytes (expected 14)")
+                print(f"Unexpected payload size: {nb_bytes} bytes (expected 14), no ACK sent.")
                 try:
                     message = ''.join(chr(b) for b in payload if 32 <= b <= 126)
                     print(f"Raw data: {payload.hex()}")
                     print(f"As text: {message}")
                 except Exception as e:
                     print(f"Error processing raw payload: {e}")
-            
-            # Check for CRC error
-            if irq_flags & 0x20:
-                print("CRC error detected")
         
-        time.sleep(0.01)  # Small delay to prevent CPU hogging
+        time.sleep(0.01)  # Prevent CPU hogging
 
 def cleanup():
     spi.close()

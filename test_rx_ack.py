@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import spidev
 import RPi.GPIO as GPIO
 import time
@@ -57,14 +56,11 @@ def init_module():
     spi_write(0x01, 0x80)
     time.sleep(0.1)
     
-    # Explicitly set DIO mapping: Map DIO0 to TX done.
-    # For RegDioMapping1 (0x40), bits 7-6 control DIO0.
-    # Setting them to '01' (i.e. value 0x40) makes DIO0 indicate TX done.
-    spi_write(0x40, 0x40)
+    # Explicitly set DIO mapping: Map DIO0 to RX done.
+    spi_write(0x40, 0x00)
     
     # Set frequency to 915 MHz (adjust if needed)
     frequency = 915000000
-    # Frequency step Fstep ≈ 32e6 / 2^19 ≈ 61.035 Hz
     frf = int(frequency / 61.03515625)
     spi_write(0x06, (frf >> 16) & 0xFF)  # RegFrfMsb
     spi_write(0x07, (frf >> 8) & 0xFF)   # RegFrfMid
@@ -82,88 +78,39 @@ def init_module():
     # Set PA configuration (example value; ensure PA_BOOST is used if wired that way)
     spi_write(0x09, 0x8F)  # RegPaConfig
     
-    # Set FIFO TX base address to 0 and reset FIFO pointer
-    spi_write(0x0E, 0x00)  # RegFifoTxBaseAddr
+    # Set FIFO RX base address to 0 and reset FIFO pointer
+    spi_write(0x0E, 0x00)  # RegFifoRxBaseAddr
     spi_write(0x0D, 0x00)  # RegFifoAddrPtr
 
-def test_register_rw():
-    print("\n[Register R/W Test]")
-    original = spi_read(0x0D)  # Read FIFO pointer register
-    print(f"Original RegFifoAddrPtr (0x0D): {hex(original)}")
-    test_val = 0x55
-    spi_write(0x0D, test_val)
-    read_back = spi_read(0x0D)
-    print(f"Value after writing {hex(test_val)}: {hex(read_back)}")
-    spi_write(0x0D, original)  # Restore original value
-    if read_back == test_val:
-        print("Register R/W test passed!")
-    else:
-        print("Register R/W test failed!")
-
-def test_tx_mode():
-    payload = "test_tx"
-    print("\n[TX Mode Test]")
-    # Reset FIFO pointer
-    spi_write(0x0D, 0x00)
-    # Write payload bytes into FIFO
-    for char in payload:
-        spi_write(0x00, ord(char))
-    spi_write(0x22, len(payload))  # Set payload length
-    
-    # Switch to TX mode: RegOpMode = 0x83 (LoRa TX mode)
-    spi_write(0x01, 0x83)
-    print("Payload transmitted, waiting for TX done signal...")
-    
-    start = time.time()
-    while time.time() - start < 5:
-        if GPIO.input(DIO0) == 1:
-            print("TX done signal received!")
-            break
-        time.sleep(0.01)
-    else:
-        irq = spi_read(0x12)
-        print("TX done timeout. IRQ flags:", hex(irq))
-    
-    # Return to standby mode
-    spi_write(0x01, 0x81)
-    time.sleep(0.1)
-
-def test_rx_mode():
-    print("\n[RX Mode Test]")
+def spi_rx():
+    """Function to receive data using LoRa."""
     # Set module to RX continuous mode (RegOpMode = 0x85)
     spi_write(0x01, 0x85)
-    start = time.time()
-    received = False
-    while time.time() - start < 5:
+    print("Listening for incoming data...")
+    
+    while True:  # Keep listening indefinitely
         if GPIO.input(DIO0) == 1:
             print("RX done signal detected!")
             # Read number of received bytes from RegRxNbBytes (0x13)
             nb_bytes = spi_read(0x13)
-            print("Payload length:", nb_bytes)
+            print(f"Payload length: {nb_bytes} bytes")
             payload = []
             for i in range(nb_bytes):
                 payload.append(spi_read(0x00))
-            print("Received payload:", ''.join(chr(b) for b in payload))
-            received = True
-            break
-        time.sleep(0.01)
-    if not received:
-        print("No packet received in RX mode.")
-    # Return to standby mode
-    spi_write(0x01, 0x81)
-    time.sleep(0.1)
+            received_data = ''.join(chr(b) for b in payload)
+            if received_data == "ACK":
+                    print("ACK received. Stopping.")
+        
+        time.sleep(0.1)  # Sleep to avoid busy loop
 
 def main():
     init_module()
-    test_register_rw()
-    test_tx_mode()
-    test_rx_mode()
-    cleanup()
-
-if __name__ == "__main__":
     try:
-        main()
+        spi_rx()  # Start listening for incoming LoRa packets
     except KeyboardInterrupt:
         print("Interrupted by user. Exiting.")
         cleanup()
         sys.exit(0)
+
+if __name__ == "__main__":
+    main()
