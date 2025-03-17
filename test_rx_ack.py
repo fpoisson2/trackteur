@@ -98,7 +98,9 @@ def spi_rx():
             for i in range(nb_bytes):
                 payload.append(spi_read(0x00))
             received_data = ''.join(chr(b) for b in payload)
-            print(f"Received payload: {received_data}")
+            if received_data == "ACK":
+                    print("ACK received. Stopping.")
+                    break
         
         time.sleep(0.1)  # Sleep to avoid busy loop
 
