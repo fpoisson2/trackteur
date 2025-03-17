@@ -148,6 +148,8 @@ def send_ack():
     
     # Set channel (use the current channel from FHSS)
     set_frequency(current_channel)
+
+    time.sleep(1)
     
     # Switch to TX mode
     spi_write(0x01, 0x83)
@@ -155,7 +157,7 @@ def send_ack():
     
     # Wait for TX to complete
     start = time.time()
-    while time.time() - start < 5:
+    while time.time() - start < 2:
         if spi_read(0x12) & 0x08:  # TxDone
             print("ACK sent successfully!")
             break
