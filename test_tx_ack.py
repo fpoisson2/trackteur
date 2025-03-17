@@ -57,9 +57,9 @@ def init_lora():
     spi_write(0x01, 0x80)  # Sleep mode, LoRa mode
     time.sleep(0.1)
     set_frequency()
-    spi_write(0x1D, 0x78)  # RegModemConfig1: BW 125 kHz, CR 4/8, Explicit Header
-    spi_write(0x1E, 0xC4)  # RegModemConfig2: SF12, CRC on
-    spi_write(0x26, 0x0C)  # RegModemConfig3: LDRO on, AGC on
+    spi_write(0x1D, 0x78)  # RegModemConfig1: e.g., BW=125 kHz, CR=4/7, explicit header
+    spi_write(0x1E, 0xC4)  # RegModemConfig2: e.g., SF7, CRC on
+    spi_write(0x26, 0x0C)
     spi_write(0x20, 0x00)  # Preamble length MSB
     spi_write(0x21, 0x08)  # Preamble length LSB: 8 symbols
     spi_write(0x24, 0)     # Disable frequency hopping
