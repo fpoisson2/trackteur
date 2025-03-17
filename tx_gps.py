@@ -75,6 +75,8 @@ def reset_module():
 def set_frequency(channel_idx):
     global HOP_CHANNELS
     msb, mid, lsb = HOP_CHANNELS[channel_idx]
+    freq_hz = (((msb << 16) | (mid << 8) | lsb) * FXTAL) / FRF_FACTOR
+    print(f"Setting frequency to {freq_hz/1000000:.3f} MHz (channel {channel_idx})")
     spi_write(0x06, msb)  # RegFrfMsb
     spi_write(0x07, mid)  # RegFrfMid
     spi_write(0x08, lsb)  # RegFrfLsb
@@ -177,13 +179,18 @@ def spi_tx(payload, max_retries=3):
             attempt += 1
             continue
         
+        # After transmission completes
+        print("Transmission complete!")
+        # Wait a bit longer before switching modes
+        time.sleep(1.0)  # Increase this delay to 1 second
+
         # Switch to RX mode to listen for ACK
-        spi_write(0x40, 0x00)  # Map DIO0 to RxDone
         spi_write(0x0F, 0x00)  # Set RX FIFO base address
-        spi_write(0x0D, 0x00)  # Reset FIFO pointer
+        spi_write(0x0D, 0x00)  # Reset FIFO address pointer
+        spi_write(0x40, 0x00)  # Map DIO0 to RxDone
         spi_write(0x01, 0x85)  # Continuous RX mode
         print(f"Switched to RX mode on channel {current_channel}, waiting for ACK...")
-
+        
         # Wait for ACK (timeout after 5 seconds)
         start = time.time()
         while time.time() - start < 5:

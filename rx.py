@@ -66,6 +66,8 @@ def reset_module():
 def set_frequency(channel_idx):
     global HOP_CHANNELS
     msb, mid, lsb = HOP_CHANNELS[channel_idx]
+    freq_hz = (((msb << 16) | (mid << 8) | lsb) * FXTAL) / FRF_FACTOR
+    print(f"Setting frequency to {freq_hz/1000000:.3f} MHz (channel {channel_idx})")
     spi_write(0x06, msb)  # RegFrfMsb
     spi_write(0x07, mid)  # RegFrfMid
     spi_write(0x08, lsb)  # RegFrfLsb
@@ -133,15 +135,16 @@ def send_to_traccar(latitude, longitude, altitude, timestamp):
 
 def send_ack():
     """Send an ACK packet back to the transmitter."""
-    ack_payload = b"ACK"  # Simple ACK payload
+    print("Sending ACK immediately...")
     
-    # First, change DIO0 mapping to TxDone
-    spi_write(0x40, 0x00)  # Map DIO0 to TxDone
+    # First map DIO0 to TxDone (0x40 bit 7-6 = 00)
+    spi_write(0x40, 0x00)
     
     # Reset FIFO pointer
     spi_write(0x0D, 0x00)
     
     # Write ACK payload to FIFO
+    ack_payload = b"ACK"
     for byte in ack_payload:
         spi_write(0x00, byte)
     
@@ -150,16 +153,12 @@ def send_ack():
     # Clear IRQ flags
     spi_write(0x12, 0xFF)
     
-    # Set channel (use the current channel from FHSS)
-    set_frequency(current_channel)
-    
-    # Switch to TX mode
+    # Set TX mode
     spi_write(0x01, 0x83)
-    print("Sending ACK...")
     
-    # Wait for TX to complete by checking DIO0 pin directly
+    # Wait for TX to complete
     start = time.time()
-    while time.time() - start < 2:
+    while time.time() - start < 1:
         if GPIO.input(DIO0) == 1:  # TxDone
             print("ACK sent successfully!")
             break
@@ -168,7 +167,7 @@ def send_ack():
     # Clear IRQ flags
     spi_write(0x12, 0xFF)
     
-    # Restore DIO0 mapping to FhssChangeChannel
+    # Restore DIO0 mapping to FhssChangeChannel (0x40 bit 7-6 = 01)
     spi_write(0x40, 0x40)
     
     # Return to RX mode
