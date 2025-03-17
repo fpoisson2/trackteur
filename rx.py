@@ -4,7 +4,7 @@ import RPi.GPIO as GPIO
 import time
 import sys
 import struct
-import requests  # Import the requests library for HTTP communication
+import requests  # HTTP communication
 
 # Pin definitions (BCM mode)
 RESET = 17
@@ -191,28 +191,23 @@ def send_ack():
     # Wait for TX to complete by checking DIO0 pin directly
     start = time.time()
     while time.time() - start < 2:
-        if GPIO.input(DIO0) == 1:  # TxDone
+        if GPIO.input(DIO0) == 1:  # TxDone indication
             irq_flags = spi_read(0x12)
             if irq_flags & 0x08:  # TxDone bit
                 print("ACK sent successfully!")
                 break
         time.sleep(0.01)
     
-    # Clear IRQ flags
+    # Short delay to ensure transmission is complete
+    time.sleep(0.1)
+    
+    # Clear IRQ flags and restore settings
     spi_write(0x12, 0xFF)
-    
-    # Re-enable frequency hopping
-    spi_write(0x24, 5)  # RegHopPeriod
-    
-    # Restore DIO0 mapping to FhssChangeChannel
-    spi_write(0x40, 0x40)
-    
-    # Reset FIFO RX base address and pointer
-    spi_write(0x0F, 0x00)
-    spi_write(0x0D, 0x00)
-    
-    # Return to RX mode
-    spi_write(0x01, 0x85)
+    spi_write(0x24, 5)      # Re-enable frequency hopping
+    spi_write(0x40, 0x40)   # Restore DIO0 mapping to FhssChangeChannel
+    spi_write(0x0F, 0x00)   # Reset FIFO RX base addr
+    spi_write(0x0D, 0x00)   # Reset FIFO pointer
+    spi_write(0x01, 0x85)   # Return to continuous RX mode
     
     debug_registers()
 
@@ -227,46 +222,31 @@ def receive_loop():
             hop_channel = spi_read(0x1C)
             current_channel = hop_channel & 0x3F
             print(f"FHSS interrupt: Current channel {current_channel}")
-            
-            # Update to next channel
             set_frequency(current_channel)
-            
-            # Clear FhssChangeChannel interrupt
-            spi_write(0x12, 0x04)
+            spi_write(0x12, 0x04)  # Clear FhssChangeChannel interrupt flag
         
         # Check for RX Done (bit 6)
         if irq_flags & 0x40:
             print(f"IRQ Flags: 0b{irq_flags:08b} (0x{irq_flags:02x})")
-            
-            # Check for CRC error
-            crc_error = irq_flags & 0x20
-            if crc_error:
+            if irq_flags & 0x20:
                 print("CRC error detected, no ACK sent.")
-                spi_write(0x12, 0xFF)  # Clear flags
+                spi_write(0x12, 0xFF)
                 continue
             
-            # Read payload length
             nb_bytes = spi_read(0x13)
             print(f"Packet size: {nb_bytes} bytes")
             
-            # Read current FIFO address
             current_addr = spi_read(0x10)
-            
-            # Set FIFO address pointer
             spi_write(0x0D, current_addr)
             
-            # Read payload
             payload = bytearray()
             for _ in range(nb_bytes):
                 payload.append(spi_read(0x00))
-
             print(f"Raw RX Payload ({len(payload)} bytes): {payload.hex()}")
             
-            # Clear IRQ flags
-            spi_write(0x12, 0xFF)
+            spi_write(0x12, 0xFF)  # Clear IRQ flags
             
-            # Process payload
-            if len(payload) == 14:  # Expected size for our GPS packet
+            if len(payload) == 14:  # Expected GPS packet size
                 try:
                     lat, lon, alt, timestamp = struct.unpack(">iiHI", payload)
                     latitude = lat / 1_000_000.0
@@ -274,10 +254,10 @@ def receive_loop():
                     time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(timestamp))
                     print(f"Received: Latitude={latitude}, Longitude={longitude}, Altitude={alt}m, Timestamp={time_str}")
                     
-                    # Send data to Traccar
+                    # Send GPS data to Traccar
                     send_to_traccar(latitude, longitude, alt, timestamp)
                     
-                    # Send ACK with fixed channel approach
+                    # Send ACK on fixed channel
                     send_ack()
                 except struct.error as e:
                     print("Error decoding payload:", e)
@@ -290,7 +270,7 @@ def receive_loop():
                 except Exception as e:
                     print(f"Error processing raw payload: {e}")
         
-        time.sleep(0.01)  # Small delay to prevent CPU hogging
+        time.sleep(0.01)  # Prevent CPU hogging
 
 def cleanup():
     spi.close()
