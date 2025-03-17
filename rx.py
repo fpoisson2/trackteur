@@ -157,6 +157,8 @@ def send_ack():
     """Send an ACK packet back to the transmitter using fixed channel."""
     ack_payload = b"ACK"  # Simple ACK payload
     
+    time.sleep(2)
+
     print("Preparing to send ACK...")
     
     # Disable frequency hopping for ACK
