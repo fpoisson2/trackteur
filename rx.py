@@ -64,7 +64,7 @@ def init_lora():
     # CR = 0b100 (4/8) [bits 3-1]
     # Explicit header = 0 [bit 0]
     # 0110 100 0 = 0x68
-    spi_write(0x1D, 0x68)
+    spi_write(0x1D, 0x62)
     
     # RegModemConfig2 (0x1E): SF + other settings
     # SF = 12 (0b1100) [bits 7-4]
