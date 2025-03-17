@@ -87,8 +87,9 @@ def receive_loop():
         irq_flags = spi_read(0x12)
         
         # Check for RxDone (bit 6)
-        if GPIO.input(DIO0) == 1 and (irq_flags & 0x40):
-            print(f"IRQ Flags: {bin(irq_flags)} (0x{irq_flags:02x})")
+        if irq_flags & 0x40:  # RxDone flag is set
+            dio0_state = GPIO.input(DIO0)
+            print(f"Packet detected - DIO0: {dio0_state}, IRQ Flags: {bin(irq_flags)} (0x{irq_flags:02x})")
             
             # Clear IRQ flags
             spi_write(0x12, 0xFF)
@@ -99,6 +100,7 @@ def receive_loop():
             
             # Read current FIFO address
             current_addr = spi_read(0x10)
+            print(f"FIFO address: {current_addr}")
             
             # Set FIFO address pointer
             spi_write(0x0D, current_addr)
@@ -108,7 +110,7 @@ def receive_loop():
             for _ in range(nb_bytes):
                 payload.append(spi_read(0x00))
             
-            # Convert payload to string
+            # Convert payload to string if possible, otherwise show raw bytes
             try:
                 message = payload.decode('ascii')
                 print(f"Received: {message} ({len(payload)} bytes)")
@@ -118,6 +120,13 @@ def receive_loop():
             # Check for CRC error
             if irq_flags & 0x20:
                 print("CRC error detected")
+            
+            # Log RSSI and SNR for additional information
+            rssi = spi_read(0x1A)  # RegRssiValue
+            snr = spi_read(0x19)   # RegPktSnrValue (signed, divide by 4)
+            snr_value = snr if snr < 128 else snr - 256  # Convert to signed value
+            print(f"RSSI: -{rssi} dBm, SNR: {snr_value / 4} dB")
+            print("-" * 40)  # Separator for readability
         
         time.sleep(0.01)  # Small delay to prevent CPU hogging
 
