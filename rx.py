@@ -157,55 +157,42 @@ def send_ack():
     ack_payload = b"ACK"
     print("Preparing to send ACK...")
     
-    # Switch to standby mode
     spi_write(0x01, 0x81)  # LoRa standby mode
-    time.sleep(0.01)       # Stabilize
+    time.sleep(0.01)
     
-    # Disable frequency hopping
-    spi_write(0x24, 0)     # RegHopPeriod = 0
-    set_frequency(ACK_CHANNEL)  # Fixed frequency for ACK
+    spi_write(0x24, 0)     # Disable frequency hopping
+    set_frequency(ACK_CHANNEL)
     print(f"Set frequency to {FREQ_START/1000000} MHz for ACK transmission")
     
-    # Map DIO0 to TxDone
     spi_write(0x40, 0x00)  # DIO0 = TxDone
-    time.sleep(0.01)       # Stabilize
+    time.sleep(0.01)
     
-    # Reset FIFO pointers
     spi_write(0x0E, 0x00)  # RegFifoTxBaseAddr
     spi_write(0x0D, 0x00)  # RegFifoAddrPtr
     
-    # Write ACK payload to FIFO
     for byte in ack_payload:
         spi_write(0x00, byte)
-    spi_write(0x22, len(ack_payload))  # Set payload length
+    spi_write(0x22, len(ack_payload))
     
-    # Clear IRQ flags
-    spi_write(0x12, 0xFF)
+    spi_write(0x12, 0xFF)  # Clear IRQ flags
+    print(f"Pre-TX: RegOpMode={hex(spi_read(0x01))}, DIO0={GPIO.input(DIO0)}, IRQ={hex(spi_read(0x12))}")
     
-    # Switch to TX mode
-    spi_write(0x01, 0x83)  # LoRa TX mode
+    spi_write(0x01, 0x83)  # TX mode
     print("Sending ACK...")
     
-    # Wait for TX completion
     start = time.time()
     timeout = 5
     while time.time() - start < timeout:
-        if GPIO.input(DIO0) == 1:
-            irq_flags = spi_read(0x12)
+        dio0_state = GPIO.input(DIO0)
+        irq_flags = spi_read(0x12)
+        if dio0_state == 1:
+            print(f"DIO0 high detected! IRQ flags: {hex(irq_flags)}")
             if irq_flags & 0x08:  # TxDone
                 print("ACK sent successfully!")
                 break
         time.sleep(0.01)
     else:
         print("ACK transmission timed out!")
-    
-    # Restore settings for RX
-    spi_write(0x12, 0xFF)  # Clear IRQ flags
-    spi_write(0x24, 5)     # Re-enable frequency hopping
-    spi_write(0x40, 0x40)  # Restore DIO0 to FhssChangeChannel
-    spi_write(0x0F, 0x00)  # Reset RX FIFO base addr
-    spi_write(0x0D, 0x00)  # Reset FIFO pointer
-    spi_write(0x01, 0x85)  # Return to continuous RX mode
 
 def receive_loop():
     global current_channel
