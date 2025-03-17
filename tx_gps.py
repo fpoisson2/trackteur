@@ -5,6 +5,7 @@ import spidev
 import RPi.GPIO as GPIO
 import time
 import sys
+import struct
 
 # GPS Serial Port Configuration
 GPS_PORT = "/dev/ttyAMA0"  # Confirmed UART for Dragino GPS HAT
