@@ -24,11 +24,11 @@ spi.max_speed_hz = 5000000
 spi.mode = 0b00
 
 # Frequency hopping channels (902.2 MHz to 927.8 MHz, 400 kHz spacing)
-FREQ_START = 902200000
-FREQ_STEP = 400000
+FREQ_START = 902200000  # 902.2 MHz
+FREQ_STEP = 400000      # 400 kHz
 FXTAL = 32000000
 FRF_FACTOR = 2**19
-FREQUENCY_STEP = FXTAL / FRF_FACTOR  # ~61.035 Hz
+
 HOP_CHANNELS = []
 for i in range(64):
     freq = FREQ_START + i * FREQ_STEP
@@ -39,7 +39,6 @@ for i in range(64):
     HOP_CHANNELS.append((msb, mid, lsb))
 
 current_channel = 0
-current_frf = int((FREQ_START * FRF_FACTOR) / FXTAL)  # Initial Frf for channel 0
 
 def spi_write(addr, val):
     GPIO.output(NSS, GPIO.LOW)
@@ -59,122 +58,126 @@ def reset_module():
     GPIO.output(RESET, GPIO.HIGH)
     time.sleep(0.1)
 
-def set_frequency(frf):
-    msb = (frf >> 16) & 0xFF
-    mid = (frf >> 8) & 0xFF
-    lsb = frf & 0xFF
-    spi_write(0x06, msb)
-    spi_write(0x07, mid)
-    spi_write(0x08, lsb)
-    freq_mhz = (frf * FREQUENCY_STEP) / 1_000_000
-    print(f"Set frequency to {freq_mhz:.3f} MHz (Frf: {hex(frf)})")
+def set_frequency(channel_idx):
+    global HOP_CHANNELS
+    msb, mid, lsb = HOP_CHANNELS[channel_idx]
+    spi_write(0x06, msb)  # RegFrfMsb
+    spi_write(0x07, mid)  # RegFrfMid
+    spi_write(0x08, lsb)  # RegFrfLsb
 
 def init_lora():
     reset_module()
     version = spi_read(0x42)
     print(f"SX1276 Version: {hex(version)}")
     if version != 0x12:
-        print("Module not detected!")
+        print("Module not detected, check connections.")
         cleanup()
         sys.exit(1)
 
-    spi_write(0x01, 0x80)  # Sleep mode, LoRa
+    spi_write(0x01, 0x80)  # LoRa sleep mode
     time.sleep(0.1)
 
-    spi_write(0x40, 0x40)  # DIO0 = FhssChangeChannel
-    set_frequency(current_frf)  # Initial frequency (channel 0)
+    # Set initial frequency to channel 0 (902.2 MHz)
+    set_frequency(0)
 
-    spi_write(0x1D, 0x68)  # BW 62.5 kHz, CR 4/8, Implicit Header
-    spi_write(0x1E, 0xC4)  # SF12, CRC on
-    spi_write(0x26, 0x0C)  # LDRO on, AGC on
-    spi_write(0x20, 0x00)  # Preamble MSB
-    spi_write(0x21, 0x08)  # Preamble LSB
-    spi_write(0x24, 5)     # Hop every 5 symbols (~327.7 ms)
-    spi_write(0x0F, 0x00)  # FIFO RX base addr
-    spi_write(0x0D, 0x00)  # FIFO addr ptr
+    # RegModemConfig1: BW 125 kHz, CR 4/8, Implicit Header
+    # 0110 100 0 = 0x68
+    spi_write(0x1D, 0x78)
+    
+    # RegModemConfig2: SF12, CRC on
+    # 1100 1 1 00 = 0xC4
+    spi_write(0x1E, 0xC4)
+    
+    # RegModemConfig3: LDRO on, AGC on
+    # 0000 1 1 00 = 0x0C
+    spi_write(0x26, 0x0C)
 
-    # Setup GPIO interrupt for FhssChangeChannel
-    try:
-        GPIO.remove_event_detect(DIO0)  # Remove any existing event
-    except:
-        pass  # Ignore if no event exists
-    try:
-        GPIO.add_event_detect(DIO0, GPIO.RISING, callback=fhss_callback)
-        print(f"Added edge detection on DIO0 (BCM {DIO0})")
-    except RuntimeError as e:
-        print(f"Failed to add edge detection: {e}")
-        print("Try running with sudo or check GPIO conflicts.")
-        cleanup()
-        sys.exit(1)
+    # Preamble length: 8 symbols
+    spi_write(0x20, 0x00)
+    spi_write(0x21, 0x08)
 
-    spi_write(0x01, 0x85)  # Continuous RX mode
+    # Enable frequency hopping: Hop every 5 symbols (~327.7 ms at 62.5 kHz)
+    spi_write(0x24, 5)  # RegHopPeriod
 
-def fhss_callback(channel):
-    global current_channel, current_frf
-    hop_channel = spi_read(0x1C)
-    current_channel = hop_channel & 0x3F
-    current_channel = (current_channel + 1) % len(HOP_CHANNELS)
-    msb, mid, lsb = HOP_CHANNELS[current_channel]
-    current_frf = (msb << 16) | (mid << 8) | lsb
-    set_frequency(current_frf)
-    spi_write(0x12, 0x04)  # Clear FhssChangeChannel interrupt
-    print(f"FHSS interrupt: Switched to channel {current_channel}")
+    # Map DIO0 to FhssChangeChannel (bit 7:6 = 01)
+    spi_write(0x40, 0x40)
 
-def get_frequency_error():
-    fei_msb = spi_read(0x1C) & 0x0F
-    fei_mid = spi_read(0x1D)
-    fei_lsb = spi_read(0x1E)
-    fei = (fei_msb << 16) | (fei_mid << 8) | fei_lsb
-    if fei & 0x80000:  # Sign-extend 20-bit value
-        fei -= 1 << 20
-    freq_error_hz = fei * FREQUENCY_STEP
-    return freq_error_hz, fei
+    # Set FIFO RX base addr and pointer
+    spi_write(0x0F, 0x00)
+    spi_write(0x0D, 0x00)
+
+    # Continuous RX mode
+    spi_write(0x01, 0x85)
 
 def receive_loop():
-    print("Listening for LoRa packets with frequency hopping and correction...")
+    global current_channel
+    print("Listening for incoming LoRa packets with frequency hopping...")
     while True:
         irq_flags = spi_read(0x12)
-        if irq_flags & 0x40:  # RX Done
+        
+        # Check for FhssChangeChannel interrupt (bit 2)
+        if GPIO.input(DIO0) and (irq_flags & 0x04):
+            hop_channel = spi_read(0x1C)
+            current_channel = hop_channel & 0x3F
+            print(f"FHSS interrupt: Current channel {current_channel}")
+            
+            # Update to next channel
+            current_channel = (current_channel + 1) % len(HOP_CHANNELS)
+            set_frequency(current_channel)
+            
+            # Clear FhssChangeChannel interrupt
+            spi_write(0x12, 0x04)
+        
+        # Check for RX Done (bit 6)
+        if irq_flags & 0x40:
             print(f"IRQ Flags: {bin(irq_flags)} (0x{irq_flags:02x})")
-            spi_write(0x12, 0xFF)  # Clear IRQ flags
             
-            freq_error_hz, fei = get_frequency_error()
-            print(f"Frequency Error: {freq_error_hz:.1f} Hz (FEI: {fei})")
-            current_frf -= fei
-            set_frequency(current_frf)
+            # Clear IRQ flags
+            spi_write(0x12, 0xFF)
             
+            # Read payload length
             nb_bytes = spi_read(0x13)
             print(f"Packet size: {nb_bytes} bytes")
+            
+            # Read current FIFO address
             current_addr = spi_read(0x10)
+            
+            # Set FIFO address pointer
             spi_write(0x0D, current_addr)
+            
+            # Read payload
             payload = bytearray()
             for _ in range(nb_bytes):
                 payload.append(spi_read(0x00))
 
             print(f"Raw RX Payload ({len(payload)} bytes): {payload.hex()}")
             
+            # Decode payload if 14 bytes
             if len(payload) == 14:
                 try:
                     lat, lon, alt, timestamp = struct.unpack(">iiHI", payload)
                     latitude = lat / 1_000_000.0
                     longitude = lon / 1_000_000.0
-                    time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(timestamp))
+                    time_str = time.strftime("%Y-%m-d %H:%M:%S", time.gmtime(timestamp))
                     print(f"Received: Latitude={latitude}, Longitude={longitude}, Altitude={alt}m, Timestamp={time_str}")
                 except struct.error as e:
                     print("Error decoding payload:", e)
             else:
                 print(f"Unexpected payload size: {nb_bytes} bytes (expected 14)")
+                try:
+                    message = ''.join(chr(b) for b in payload if 32 <= b <= 126)
+                    print(f"Raw data: {payload.hex()}")
+                    print(f"As text: {message}")
+                except Exception as e:
+                    print(f"Error processing raw payload: {e}")
             
-            if irq_flags & 0x20:  # CRC Error
+            # Check for CRC error
+            if irq_flags & 0x20:
                 print("CRC error detected")
         
-        time.sleep(0.01)
+        time.sleep(0.01)  # Small delay to prevent CPU hogging
 
 def cleanup():
-    try:
-        GPIO.remove_event_detect(DIO0)
-    except:
-        pass
     spi.close()
     GPIO.cleanup()
 
