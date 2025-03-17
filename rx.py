@@ -89,6 +89,10 @@ def receive_loop():
                 for _ in range(nb_bytes):
                     payload.append(spi_read(0x00))
 
+                # 🔥 Print raw packet in hexadecimal format
+                print(f"Raw RX Payload ({len(payload)} bytes): {payload.hex()}")
+        
+
                 # If payload size is as expected (14 bytes), decode it
                 if len(payload) == 14:
                     try:
