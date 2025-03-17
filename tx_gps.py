@@ -121,8 +121,14 @@ def spi_tx(payload):
     time.sleep(0.1)
 
 
+# Global variable to track the last transmission time
+last_tx_time = 0
+TX_INTERVAL = 10  # seconds between transmissions
+
 def parse_gps(data):
     """Extracts latitude, longitude, altitude, and timestamp from GPS data."""
+    global last_tx_time
+    
     if data.startswith("$GNGGA") or data.startswith("$GPGGA"):  # Look for valid GPS sentences
         try:
             msg = pynmea2.parse(data)
@@ -135,9 +141,20 @@ def parse_gps(data):
 
             # Pack into a binary format: 4-byte lat, 4-byte lon, 2-byte alt, 4-byte timestamp
             payload = struct.pack(">iiH I", lat, lon, alt, timestamp)
-
-            print(f"TX: lat={lat/1_000_000}, lon={lon/1_000_000}, alt={alt}m, ts={timestamp}")
-            spi_tx(payload)  # Send optimized binary payload over LoRa
+            
+            current_time = time.time()
+            
+            # Only transmit if enough time has passed since the last transmission
+            if current_time - last_tx_time >= TX_INTERVAL:
+                print(f"TX: lat={lat/1_000_000}, lon={lon/1_000_000}, alt={alt}m, ts={timestamp}")
+                spi_tx(payload)  # Send optimized binary payload over LoRa
+                
+                # Update the last transmission time
+                last_tx_time = current_time
+            else:
+                # Optional: Print info about skipped transmission
+                time_left = TX_INTERVAL - (current_time - last_tx_time)
+                print(f"Skipping transmission. Next TX in {time_left:.1f} seconds")
 
         except pynmea2.ParseError as e:
             print(f"Parse error: {e}")
@@ -151,7 +168,6 @@ def read_gps():
                 line = ser.readline().decode('ascii', errors='replace').strip()
                 if line:
                     parse_gps(line)
-                    time.sleep(10)
     except serial.SerialException as e:
         print(f"Serial error: {e}")
 
