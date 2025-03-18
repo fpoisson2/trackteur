@@ -218,6 +218,21 @@ def init_lora():
     # Set FIFO RX base addr and pointer
     spi_write(0x0F, 0x00)
     spi_write(0x0D, 0x00)
+    
+    # LNA settings for better sensitivity
+    # Set LNA gain to maximum
+    spi_write(0x0C, 0x23)  # RegLna: 0x23 = LnaBoostHf=11 (boost on, 150%), LnaGain=001 (max gain)
+    
+    # Set RegSymbTimeout (0x1F-0x20) to maximum
+    spi_write(0x1F, 0xFF)
+    spi_write(0x20, 0x00)
+    
+    # Enhanced reception
+    if display_rssi:
+        # Enable AGC for better RSSI readings
+        spi_write(0x26, 0x0C)  # Enable low data rate optimization and AGC auto on
+        # Reset RSSI reading
+        dummy = spi_read(0x1A)
 
     # Continuous RX mode
     spi_write(0x01, 0x85)
@@ -291,13 +306,32 @@ def read_rssi():
     return rssi_raw - 137
 
 def read_signal_quality():
-    # Read RSSI (current channel)
-    rssi = read_rssi()
+    """
+    Read RSSI and SNR for a received packet
     
-    # Read SNR (last packet) if needed
+    For packet RSSI (as opposed to current channel RSSI):
+    - Use RegPktRssiValue (0x1A) for FSK mode, or in LoRa mode for the last packet
+    - The value needs appropriate offset based on frequency band
+    
+    For SNR of the last received packet:
+    - Use RegPktSnrValue (0x19)
+    - Value in two's complement format, needs to be divided by 4
+    """
+    # Read RSSI of last packet
+    rssi_raw = spi_read(0x1A)
+    
+    # Convert to dBm (SX1276 datasheet section 5.5.5)
+    # LoRa packet RSSI values typically use different offset than continuous
+    if FREQUENCY > 860000000:  # High frequency
+        rssi = rssi_raw - 157
+    else:  # Low frequency
+        rssi = rssi_raw - 164
+    
+    # Read SNR (last packet)
     snr_raw = spi_read(0x19)
     
-    # Convert SNR to decimal value (signed 8-bit)
+    # Convert SNR to decimal value (signed 8-bit, two's complement, divide by 4)
+    # Per datasheet 5.5.4: dB value = RegPktSnrValue / 4
     if snr_raw > 127:
         snr = (snr_raw - 256) / 4
     else:
@@ -312,16 +346,37 @@ def receive_loop():
     
     print(f"Listening for incoming LoRa packets on {FREQUENCY/1000000} MHz...")
     
+    # Create a clean line for RSSI display
+    if display_rssi:
+        print("\nRSSI Monitor starting... ", flush=True)
+    
     while True:
         current_time = time.time()
         
         # Display RSSI continuously if enabled
-        if display_rssi and (current_time - last_rssi_time >= 0.5):
+        if display_rssi and (current_time - last_rssi_time >= 0.2):  # More frequent updates
             last_rssi_time = current_time
+            
+            # Force radio into RX mode to ensure valid RSSI readings
+            # Reading current mode
+            mode = spi_read(0x01)
+            if (mode & 0x07) != 0x05:  # Not in RX continuous mode
+                # Put back in RX continuous mode
+                spi_write(0x01, 0x85)
+                time.sleep(0.01)  # Small delay to stabilize
+            
+            # Read RSSI - force a fresh reading
             rssi = read_rssi()
+            
+            # Make a simple visual meter
+            rssi_abs = abs(rssi)
+            meter = '#' * max(0, min(20, int((180 - rssi_abs) / 4)))
+            meter = meter.ljust(20)
+                
             timestamp = time.strftime("%H:%M:%S", time.localtime())
-            # Use carriage return to overwrite the same line
-            sys.stdout.write(f"\r[{timestamp}] Current RSSI: {rssi} dBm                          ")
+            
+            # Use ANSI escape codes to clear the line and reposition cursor
+            sys.stdout.write(f"\r\033[K[{timestamp}] RSSI: {rssi} dBm [{meter}]")
             sys.stdout.flush()
         
         # Print status every minute if no packets received and verbose mode
@@ -403,6 +458,9 @@ def receive_loop():
             # Check for CRC error
             if irq_flags & 0x20:
                 print("CRC error detected")
+            
+            # Print separator for better readability
+            print("\nResuming receive mode...", flush=True)
         
         # Small delay to prevent CPU hogging
         time.sleep(0.01)
