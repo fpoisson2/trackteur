@@ -84,7 +84,7 @@ def init_module():
     time.sleep(0.1)
     
     # Map DIO0 to TxDone (bit 7:6 = 00)
-    spi_write(0x40, 0x00)  # DIO0 = TxDone
+    spi_write(0x40, 0x40)  # DIO0 = TxDone
     
     # Set fixed frequency (915 MHz)
     set_frequency()
