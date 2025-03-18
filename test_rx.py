@@ -29,8 +29,7 @@ def spi_write(addr, value):
 
 def spi_read(addr):
     GPIO.output(NSS, GPIO.LOW)
-    spi.xfer2([addr & 0x7F])
-    val = spi.xfer2([0x00])[0]
+    val = spi.xfer2([addr & 0x7F, 0x00])[1]  # Read with dummy byte
     GPIO.output(NSS, GPIO.HIGH)
     return val
 
@@ -50,33 +49,36 @@ def init_lora():
         sys.exit(1)
 
     # Set to Sleep mode with LoRa enabled
-    spi_write(0x01, 0x81)
+    spi_write(0x01, 0x80)  # Sleep mode first to reset
+    time.sleep(0.1)
+    spi_write(0x01, 0x81)  # LoRa mode, standby
     time.sleep(0.1)
 
-    # Set frequency to 915 MHz (adjust if needed)
-    frequency = 915000000
-    # Frequency step Fstep ≈ 32e6 / 2^19 ≈ 61.035 Hz
-    frf = int(frequency / 61.03515625)
-    spi_write(0x06, (frf >> 16) & 0xFF)  # RegFrfMsb
-    spi_write(0x07, (frf >> 8) & 0xFF)   # RegFrfMid
-    spi_write(0x08, frf & 0xFF)          # RegFrfLsb
+    # Set frequency to 915 MHz
+    frf = int(915000000 / 61.03515625)  # Fstep = 32e6 / 2^19 ≈ 61.035 Hz
+    spi_write(0x06, (frf >> 16) & 0xFF)  # RegFrfMsb = 0xE4
+    spi_write(0x07, (frf >> 8) & 0xFF)   # RegFrfMid = 0x24
+    spi_write(0x08, frf & 0xFF)          # RegFrfLsb = 0x00
 
-    # RegModemConfig1: BW 125 kHz, CR 4/8, Implicit Header
-    spi_write(0x1D, 0xA3)
-    
-    # RegModemConfig2: SF12, CRC on
-    spi_write(0x1E, 0xC0)
-    
-    # RegModemConfig3: LDRO on, AGC on
-    spi_write(0x0C, 0xC3)
+    # RegLna: Max gain, boost on
+    spi_write(0x0C, 0xC3)  # LNA gain G4, boost on for HF
+
+    # RegModemConfig1: BW 125 kHz, CR 4/5, Explicit Header, CRC on
+    spi_write(0x1D, 0xA3)  # BW=125 kHz (7:6=10), CR=4/5 (5:4=00), Header=explicit (3=1), CRC=on (2=1)
+
+    # RegModemConfig2: SF12, Continuous mode, CRC on
+    spi_write(0x1E, 0xC4)  # SF=12 (7:4=1100), Rx continuous (3=1), CRC=on (2=1)
+
+    # RegModemConfig3: LowDataRateOptimize on, AGC on
+    spi_write(0x26, 0x0C)  # LDRO=1 (3=1), AGC=1 (2=1)
 
     # Preamble length: 8 symbols
-    spi_write(0x20, 0x00)
-    spi_write(0x21, 0x08)
+    spi_write(0x20, 0x00)  # MSB
+    spi_write(0x21, 0x08)  # LSB
 
     # Set FIFO RX base address and pointer
-    spi_write(0x0F, 0x00)
-    spi_write(0x0D, 0x00)
+    spi_write(0x0F, 0x00)  # RegFifoRxBaseAddr
+    spi_write(0x0D, 0x00)  # RegFifoAddrPtr
 
     # Map DIO0 to RxDone (bit 7:6 = 01)
     spi_write(0x40, 0x40)
@@ -98,11 +100,11 @@ def receive_loop():
             spi_write(0x12, 0xFF)
             
             # Read payload length
-            nb_bytes = spi_read(0x13)
+            nb_bytes = spi_read(0x13)  # RegRxNbBytes
             print(f"Packet size: {nb_bytes} bytes")
             
             # Read current FIFO address
-            current_addr = spi_read(0x10)
+            current_addr = spi_read(0x10)  # RegFifoRxCurrentAddr
             print(f"FIFO address: {current_addr}")
             
             # Set FIFO address pointer
@@ -124,7 +126,7 @@ def receive_loop():
             if irq_flags & 0x20:
                 print("CRC error detected")
             
-            # Log RSSI and SNR for additional information
+            # Log RSSI and SNR
             rssi = spi_read(0x1A)  # RegRssiValue
             snr = spi_read(0x19)   # RegPktSnrValue (signed, divide by 4)
             snr_value = snr if snr < 128 else snr - 256  # Convert to signed value
