@@ -81,7 +81,7 @@ def init_lora():
     spi_write(0x08, frf & 0xFF)          # RegFrfLsb
 
     # Configure PA_BOOST
-    # RegPaConfig: Enable PABOOST, set output power to 17dBm (14+3)
+    # RegPaConfig: Enable PA_BOOST, set output power to 17dBm (14+3)
     spi_write(0x09, 0x8F)  # 1000 1111 - PA_BOOST pin, max power (15dBm) + 2dB
     
     # Set PA ramp-up time 40us
@@ -94,28 +94,27 @@ def init_lora():
     spi_write(0x4D, 0x87)  # RegPaDac: 0x87 for +20dBm
 
     # RegModemConfig1: BW 125 kHz, CR 4/5, Explicit Header, CRC on
-    spi_write(0x1D, 0xA3)  # BW=125 kHz (7:6=10), CR=4/5 (5:4=00), Header=explicit (3=1), CRC=on (2=1)
+    spi_write(0x1D, 0xA3)  # BW=125 kHz, CR=4/5, Explicit header, CRC on
 
     # RegModemConfig2: SF12, Continuous mode, CRC on
-    spi_write(0x1E, 0xC4)  # SF=12 (7:4=1100), Rx continuous (3=1), CRC=on (2=1)
+    spi_write(0x1E, 0xC4)  # SF=12, Rx continuous mode, CRC on
 
     # RegModemConfig3: LowDataRateOptimize on, AGC on
-    spi_write(0x26, 0x0C)  # LDRO=1 (3=1), AGC=1 (2=1)
+    spi_write(0x26, 0x0C)  # LowDataRateOptimize on, AGC on
     
-    # RegSymbTimeout: 0x03FF
-    spi_write(0x1F, 0xFF)  # Symbol timeout = 0x03FF
-    spi_write(0x20, 0x03)  # Symbol timeout = 0x03FF
+    # Set symbol timeout (only the LSB; the MSB remains at its default)
+    spi_write(0x1F, 0xFF)  # RegSymbTimeout LSB
 
-    # Preamble length: 8 symbols
-    spi_write(0x20, 0x00)  # MSB
-    spi_write(0x21, 0x08)  # LSB
+    # Set preamble length: 8 symbols
+    spi_write(0x20, 0x00)  # Preamble length MSB (0x0008)
+    spi_write(0x21, 0x08)  # Preamble length LSB
 
     # Set FIFO TX base address
     spi_write(0x0E, 0x00)  # RegFifoTxBaseAddr = 0
     spi_write(0x0D, 0x00)  # RegFifoAddrPtr = 0
 
     # Map DIO0 to TxDone (01 in bits 7:6)
-    spi_write(0x40, 0x40)  # RegDioMapping1: 01 in bits 7:6 for TxDone
+    spi_write(0x40, 0x40)  # RegDioMapping1: TxDone on DIO0
 
     # Clear IRQ flags
     spi_write(0x12, 0xFF)  # RegIrqFlags: Clear all IRQ flags
@@ -130,13 +129,13 @@ def transmit_message(message):
     
     print(f"Transmitting: {message} ({len(payload)} bytes)")
     
-    # Make sure we're in standby mode
+    # Ensure the module is in standby mode
     spi_write(0x01, 0x81)  # LoRa mode, standby
     
     # Clear IRQ flags
     spi_write(0x12, 0xFF)
     
-    # Reset FIFO pointer
+    # Reset FIFO pointer to the TX base address
     spi_write(0x0D, 0x00)  # RegFifoAddrPtr = RegFifoTxBaseAddr
     
     # Write payload to FIFO
@@ -158,18 +157,18 @@ def transmit_message(message):
         irq_flags = spi_read(0x12)
         dio0_state = GPIO.input(DIO0)
         
-        if irq_flags & 0x08:  # TxDone flag
+        if irq_flags & 0x08:  # TxDone flag detected
             print(f"Transmission complete! IRQ flags: 0x{irq_flags:02X}, DIO0: {dio0_state}")
             break
         
         time.sleep(0.1)
-        # Print periodic status
+        # Optionally, print periodic status
         if int((time.time() - start_time) * 10) % 10 == 0:
             print(f"Waiting... IRQ flags: 0x{irq_flags:02X}, DIO0: {dio0_state}")
     
     if time.time() - start_time >= 5:
         print(f"TX timeout. IRQ flags: 0x{spi_read(0x12):02X}")
-        print(f"OpMode: 0x{spi_read(0x01):02X}")  # Check what mode we're in
+        print(f"OpMode: 0x{spi_read(0x01):02X}")  # Check the current mode
     
     # Clear IRQ flags and return to standby
     spi_write(0x12, 0xFF)
