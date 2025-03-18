@@ -4,6 +4,9 @@ import RPi.GPIO as GPIO
 import time
 import sys
 import argparse
+import os
+import math
+from collections import deque
 
 # Pin definitions (BCM mode)
 RESET = 17  # Reset pin
@@ -15,6 +18,12 @@ FREQ_START = 902200000  # 902.2 MHz (US 915 band)
 FREQ_STEP = 400000      # 400 kHz
 FXTAL = 32000000        # 32 MHz crystal
 FRF_FACTOR = 2**19
+
+# RSSI Visualization config
+RSSI_UPDATE_INTERVAL = 0.1  # Update RSSI every 0.1 seconds
+RSSI_HISTORY_LENGTH = 60    # Store 60 RSSI readings for graph (6 seconds at 0.1s interval)
+GRAPH_WIDTH = 60            # Width of the terminal graph
+GRAPH_HEIGHT = 10           # Height of the terminal graph
 
 # Generate frequency hopping channels
 HOP_CHANNELS = []
@@ -318,11 +327,62 @@ def init_lora_fhss(payload_len=26):
     print("LoRa initialized with FHSS settings (SF12, 125kHz BW, Implicit header, Freq. Hopping)")
     return True
 
-def receive_packets(max_time=None, use_fhss=False, expect_implicit=True, payload_len=26):
-    """Listen for incoming packets with timeout option"""
+def clear_terminal():
+    """Clear the terminal screen"""
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def draw_rssi_graph(rssi_history, min_rssi=70, max_rssi=140):
+    """Draw an ASCII graph of RSSI values in the terminal"""
+    # Check if we have data
+    if not rssi_history:
+        return "No RSSI data yet"
+    
+    rssi_values = list(rssi_history)
+    
+    # Calculate the range of values
+    graph_range = max_rssi - min_rssi
+    if graph_range <= 0:
+        graph_range = 1  # Avoid division by zero
+    
+    # Create graph
+    graph_str = []
+    graph_str.append(f"RSSI Graph (dBm) - Last {len(rssi_values)} readings - Min: -{min(rssi_values)} Max: -{max(rssi_values)}")
+    graph_str.append(f"-{min_rssi} dBm " + "─" * (GRAPH_WIDTH - 20) + f" -{max_rssi} dBm")
+    
+    # Create rows
+    for h in range(GRAPH_HEIGHT):
+        row = ""
+        threshold = min_rssi + (graph_range * (GRAPH_HEIGHT - h - 1) / GRAPH_HEIGHT)
+        
+        for val in rssi_values[-GRAPH_WIDTH:]:
+            if val >= threshold:
+                row += "█"
+            else:
+                row += " "
+        
+        # Add y-axis labels every few rows
+        if h % 2 == 0:
+            row_label = f"-{int(min_rssi + (graph_range * (GRAPH_HEIGHT - h - 1) / GRAPH_HEIGHT))} dBm"
+            row = f"{row_label:>10} │{row}"
+        else:
+            row = " " * 10 + "│" + row
+            
+        graph_str.append(row)
+    
+    # Add x-axis
+    graph_str.append(" " * 10 + "└" + "─" * min(len(rssi_values), GRAPH_WIDTH))
+    
+    return "\n".join(graph_str)
+
+def receive_packets(max_time=None, use_fhss=False, expect_implicit=True, payload_len=26, visualize_rssi=True):
+    """Listen for incoming packets with timeout option and RSSI visualization"""
     start_time = time.time()
     packet_count = 0
     current_channel = 0
+    
+    # Initialize RSSI tracking
+    rssi_history = deque(maxlen=RSSI_HISTORY_LENGTH)
+    last_rssi_update = 0
     
     print(f"Listening for incoming LoRa packets...")
     if max_time:
@@ -346,8 +406,21 @@ def receive_packets(max_time=None, use_fhss=False, expect_implicit=True, payload
                 print(f"Receive timeout after {max_time} seconds")
                 break
             
-            # Print status every 5 seconds if no packets received
-            if current_time - last_status_time >= 5:
+            # Handle RSSI visualization
+            if visualize_rssi and (current_time - last_rssi_update >= RSSI_UPDATE_INTERVAL):
+                rssi = spi_read(0x1B)  # Current RSSI
+                rssi_history.append(rssi)
+                last_rssi_update = current_time
+                
+                # Draw RSSI graph
+                if len(rssi_history) > 1:  # Only draw if we have at least 2 readings
+                    clear_terminal()
+                    print(draw_rssi_graph(rssi_history))
+                    print(f"\nRSSI: -{rssi} dBm | Time: {int(current_time - start_time)}s | Packets: {packet_count}")
+                    print("Press Ctrl+C to exit")
+            
+            # Print status every 5 seconds if not visualizing RSSI
+            elif not visualize_rssi and current_time - last_status_time >= 5:
                 irq_flags = spi_read(0x12)
                 rssi = spi_read(0x1B)  # Current RSSI
                 print(f"Still listening... [Time: {int(current_time - start_time)}s, "
@@ -374,6 +447,10 @@ def receive_packets(max_time=None, use_fhss=False, expect_implicit=True, payload
                 spi_write(0x12, 0x80)  # Clear timeout flag
             
             if rx_done:  # RxDone flag is set
+                # Temporarily pause visualization to show packet info
+                if visualize_rssi:
+                    clear_terminal()
+                
                 print(f"\n=== PACKET DETECTED ===")
                 dio0_state = GPIO.input(DIO0)
                 print(f"DIO0: {dio0_state}, IRQ Flags: {bin(irq_flags)} (0x{irq_flags:02x})")
@@ -427,6 +504,10 @@ def receive_packets(max_time=None, use_fhss=False, expect_implicit=True, payload
                 # Count packet
                 packet_count += 1
                 
+                # If visualizing RSSI, wait for user to acknowledge the packet
+                if visualize_rssi:
+                    input("Press Enter to continue RSSI visualization...")
+                
                 # Update last status time to avoid immediate status after packet
                 last_status_time = time.time()
             
@@ -456,6 +537,8 @@ def main():
                         help='Time to listen in seconds (default: 0, continuous)')
     parser.add_argument('--registers', action='store_true',
                         help='Print register values before starting')
+    parser.add_argument('--no-graph', action='store_true',
+                        help='Disable RSSI graph visualization')
     
     args = parser.parse_args()
     
@@ -488,7 +571,8 @@ def main():
             max_time=listen_time,
             use_fhss=(args.mode == 'fhss'),
             expect_implicit=implicit_header,
-            payload_len=args.payload_length
+            payload_len=args.payload_length,
+            visualize_rssi=not args.no_graph
         )
         
     except KeyboardInterrupt:
