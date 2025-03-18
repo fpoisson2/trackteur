@@ -77,8 +77,12 @@ def init_lora():
     # Set fixed frequency (915 MHz)
     set_frequency()
 
-    # RegModemConfig1: BW 125 kHz, CR 4/8, Implicit Header
-    spi_write(0x1D, 0x78)
+    # RegModemConfig1: BW 125 kHz, CR 4/5, Implicit Header
+    # Bits 7-4: Bandwidth (0111 = 125 kHz)
+    # Bits 3-1: Coding Rate (001 = 4/5)
+    # Bit 0: Implicit Header Mode (0 = Explicit Header Mode, 1 = Implicit Header Mode)
+    # 0111 001 0 = 0x72 for explicit header, 0x73 for implicit header
+    spi_write(0x1D, 0x73)
     
     # RegModemConfig2: SF12, CRC on
     spi_write(0x1E, 0xC4)
