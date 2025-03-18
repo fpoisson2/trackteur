@@ -130,7 +130,7 @@ def init_module():
     spi_write(0x21, 0x08)
     
     # Enable frequency hopping: Hop every 10 symbols (increased from 5)
-    spi_write(0x24, 1)  # RegHopPeriod
+    spi_write(0x24, 10)  # RegHopPeriod
     
     # Set PA configuration: +20 dBm with PA_BOOST
     spi_write(0x09, 0x8F)

@@ -24,14 +24,14 @@ spi.open(0, 0)
 spi.max_speed_hz = 5000000
 spi.mode = 0b00
 
-# Frequency hopping channels (902.2 MHz to 927.8 MHz, 400 kHz spacing)
+# Frequency hopping configuration 
 FREQ_START = 902200000  # 902.2 MHz
-FREQ_STEP = 400000      # 400 kHz
+FREQ_STEP = 200000      # 200 kHz (reduced from 400 kHz to fit more channels)
 FXTAL = 32000000
 FRF_FACTOR = 2**19
 
 HOP_CHANNELS = []
-for i in range(64):
+for i in range(128):  # Changed from 64 to 128 channels
     freq = FREQ_START + i * FREQ_STEP
     frf = int((freq * FRF_FACTOR) / FXTAL)
     msb = (frf >> 16) & 0xFF
@@ -133,22 +133,34 @@ def send_to_traccar(latitude, longitude, altitude, timestamp):
 
 def receive_loop():
     global current_channel
+    hop_count = 0
+    last_hop_time = time.time()
     print("Listening for incoming LoRa packets with frequency hopping...")
+    
     while True:
         irq_flags = spi_read(0x12)
         
         # Check for FhssChangeChannel interrupt (bit 2)
-        if GPIO.input(DIO0) and (irq_flags & 0x04):
+        if GPIO.input(DIO0) and (irq_flags & 0x40):  # 0x40 is for FhssChangeChannel
+            hop_count += 1
+            current_time = time.time()
+            hop_interval = current_time - last_hop_time
+            last_hop_time = current_time
+            
             hop_channel = spi_read(0x1C)
             current_channel = hop_channel & 0x3F
-            print(f"FHSS interrupt: Current channel {current_channel}")
+            
+            print(f"FHSS Hop #{hop_count} detected: Channel {current_channel}, " +
+                  f"Interval: {hop_interval:.3f}s, IRQ: 0x{irq_flags:02X}")
             
             # Update to next channel
-            current_channel = (current_channel + 1) % len(HOP_CHANNELS)
-            set_frequency(current_channel)
+            next_channel = (current_channel + 1) % len(HOP_CHANNELS)
+            set_frequency(next_channel)
+            print(f"Setting next channel to {next_channel}, " +
+                  f"Freq: {(FREQ_START + next_channel * FREQ_STEP)/1000000:.3f} MHz")
             
             # Clear FhssChangeChannel interrupt
-            spi_write(0x12, 0x04)
+            spi_write(0x12, 0x40)  # Clear only the FhssChangeChannel bit
         
         # Check for RX Done (bit 6)
         if irq_flags & 0x40:
