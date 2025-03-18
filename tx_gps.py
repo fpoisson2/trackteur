@@ -21,12 +21,13 @@ TX_INTERVAL = 10  # Seconds between transmissions
 
 # Frequency hopping configuration
 FREQ_START = 902200000  # 902.2 MHz
-FREQ_STEP = 400000      # 400 kHz
+FREQ_STEP = 200000      # 200 kHz (reduced step to fit more channels)
 FXTAL = 32000000
 FRF_FACTOR = 2**19
 
+# Increase the number of channels (e.g., to 128)
 HOP_CHANNELS = []
-for i in range(64):
+for i in range(128):  # Changed from 64 to 128
     freq = FREQ_START + i * FREQ_STEP
     frf = int((freq * FRF_FACTOR) / FXTAL)
     msb = (frf >> 16) & 0xFF
@@ -129,7 +130,7 @@ def init_module():
     spi_write(0x21, 0x08)
     
     # Enable frequency hopping: Hop every 10 symbols (increased from 5)
-    spi_write(0x24, 10)  # RegHopPeriod
+    spi_write(0x24, 1)  # RegHopPeriod
     
     # Set PA configuration: +20 dBm with PA_BOOST
     spi_write(0x09, 0x8F)
