@@ -115,8 +115,10 @@ spi.open(0, 0)
 spi.max_speed_hz = 5000000
 spi.mode = 0b00
 
-# Modified SPI functions to buffer debug output
 def spi_write(addr, val):
+    if verbose_mode >= 3:
+        print(f"SPI WRITE: [{addr | 0x80:02X}] <- {val:02X}")
+    
     GPIO.output(NSS, GPIO.LOW)
     spi.xfer2([addr | 0x80, val])
     GPIO.output(NSS, GPIO.HIGH)
@@ -125,7 +127,11 @@ def spi_read(addr):
     GPIO.output(NSS, GPIO.LOW)
     spi.xfer2([addr & 0x7F])
     val = spi.xfer2([0x00])[0]
-    GPIO.output(NSS, GPIO.HIGH)    
+    GPIO.output(NSS, GPIO.HIGH)
+    
+    if verbose_mode >= 3:
+        print(f"SPI READ: [{addr & 0x7F:02X}] -> {val:02X}")
+    
     return val
 
 def reset_module():
