@@ -19,23 +19,16 @@ DIO0  = 4    # DIO0 pin for interrupts
 last_tx_time = 0
 TX_INTERVAL = 10  # Seconds between transmissions
 
-# Frequency hopping configuration
-FREQ_START = 902200000  # 902.2 MHz
-FREQ_STEP = 400000      # 400 kHz
+# Fixed frequency configuration
+FREQUENCY = 915000000  # 915 MHz
 FXTAL = 32000000
 FRF_FACTOR = 2**19
 
-HOP_CHANNELS = []
-for i in range(64):
-    freq = FREQ_START + i * FREQ_STEP
-    frf = int((freq * FRF_FACTOR) / FXTAL)
-    msb = (frf >> 16) & 0xFF
-    mid = (frf >> 8) & 0xFF
-    lsb = frf & 0xFF
-    HOP_CHANNELS.append((msb, mid, lsb))
-
-# Replace the HOP_CHANNELS list in the main code with this generated list
-current_channel = 0
+# Calculate frequency register values
+frf = int((FREQUENCY * FRF_FACTOR) / FXTAL)
+FRF_MSB = (frf >> 16) & 0xFF
+FRF_MID = (frf >> 8) & 0xFF
+FRF_LSB = frf & 0xFF
 
 # Setup GPIO in BCM mode
 GPIO.setmode(GPIO.BCM)
@@ -72,12 +65,10 @@ def reset_module():
     GPIO.output(RESET, GPIO.HIGH)
     time.sleep(0.1)
 
-def set_frequency(channel_idx):
-    global HOP_CHANNELS
-    msb, mid, lsb = HOP_CHANNELS[channel_idx]
-    spi_write(0x06, msb)  # RegFrfMsb
-    spi_write(0x07, mid)  # RegFrfMid
-    spi_write(0x08, lsb)  # RegFrfLsb
+def set_frequency():
+    spi_write(0x06, FRF_MSB)  # RegFrfMsb
+    spi_write(0x07, FRF_MID)  # RegFrfMid
+    spi_write(0x08, FRF_LSB)  # RegFrfLsb
 
 def init_module():
     reset_module()
@@ -92,11 +83,11 @@ def init_module():
     spi_write(0x01, 0x80)
     time.sleep(0.1)
     
-    # Map DIO0 to FhssChangeChannel (bit 7:6 = 01)
-    spi_write(0x40, 0x40)  # DIO0 = FhssChangeChannel
+    # Map DIO0 to TxDone (bit 7:6 = 00)
+    spi_write(0x40, 0x00)  # DIO0 = TxDone
     
-    # Set initial frequency to channel 0 (902.2 MHz)
-    set_frequency(0)
+    # Set fixed frequency (915 MHz)
+    set_frequency()
     
     # RegModemConfig1: BW 125 kHz, CR 4/8, Implicit Header
     # 0110 100 0 = 0x68
@@ -114,9 +105,6 @@ def init_module():
     spi_write(0x20, 0x00)
     spi_write(0x21, 0x08)
     
-    # Enable frequency hopping: Hop every 5 symbols (~327.7 ms at 62.5 kHz)
-    spi_write(0x24, 5)  # RegHopPeriod
-    
     # Set PA configuration: +20 dBm with PA_BOOST
     spi_write(0x09, 0x8F)
     
@@ -129,7 +117,6 @@ def init_module():
     time.sleep(0.1)
 
 def spi_tx(payload):
-    global current_channel
     print(f"Raw TX Payload ({len(payload)} bytes): {payload.hex()}")
 
     # Reset FIFO pointer
@@ -144,36 +131,13 @@ def spi_tx(payload):
     # Clear IRQ flags
     spi_write(0x12, 0xFF)
     
-    # Set initial channel
-    current_channel = 0
-    set_frequency(current_channel)
-    
     # Switch to TX mode
     spi_write(0x01, 0x83)
-    print(f"Transmitting {len(payload)} bytes with frequency hopping.")
+    print(f"Transmitting {len(payload)} bytes on {FREQUENCY/1000000} MHz.")
 
-    # Give a moment for transmission to start
-    time.sleep(0.1)
-    
-    # Remap DIO0 to TxDone (bit 7:6 = 00)
-    spi_write(0x40, 0x00)
-
-    # Handle frequency hopping during transmission
+    # Wait for transmission to complete
     start = time.time()
     while time.time() - start < 5:  # Timeout after 5 seconds
-        if GPIO.input(DIO0) == 1:  # FhssChangeChannel interrupt
-            # Read current channel and IRQ flags
-            hop_channel = spi_read(0x1C)
-            current_channel = hop_channel & 0x3F
-            print(f"FHSS interrupt: Current channel {current_channel}")
-            
-            # Update to next channel
-            current_channel = (current_channel + 1) % len(HOP_CHANNELS)
-            set_frequency(current_channel)
-            
-            # Clear FhssChangeChannel interrupt
-            spi_write(0x12, 0x04)
-        
         # Check for TX Done (bit 3 in RegIrqFlags)
         irq_flags = spi_read(0x12)
         if irq_flags & 0x08:  # TxDone flag
