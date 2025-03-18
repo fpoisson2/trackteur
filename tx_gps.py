@@ -43,8 +43,8 @@ def parse_arguments():
                         help='Frequency in MHz (default: 915.0)')
     parser.add_argument('--sf', type=int, choices=range(7, 13), default=12,
                         help='Spreading Factor (7-12, default: 12)')
-    parser.add_argument('--bw', type=int, choices=[125, 250, 500], default=125,
-                        help='Bandwidth in kHz (default: 125)')
+    parser.add_argument('--bw', type=float, choices=[62.5, 125, 250, 500], default=125,
+                        help='Bandwidth in kHz (62.5, 125, 250, or 500, default: 125)')
     parser.add_argument('--cr', type=int, choices=range(1, 5), default=1,
                         help='Coding Rate (1=4/5, 2=4/6, 3=4/7, 4=4/8, default: 1)')
     parser.add_argument('--preamble', type=int, default=8,
@@ -157,9 +157,15 @@ def set_frequency():
     spi_write(0x08, FRF_LSB)  # RegFrfLsb
 
 def get_bandwidth_value():
-    # Convert bandwidth in kHz to register value
-    bw_values = {125: 0x70, 250: 0x80, 500: 0x90}
+    """Convert bandwidth in kHz to register value"""
+    bw_values = {
+        62.5: 0x60,  # Added 62.5 kHz option
+        125: 0x70,
+        250: 0x80,
+        500: 0x90
+    }
     return bw_values.get(BANDWIDTH, 0x70)  # Default to 125kHz
+
 
 def get_coding_rate_value():
     # Convert coding rate index to register value
@@ -208,7 +214,7 @@ def should_enable_ldro():
         print(f"LDRO should be: {'ENABLED' if should_enable else 'DISABLED'}")
     
     return should_enable
-    
+
 def init_module():
     reset_module()
     version = spi_read(0x42)  # RegVersion
@@ -233,7 +239,7 @@ def init_module():
     spi_write(0x39, SYNC_WORD)
     
     # RegModemConfig1: BW, CR, and header mode
-    modem_config1 = get_modem_config1()
+    modem_config1 = get_modem_confldro sx1276ig1()
     spi_write(0x1D, modem_config1)
     
     # RegModemConfig2: SF and CRC

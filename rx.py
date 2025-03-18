@@ -31,8 +31,8 @@ def parse_arguments():
                         help='Frequency in MHz (default: 915.0)')
     parser.add_argument('--sf', type=int, choices=range(7, 13),
                         help='Spreading Factor (7-12, default: 12)')
-    parser.add_argument('--bw', type=int, choices=[125, 250, 500],
-                        help='Bandwidth in kHz (default: 125)')
+    parser.add_argument('--bw', type=float, choices=[62.5, 125, 250, 500], default=125,
+                        help='Bandwidth in kHz (62.5, 125, 250, or 500, default: 125)')
     parser.add_argument('--cr', type=int, choices=range(1, 5),
                         help='Coding Rate (1=4/5, 2=4/6, 3=4/7, 4=4/8, default: 1)')
     parser.add_argument('--preamble', type=int,
@@ -144,9 +144,15 @@ def set_frequency():
     spi_write(0x08, FRF_LSB)  # RegFrfLsb
 
 def get_bandwidth_value():
-    # Convert bandwidth in kHz to register value
-    bw_values = {125: 0x70, 250: 0x80, 500: 0x90}
+    """Convert bandwidth in kHz to register value"""
+    bw_values = {
+        62.5: 0x60,  # Added 62.5 kHz option
+        125: 0x70,
+        250: 0x80,
+        500: 0x90
+    }
     return bw_values.get(BANDWIDTH, 0x70)  # Default to 125kHz
+
 
 def get_coding_rate_value():
     # Convert coding rate index to register value
