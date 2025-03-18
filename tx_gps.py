@@ -98,9 +98,9 @@ def init_module():
     # Set initial frequency to channel 0 (902.2 MHz)
     set_frequency(0)
     
-    # RegModemConfig1: BW 125 kHz, CR 4/8, Implicit Header
+    # RegModemConfig1: BW 125 kHz, CR 4/5, Implicit Header
     # 0110 100 0 = 0x68
-    spi_write(0x1D, 0x78)
+    spi_write(0x1D, 0x73)
     
     # RegModemConfig2: SF12, CRC on
     # 1100 1 1 00 = 0xC4
