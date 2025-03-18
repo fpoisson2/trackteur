@@ -45,6 +45,9 @@ def parse_arguments():
                         help='Device ID for Traccar (default: 212901)')
     parser.add_argument('--traccar-url', type=str,
                         help='Traccar server URL (default: http://trackteur.ve2fpd.com:5055)')
+    parser.add_argument('--test', action='store_true',
+                        help='Enable test mode: expect simple test packets')
+
     
     # Debugging options
     parser.add_argument('--verbose', '-v', action='count', default=0,
@@ -72,25 +75,16 @@ IMPLICIT_HEADER = False  # Default explicit header
 SYNC_WORD = 0x12       # Default LoRa sync word
 
 if args:
-    verbose_mode = args.verbose
-    if args.freq:
-        FREQUENCY = int(args.freq * 1000000)  # Convert MHz to Hz
-    if args.sf:
-        SPREADING_FACTOR = args.sf
-    if args.bw:
-        BANDWIDTH = args.bw
-    if args.cr:
-        CODING_RATE = args.cr
-    if args.preamble:
-        PREAMBLE_LENGTH = args.preamble
-    if args.implicit:
-        IMPLICIT_HEADER = True
-    if args.sync_word:
-        SYNC_WORD = args.sync_word
-    if args.device_id:
-        DEVICE_ID = args.device_id
-    if args.traccar_url:
-        TRACCAR_URL = args.traccar_url
+    verbose_mode = args.verbose if args.verbose is not None else verbose_mode
+    FREQUENCY = int(args.freq * 1000000) if args.freq is not None else FREQUENCY
+    SPREADING_FACTOR = args.sf if args.sf is not None else SPREADING_FACTOR
+    BANDWIDTH = args.bw if args.bw is not None else BANDWIDTH
+    CODING_RATE = args.cr if args.cr is not None else CODING_RATE
+    PREAMBLE_LENGTH = args.preamble if args.preamble is not None else PREAMBLE_LENGTH
+    IMPLICIT_HEADER = args.implicit if args.implicit is not None else IMPLICIT_HEADER
+    SYNC_WORD = args.sync_word if args.sync_word is not None else SYNC_WORD
+    DEVICE_ID = args.device_id if args.device_id is not None else DEVICE_ID
+    TRACCAR_URL = args.traccar_url if args.traccar_url is not None else TRACCAR_URL
 
 # Configure stdout formatting based on verbosity
 if verbose_mode > 0:
@@ -280,8 +274,12 @@ def send_to_traccar(latitude, longitude, altitude, timestamp):
 def receive_loop():
     packet_count = 0
     last_status_time = time.time()
+    test_mode = args.test if args and hasattr(args, 'test') else False
     
     print(f"Listening for incoming LoRa packets on {FREQUENCY/1000000} MHz...")
+    if test_mode:
+        print("Test mode enabled: expecting test packets")
+    
     
     while True:
         current_time = time.time()
@@ -342,7 +340,7 @@ def receive_loop():
                 print(f"Signal quality: RSSI={rssi} dBm, SNR={snr:.1f} dB")
             
             # Decode payload if 14 bytes (expected format)
-            if len(payload) == 14:
+            if len(payload) == 14 and not test_mode:
                 try:
                     lat, lon, alt, timestamp = struct.unpack(">iiHI", payload)
                     latitude = lat / 1_000_000.0
@@ -355,14 +353,32 @@ def receive_loop():
                     send_to_traccar(latitude, longitude, alt, timestamp)
                 except struct.error as e:
                     print("Error decoding payload:", e)
-            else:
-                print(f"Unexpected payload size: {nb_bytes} bytes (expected 14)")
+            elif len(payload) == 5 and test_mode:
+                # Test packet format (counter + timestamp)
                 try:
-                    message = ''.join(chr(b) for b in payload if 32 <= b <= 126)
-                    print(f"Raw data: {payload.hex()}")
-                    print(f"As text: {message}")
+                    counter, timestamp = struct.unpack(">BI", payload)
+                    time_str = time.strftime("%H:%M:%S", time.localtime(timestamp))
+                    print(f"Test packet received: Counter={counter}, Timestamp={time_str}")
+                except struct.error as e:
+                    print("Error decoding test payload:", e)
+            else:
+                # Unknown format
+                print(f"Unexpected payload size: {len(payload)} bytes")
+                if test_mode:
+                    print(f"Expected 5 bytes for test packet")
+                else:
+                    print(f"Expected 14 bytes for GPS packet")
+                
+                # Print detailed debugging info
+                print(f"Raw data (hex): {payload.hex()}")
+                print(f"Raw data (binary): {' '.join(f'{b:08b}' for b in payload)}")
+                
+                try:
+                    # Try to interpret as text
+                    text = ''.join(chr(b) if 32 <= b <= 126 else '.' for b in payload)
+                    print(f"As text: {text}")
                 except Exception as e:
-                    print(f"Error processing raw payload: {e}")
+                    print(f"Error processing as text: {e}")
             
             # Check for CRC error
             if irq_flags & 0x20:

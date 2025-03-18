@@ -57,6 +57,9 @@ def parse_arguments():
                         help='Sync word value (default: 0x12)')
     parser.add_argument('--interval', type=int, default=10,
                         help='Transmission interval in seconds (default: 10)')
+    parser.add_argument('--test', action='store_true',
+                        help='Enable test mode: send simple test packets instead of GPS data')
+
     
     # GPS configuration
     parser.add_argument('--gps-port', type=str, default="/dev/ttyAMA0",
@@ -69,6 +72,7 @@ def parse_arguments():
                         help='Increase verbosity (use -v, -vv, or -vvv)')
     
     return parser.parse_args()
+
 
 # Setup GPIO in BCM mode
 GPIO.setmode(GPIO.BCM)
@@ -86,6 +90,25 @@ spi.mode = 0b00
 # Verbose mode for debugging
 verbose_mode = 0
 
+
+def send_test_packets():
+    """Send simple test packets with increasing counter"""
+    counter = 0
+    print("Test mode enabled. Sending test packets...")
+    
+    while True:
+        # Create a simple test payload with counter and timestamp
+        timestamp = int(time.time())
+        test_payload = struct.pack(">BI", counter, timestamp)
+        
+        print(f"Sending test packet #{counter} at {time.strftime('%H:%M:%S')}")
+        spi_tx(test_payload)
+        
+        counter = (counter + 1) % 256  # Keep counter in byte range
+        
+        # Wait for the next transmission interval
+        time.sleep(TX_INTERVAL)
+        
 def cleanup():
     if verbose_mode >= 1:
         print("Cleaning up...")
@@ -353,10 +376,14 @@ def main():
     if verbose_mode > 0:
         print(f"Verbose mode: level {verbose_mode}")
     
-    # Initialize and run
+    # Initialize LoRa module
     init_module()
+    
     try:
-        read_gps()
+        if args.test:
+            send_test_packets()  # Use test mode if requested
+        else:
+            read_gps()  # Normal GPS mode
     except KeyboardInterrupt:
         print("Interrupted by user. Exiting.")
         cleanup()
