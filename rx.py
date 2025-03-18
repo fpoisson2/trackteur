@@ -29,6 +29,18 @@ def parse_arguments():
     # Radio configuration
     parser.add_argument('--freq', type=float,
                         help='Frequency in MHz (default: 915.0)')
+    parser.add_argument('--sf', type=int, choices=range(7, 13),
+                        help='Spreading Factor (7-12, default: 12)')
+    parser.add_argument('--bw', type=int, choices=[125, 250, 500],
+                        help='Bandwidth in kHz (default: 125)')
+    parser.add_argument('--cr', type=int, choices=range(1, 5),
+                        help='Coding Rate (1=4/5, 2=4/6, 3=4/7, 4=4/8, default: 1)')
+    parser.add_argument('--preamble', type=int,
+                        help='Preamble length in symbols (default: 8)')
+    parser.add_argument('--implicit', action='store_true',
+                        help='Use implicit header mode instead of explicit')
+    parser.add_argument('--sync-word', type=int,
+                        help='Sync word value (default: 0x12)')
     parser.add_argument('--device-id', type=str,
                         help='Device ID for Traccar (default: 212901)')
     parser.add_argument('--traccar-url', type=str,
@@ -39,6 +51,8 @@ def parse_arguments():
                         help='Increase verbosity (use -v, -vv, or -vvv)')
     parser.add_argument('--no-traccar', action='store_true',
                         help='Disable sending data to Traccar server')
+    parser.add_argument('--continuous-rssi', '-r', action='store_true',
+                        help='Show continuous RSSI readings')
     
     args = parser.parse_args()
     
@@ -52,10 +66,31 @@ def parse_arguments():
 # Configure based on command line or use defaults
 args = parse_arguments()
 verbose_mode = 0
+display_rssi = False
+SPREADING_FACTOR = 12  # Default SF12
+BANDWIDTH = 125        # Default 125 kHz
+CODING_RATE = 1        # Default 4/5
+PREAMBLE_LENGTH = 8    # Default 8 symbols
+IMPLICIT_HEADER = False  # Default explicit header
+SYNC_WORD = 0x12       # Default LoRa sync word
+
 if args:
     verbose_mode = args.verbose
+    display_rssi = args.continuous_rssi
     if args.freq:
         FREQUENCY = int(args.freq * 1000000)  # Convert MHz to Hz
+    if args.sf:
+        SPREADING_FACTOR = args.sf
+    if args.bw:
+        BANDWIDTH = args.bw
+    if args.cr:
+        CODING_RATE = args.cr
+    if args.preamble:
+        PREAMBLE_LENGTH = args.preamble
+    if args.implicit:
+        IMPLICIT_HEADER = True
+    if args.sync_word:
+        SYNC_WORD = args.sync_word
     if args.device_id:
         DEVICE_ID = args.device_id
     if args.traccar_url:
@@ -118,6 +153,30 @@ def set_frequency():
     spi_write(0x07, FRF_MID)  # RegFrfMid
     spi_write(0x08, FRF_LSB)  # RegFrfLsb
 
+def get_bandwidth_value():
+    # Convert bandwidth in kHz to register value
+    bw_values = {125: 0x70, 250: 0x80, 500: 0x90}
+    return bw_values.get(BANDWIDTH, 0x70)  # Default to 125kHz
+
+def get_coding_rate_value():
+    # Convert coding rate index to register value
+    cr_values = {1: 0x02, 2: 0x04, 3: 0x06, 4: 0x08}
+    return cr_values.get(CODING_RATE, 0x02)  # Default to 4/5
+
+def get_spreading_factor_value():
+    # SF7 is 0x70, SF8 is 0x80, and so on
+    return ((SPREADING_FACTOR & 0x0F) << 4) | 0x04  # 0x04 sets CRC on
+
+def get_modem_config1():
+    # Combine bandwidth and coding rate
+    config = get_bandwidth_value() | get_coding_rate_value()
+    
+    # Add implicit header bit if needed
+    if IMPLICIT_HEADER:
+        config |= 0x01
+        
+    return config
+
 def init_lora():
     reset_module()
     version = spi_read(0x42)  # RegVersion
@@ -132,22 +191,26 @@ def init_lora():
     spi_write(0x01, 0x80)
     time.sleep(0.1)
 
-    # Set fixed frequency (915 MHz by default)
+    # Set fixed frequency
     set_frequency()
 
-    # RegModemConfig1: BW 125 kHz, CR 4/5, Explicit Header
-    # 0111 001 0 = 0x72 for explicit header
-    spi_write(0x1D, 0x72)
+    # Set Sync Word (0x39 for LoRaWAN public, 0x12 default for private networks)
+    spi_write(0x39, SYNC_WORD)
+
+    # RegModemConfig1: BW, CR, and header mode
+    modem_config1 = get_modem_config1()
+    spi_write(0x1D, modem_config1)
     
-    # RegModemConfig2: SF12, CRC on
-    spi_write(0x1E, 0xC4)
+    # RegModemConfig2: SF and CRC
+    modem_config2 = get_spreading_factor_value()
+    spi_write(0x1E, modem_config2)
     
     # RegModemConfig3: LDRO on, AGC on
     spi_write(0x26, 0x0C)
 
-    # Preamble length: 8 symbols
-    spi_write(0x20, 0x00)
-    spi_write(0x21, 0x08)
+    # Preamble length
+    spi_write(0x20, (PREAMBLE_LENGTH >> 8) & 0xFF)  # MSB
+    spi_write(0x21, PREAMBLE_LENGTH & 0xFF)         # LSB
 
     # Map DIO0 to RxDone (bit 7:6 = 00)
     spi_write(0x40, 0x00)
@@ -159,16 +222,25 @@ def init_lora():
     # Continuous RX mode
     spi_write(0x01, 0x85)
     
-    if verbose_mode >= 1:
-        print(f"ModemConfig1: 0x{spi_read(0x1D):02X}")
-        print(f"ModemConfig2: 0x{spi_read(0x1E):02X}")
-        print(f"ModemConfig3: 0x{spi_read(0x26):02X}")
+    # Print detailed configuration
+    print(f"LoRa module initialized with:")
+    print(f"  Frequency: {FREQUENCY/1000000} MHz")
+    print(f"  Spreading Factor: SF{SPREADING_FACTOR}")
+    print(f"  Bandwidth: {BANDWIDTH} kHz")
+    print(f"  Coding Rate: 4/{4+CODING_RATE}")
+    print(f"  Preamble Length: {PREAMBLE_LENGTH} symbols")
+    print(f"  Header Mode: {'Implicit' if IMPLICIT_HEADER else 'Explicit'}")
     
-    print(f"LoRa module initialized. Listening on {FREQUENCY/1000000} MHz")
-    
     if verbose_mode >= 1:
-        print(f"Traccar URL: {TRACCAR_URL}")
-        print(f"Device ID: {DEVICE_ID}")
+        print(f"  ModemConfig1: 0x{spi_read(0x1D):02X}")
+        print(f"  ModemConfig2: 0x{spi_read(0x1E):02X}")
+        print(f"  ModemConfig3: 0x{spi_read(0x26):02X}")
+        print(f"  Sync Word: 0x{spi_read(0x39):02X}")
+        print(f"  Traccar URL: {TRACCAR_URL}")
+        print(f"  Device ID: {DEVICE_ID}")
+    
+    if display_rssi:
+        print("Continuous RSSI monitoring enabled")
 
 def format_hex_dump(data):
     """Format a byte array as a hexdump with ASCII representation"""
