@@ -437,7 +437,7 @@ def main():
                         help='Transmission mode: simple (SF7), full (SF12), fhss (frequency hopping)')
     parser.add_argument('--header', choices=['implicit', 'explicit'], default='implicit',
                         help='Header mode: implicit or explicit (must match receiver)')
-    parser.add_argument('--message', type=str, default='Hello from LoRa SX1276!',
+    parser.add_argument('--message', type=str, default='Hello!',
                         help='Message to transmit (default: Hello from LoRa SX1276!)')
     parser.add_argument('--count', type=int, default=3,
                         help='Number of transmissions (default: 3)')
