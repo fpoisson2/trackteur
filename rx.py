@@ -120,24 +120,12 @@ def spi_write(addr, val):
     GPIO.output(NSS, GPIO.LOW)
     spi.xfer2([addr | 0x80, val])
     GPIO.output(NSS, GPIO.HIGH)
-    
-    # Move debug output after SPI operation is complete
-    if verbose_mode >= 3:
-        print(f"SPI WRITE: [{addr | 0x80:02X}] <- {val:02X}")
 
 def spi_read(addr):
     GPIO.output(NSS, GPIO.LOW)
     spi.xfer2([addr & 0x7F])
     val = spi.xfer2([0x00])[0]
-    GPIO.output(NSS, GPIO.HIGH)
-    
-    # Move debug output after SPI operation is complete
-    if verbose_mode >= 3:
-        print(f"SPI READ: [{addr & 0x7F:02X}] -> {val:02X}")
-    
-    return val
-
-    
+    GPIO.output(NSS, GPIO.HIGH)    
     return val
 
 def reset_module():
