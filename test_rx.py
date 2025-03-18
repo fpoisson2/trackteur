@@ -50,7 +50,7 @@ def init_lora():
         sys.exit(1)
 
     # Set to Sleep mode with LoRa enabled
-    spi_write(0x01, 0x80)
+    spi_write(0x01, 0x81)
     time.sleep(0.1)
 
     # Set frequency to 915 MHz (adjust if needed)
@@ -62,13 +62,13 @@ def init_lora():
     spi_write(0x08, frf & 0xFF)          # RegFrfLsb
 
     # RegModemConfig1: BW 125 kHz, CR 4/8, Implicit Header
-    spi_write(0x1D, 0x78)
+    spi_write(0x1D, 0xA3)
     
     # RegModemConfig2: SF12, CRC on
-    spi_write(0x1E, 0xC4)
+    spi_write(0x1E, 0xC0)
     
     # RegModemConfig3: LDRO on, AGC on
-    spi_write(0x26, 0x0C)
+    spi_write(0x0C, 0xC3)
 
     # Preamble length: 8 symbols
     spi_write(0x20, 0x00)
