@@ -51,8 +51,6 @@ def parse_arguments():
                         help='Increase verbosity (use -v, -vv, or -vvv)')
     parser.add_argument('--no-traccar', action='store_true',
                         help='Disable sending data to Traccar server')
-    parser.add_argument('--continuous-rssi', '-r', action='store_true',
-                        help='Show continuous RSSI readings')
     
     args = parser.parse_args()
     
@@ -66,7 +64,6 @@ def parse_arguments():
 # Configure based on command line or use defaults
 args = parse_arguments()
 verbose_mode = 0
-display_rssi = False
 SPREADING_FACTOR = 12  # Default SF12
 BANDWIDTH = 125        # Default 125 kHz
 CODING_RATE = 1        # Default 4/5
@@ -76,7 +73,6 @@ SYNC_WORD = 0x12       # Default LoRa sync word
 
 if args:
     verbose_mode = args.verbose
-    display_rssi = args.continuous_rssi
     if args.freq:
         FREQUENCY = int(args.freq * 1000000)  # Convert MHz to Hz
     if args.sf:
@@ -239,9 +235,6 @@ def init_lora():
         print(f"  Traccar URL: {TRACCAR_URL}")
         print(f"  Device ID: {DEVICE_ID}")
     
-    if display_rssi:
-        print("Continuous RSSI monitoring enabled")
-
 def format_hex_dump(data):
     """Format a byte array as a hexdump with ASCII representation"""
     result = []
