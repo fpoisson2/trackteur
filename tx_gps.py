@@ -239,7 +239,7 @@ def init_module():
     spi_write(0x39, SYNC_WORD)
     
     # RegModemConfig1: BW, CR, and header mode
-    modem_config1 = get_modem_confldro sx1276ig1()
+    modem_config1 = get_modem_config1()
     spi_write(0x1D, modem_config1)
     
     # RegModemConfig2: SF and CRC
