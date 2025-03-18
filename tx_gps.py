@@ -235,27 +235,60 @@ def spi_tx(payload):
     print(f"\n----- STARTING TRANSMISSION -----")
     print(f"Raw TX Payload ({len(payload)} bytes): {payload.hex()}")
     
-    # Put module back in standby mode to ensure clean state
-    spi_write(0x01, 0x81)
+    # Complete reset of module state
+    reset_module()
     time.sleep(0.1)
     
-    # Reset IRQ flags
-    spi_write(0x12, 0xFF)
+    # Put module in Sleep mode
+    spi_write(0x01, 0x80)  # Sleep mode
+    time.sleep(0.1)
     
-    # Ensure DIO0 is mapped to FhssChangeChannel
-    spi_write(0x40, 0x40)  # Force setting DIO0 to FhssChangeChannel
+    # Set LoRa mode
+    spi_write(0x01, 0x80)  # Sleep mode, LoRa
+    time.sleep(0.1)
+    
+    # Configure module for TX
+    # Explicitly set the LoRa configuration - don't rely on prior settings
+    
+    # RegModemConfig1: BW 125 kHz, CR 4/5, Explicit Header
+    spi_write(0x1D, 0x72)  # Try 0x72 instead of 0x73 (BW=250kHz)
+    
+    # RegModemConfig2: SF9, CRC on
+    spi_write(0x1E, 0x94)  # Try SF9 instead of SF10 for even faster
+    
+    # RegModemConfig3: LowDataRateOptimize on, AGC on
+    spi_write(0x26, 0x0C)
+    
+    # Set preamble length 
+    spi_write(0x20, 0x00)
+    spi_write(0x21, 0x08)
+    
+    # Configure DIO pins
+    spi_write(0x40, 0x40)  # DIO0 mapped to FhssChangeChannel
     dio_mapping = spi_read(0x40)
     print(f"DIO0 mapping: 0x{dio_mapping:02X} (should be 0x40 for FhssChangeChannel)")
     
-    # Verify hop period setting
-    hop_period = spi_read(0x24)
+    # Disable all IRQ flags except FhssChangeChannel and TxDone
+    # RegIrqFlagsMask: 1=mask (disable), 0=unmask (enable)
+    # We only want FhssChangeChannel (bit 6) and TxDone (bit 0) enabled
+    spi_write(0x11, 0x3E)  # Mask all except bits 6 and 0 (0x3E = 0b00111110)
+    
+    # Clear existing flags
+    spi_write(0x12, 0xFF)
+    
+    # Enable frequency hopping
+    hop_period = 1  # Try with a smaller hop period (1 symbol)
+    spi_write(0x24, hop_period)
     print(f"Hop period: {hop_period} symbols")
     
-    # Reset FIFO pointer and prepare for TX
-    spi_write(0x0E, 0x00)  # Set FIFO TX base address to 0
-    spi_write(0x0D, 0x00)  # Reset FIFO pointer to 0
+    # TX power settings
+    spi_write(0x09, 0x8F)  # +17dBm with PA_BOOST
     
-    # Write binary payload into FIFO
+    # Configure FIFO for TX
+    spi_write(0x0E, 0x00)  # Set TX base address
+    spi_write(0x0D, 0x00)  # Set FIFO pointer
+    
+    # Write payload to FIFO
     for byte in payload:
         spi_write(0x00, byte)
     
@@ -266,32 +299,46 @@ def spi_tx(payload):
     current_channel = 0
     set_frequency(current_channel)
     
+    # Put module in standby mode
+    spi_write(0x01, 0x81)
+    time.sleep(0.1)
+    
     # Print pre-tx status
     print("Pre-TX Status:")
     dump_tx_status()
     
+    # Disable all interrupt sources temporarily
+    GPIO.remove_event_detect(DIO0)
+    
     # Switch to TX mode
     print("Switching to TX mode and starting transmission...")
-    spi_write(0x01, 0x83)  # 0x83 = LoRa mode + TX mode
+    spi_write(0x01, 0x83)  # LoRa + TX mode
     
-    # Wait for transmission to complete with frequency hopping
+    # Wait for transmission to complete
     tx_start_time = time.time()
     last_status_time = 0
     hop_count = 0
     tx_done = False
     
-    # Maximum time to wait for transmission (timeout)
-    max_tx_time = 15  # seconds
+    # Maximum timeout
+    max_tx_time = 10  # seconds
     
+    # Main transmission monitoring loop
     while (time.time() - tx_start_time) < max_tx_time and not tx_done:
         current_time = time.time()
         
-        # Monitor mode and restore if needed
-        mode = spi_read(0x01)
-        if (mode & 0x07) != 0x03:  # If not in TX mode (0x03)
+        # Monitor and fix TX mode
+        mode = spi_read(0x01) 
+        if (mode & 0x07) != 0x03:  # If not in TX mode
             print(f"WARNING: Module not in TX mode! Current mode: 0x{mode:02X}")
-            print("Restoring TX mode...")
-            spi_write(0x01, 0x83)  # Restore TX mode
+            # Completely reset the transmission
+            print("Restarting transmission...")
+            
+            # Clear flags
+            spi_write(0x12, 0xFF)
+            
+            # Restore TX mode
+            spi_write(0x01, 0x83)
             time.sleep(0.05)
         
         # Print status every second
@@ -301,21 +348,19 @@ def spi_tx(payload):
             dump_tx_status()
             last_status_time = current_time
         
-        # Check if DIO0 is high, indicating an interrupt
-        if GPIO.input(DIO0) == 1:
-            irq_flags = spi_read(0x12)
-            print(f"DIO0 interrupt! IRQ flags: 0x{irq_flags:02X}")
+        # Check IRQ register directly instead of relying on DIO0 pin
+        irq_flags = spi_read(0x12)
+        
+        if irq_flags != 0:
+            print(f"IRQ flags: 0x{irq_flags:02X}")
             
             # Handle FhssChangeChannel interrupt
             if irq_flags & 0x40:
                 hop_count += 1
-                # Read current channel from module
                 reg_hop_channel = spi_read(0x1C)
                 current_channel = reg_hop_channel & 0x3F
                 
-                # Calculate frequency in MHz
                 freq_mhz = (FREQ_START + current_channel * FREQ_STEP) / 1000000
-                
                 print(f"Freq hop #{hop_count}: Channel {current_channel}, Freq: {freq_mhz:.3f} MHz")
                 
                 # Clear FhssChangeChannel flag
@@ -330,31 +375,13 @@ def spi_tx(payload):
                 # Clear TxDone flag
                 spi_write(0x12, 0x01)
             
-            # Handle unexpected flags
-            if irq_flags & 0x0A:  # RxDone or ValidHeader 
-                print("WARNING: Unexpected RxDone/ValidHeader flags detected")
-                # Just clear these flags and continue
-                spi_write(0x12, 0x0A)
-            
-            # Clear any other flags that might be set
-            remaining_flags = spi_read(0x12)
-            if remaining_flags != 0:
-                spi_write(0x12, remaining_flags)
+            # Clear all flags
+            spi_write(0x12, irq_flags)
         
-        # Check for TxDone via polling as a backup
-        irq_flags = spi_read(0x12)
-        if irq_flags & 0x01:
-            tx_done = True
-            tx_time = time.time() - tx_start_time
-            print(f"TxDone detected via polling after {tx_time:.2f} seconds and {hop_count} hops")
-            
-            # Clear TxDone flag
-            spi_write(0x12, 0x01)
-        
-        # Small delay to prevent CPU hogging
+        # Small delay
         time.sleep(0.01)
     
-    # Check if we timed out
+    # Check for timeout
     if not tx_done:
         print(f"TX timeout after {max_tx_time} seconds")
     
@@ -363,10 +390,7 @@ def spi_tx(payload):
     print("Returned to standby mode")
     
     # Clear any remaining IRQ flags
-    irq_flags = spi_read(0x12)
-    if irq_flags != 0:
-        print(f"Clearing remaining IRQ flags: 0x{irq_flags:02X}")
-        spi_write(0x12, 0xFF)
+    spi_write(0x12, 0xFF)
     
     # Final status
     print("Final status after transmission:")
