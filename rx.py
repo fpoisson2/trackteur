@@ -280,7 +280,6 @@ def send_to_traccar(latitude, longitude, altitude, timestamp):
 def receive_loop():
     packet_count = 0
     last_status_time = time.time()
-    last_verbose_print = time.time()
     
     print(f"Listening for incoming LoRa packets on {FREQUENCY/1000000} MHz...")
     
@@ -295,17 +294,13 @@ def receive_loop():
         # Check IRQ flags
         irq_flags = spi_read(0x12)
         
-        # Limit frequent debug output in high verbosity mode
-        should_print_verbose = (current_time - last_verbose_print) > 0.1  # Max 10 prints per second
-        
         # Check for RX Done (bit 6)
         if irq_flags & 0x40:
             last_status_time = current_time
-            last_verbose_print = current_time
             packet_count += 1
             
             print(f"Packet #{packet_count} received!")
-            if verbose_mode >= 2 and should_print_verbose:
+            if verbose_mode >= 2:
                 print(f"IRQ Flags: {bin(irq_flags)} (0x{irq_flags:02x})")
             
             # Clear IRQ flags
@@ -317,7 +312,7 @@ def receive_loop():
             
             # Read current FIFO address
             current_addr = spi_read(0x10)
-            if verbose_mode >= 2 and should_print_verbose:
+            if verbose_mode >= 2:
                 print(f"FIFO RX current address: 0x{current_addr:02X}")
             
             # Set FIFO address pointer
@@ -373,10 +368,8 @@ def receive_loop():
             if irq_flags & 0x20:
                 print("CRC error detected")
         
-        # Reduce CPU usage while maintaining responsiveness based on verbosity
-        # Lower verbose mode = more responsive, higher verbose mode = less CPU usage
-        sleep_time = 0.01 if verbose_mode < 2 else 0.005
-        time.sleep(sleep_time)
+        # Small delay to prevent CPU hogging
+        time.sleep(0.01)
 
 def cleanup():
     if verbose_mode >= 1:
