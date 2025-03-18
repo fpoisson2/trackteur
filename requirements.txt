@@ -3,3 +3,4 @@ RPi.GPIO
 pyserial
 pynmea2
 requests
+paramiko
