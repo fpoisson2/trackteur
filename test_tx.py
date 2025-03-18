@@ -43,8 +43,10 @@ def read_registers():
     print(f"RegFifoTxBaseAddr (0x0E): 0x{spi_read(0x0E):02X}")
     print(f"RegFifoAddrPtr (0x0D): 0x{spi_read(0x0D):02X}")
     print(f"RegIrqFlags (0x12): 0x{spi_read(0x12):02X}")
+    print(f"RegModemConfig1 (0x1D): 0x{spi_read(0x1D):02X}")
+    print(f"RegModemConfig2 (0x1E): 0x{spi_read(0x1E):02X}")
+    print(f"RegModemConfig3 (0x26): 0x{spi_read(0x26):02X}")
     print(f"RegDioMapping1 (0x40): 0x{spi_read(0x40):02X}")
-    print(f"RegDioMapping2 (0x41): 0x{spi_read(0x41):02X}")
     print(f"RegPaDac (0x4D): 0x{spi_read(0x4D):02X}")
 
 def reset_module():
@@ -63,10 +65,6 @@ def init_lora():
         sys.exit(1)
 
     # Set to Sleep mode
-    spi_write(0x01, 0x00)  # FSK/OOK mode, sleep
-    time.sleep(0.1)
-    
-    # Switch to LoRa mode (can only be done in sleep mode)
     spi_write(0x01, 0x80)  # LoRa mode, sleep
     time.sleep(0.1)
     
@@ -74,36 +72,32 @@ def init_lora():
     spi_write(0x01, 0x81)  # LoRa mode, standby
     time.sleep(0.1)
 
-    # Set frequency to 915 MHz
+    # Set frequency to 915 MHz (MUST MATCH RECEIVER)
     frf = int(915000000 / 61.03515625)  # Fstep = 32e6 / 2^19 ≈ 61.035 Hz
     spi_write(0x06, (frf >> 16) & 0xFF)  # RegFrfMsb
     spi_write(0x07, (frf >> 8) & 0xFF)   # RegFrfMid
     spi_write(0x08, frf & 0xFF)          # RegFrfLsb
 
-    # Configure PA_BOOST
-    # RegPaConfig: Enable PABOOST, set output power to 17dBm (14+3)
-    spi_write(0x09, 0x8F)  # 1000 1111 - PA_BOOST pin, max power (15dBm) + 2dB
-    
-    # Set PA ramp-up time 40us
-    spi_write(0x0A, 0x08)  # RegPaRamp: 40us
+    # Configure PA_BOOST for transmit
+    spi_write(0x09, 0x8F)  # PA_BOOST enabled, max power
     
     # Turn off Over Current Protection
-    spi_write(0x0B, 0x20)  # RegOcp: OCP disable
+    spi_write(0x0B, 0x3F)  # RegOcp: OCP disable
     
     # Enable high power mode (for +20dBm output)
     spi_write(0x4D, 0x87)  # RegPaDac: 0x87 for +20dBm
 
+    # MATCH RECEIVER SETTINGS EXACTLY
     # RegModemConfig1: BW 125 kHz, CR 4/5, Explicit Header, CRC on
-    spi_write(0x1D, 0x72)  # BW=125 kHz (7:4=0111), CR=4/5 (3:1=001), Header=explicit (0=0)
+    spi_write(0x1D, 0xA3)  # EXACTLY MATCH RECEIVER: BW=125 kHz (7:6=10), CR=4/5 (5:4=00), Header=explicit (3=1), CRC=on (2=1)
     
-    # RegModemConfig2: SF7, normal mode (not continuous), CRC on
-    spi_write(0x1E, 0x70)  # SF=7 (7:4=0111), normal mode (3=0), CRC On (2=0)
+    # RegModemConfig2: SF12, TX single shot, CRC on
+    spi_write(0x1E, 0xC0)  # SF=12 (7:4=1100), TX single shot (3=0), CRC on (2=0)
     
-    # RegSymbTimeout: 0x03FF
-    spi_write(0x1F, 0xFF)  # Symbol timeout = 0x03FF
-    spi_write(0x20, 0x03)  # Symbol timeout = 0x03FF
+    # RegModemConfig3: LowDataRateOptimize on, AGC on
+    spi_write(0x26, 0x0C)  # LDRO=1 (3=1), AGC=1 (2=1)
 
-    # Preamble length: 8 symbols
+    # Preamble length: 8 symbols (MUST MATCH RECEIVER)
     spi_write(0x20, 0x00)  # MSB
     spi_write(0x21, 0x08)  # LSB
 
@@ -111,8 +105,8 @@ def init_lora():
     spi_write(0x0E, 0x00)  # RegFifoTxBaseAddr = 0
     spi_write(0x0D, 0x00)  # RegFifoAddrPtr = 0
 
-    # Map DIO0 to TxDone (01 in bits 7:6)
-    spi_write(0x40, 0x40)  # RegDioMapping1: 01 in bits 7:6 for TxDone
+    # Map DIO0 to TxDone (00 in bits 7:6)
+    spi_write(0x40, 0x40)  # RegDioMapping1: Map DIO0 to TxDone (01 in bits 7:6)
 
     # Clear IRQ flags
     spi_write(0x12, 0xFF)  # RegIrqFlags: Clear all IRQ flags
@@ -151,22 +145,26 @@ def transmit_message(message):
     
     # Wait for transmission to complete
     start_time = time.time()
+    tx_complete = False
+    
     while time.time() - start_time < 5:
         irq_flags = spi_read(0x12)
         dio0_state = GPIO.input(DIO0)
         
         if irq_flags & 0x08:  # TxDone flag
             print(f"Transmission complete! IRQ flags: 0x{irq_flags:02X}, DIO0: {dio0_state}")
+            tx_complete = True
             break
         
         time.sleep(0.1)
-        # Print periodic status
+        # Print status every second
         if int((time.time() - start_time) * 10) % 10 == 0:
-            print(f"Waiting... IRQ flags: 0x{irq_flags:02X}, DIO0: {dio0_state}")
+            print(f"Waiting... IRQ flags: 0x{irq_flags:02X}, DIO0: {dio0_state}, OpMode: 0x{spi_read(0x01):02X}")
     
-    if time.time() - start_time >= 5:
+    if not tx_complete:
         print(f"TX timeout. IRQ flags: 0x{spi_read(0x12):02X}")
         print(f"OpMode: 0x{spi_read(0x01):02X}")  # Check what mode we're in
+        read_registers()  # Print all registers for debugging
     
     # Clear IRQ flags and return to standby
     spi_write(0x12, 0xFF)
