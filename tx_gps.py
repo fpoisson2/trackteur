@@ -202,15 +202,16 @@ def spi_tx(payload):
     # Switch to TX mode
     spi_write(0x01, 0x83)
     print(f"Transmitting {len(payload)} bytes with frequency hopping.")
-
+    
     # Handle frequency hopping during transmission
     start = time.time()
     last_status_time = 0
     dio0_count = 0
+    was_in_tx_mode = True
     
-    # Increased timeout to 15 seconds
     while time.time() - start < 15:  # Timeout after 15 seconds
         current_time = time.time()
+        reg_op_mode = spi_read(0x01)
         
         # Print status every 1 second
         if int(current_time) > int(last_status_time):
@@ -219,37 +220,12 @@ def spi_tx(payload):
             dump_tx_status()
             print(f"DIO0 interrupts so far: {dio0_count}")
         
-        if GPIO.input(DIO0) == 1:  # FhssChangeChannel or TxDone interrupt
-            dio0_count += 1
-            # Read current channel and IRQ flags
-            irq_flags = spi_read(0x12)
-            hop_channel = spi_read(0x1C)
-            current_channel = hop_channel & 0x3F
-            
-            if irq_flags & 0x40:  # FhssChangeChannel flag
-                print(f"FHSS interrupt: Current channel {current_channel}, IRQ: 0x{irq_flags:02X}")
-                
-                # Update to next channel
-                next_channel = (current_channel + 1) % len(HOP_CHANNELS)
-                set_frequency(next_channel)
-                
-                # Clear FhssChangeChannel interrupt
-                spi_write(0x12, 0x40)
-            
-            if irq_flags & 0x01:  # TxDone flag
-                print(f"TxDone interrupt detected! IRQ: 0x{irq_flags:02X}")
-                # Clear TxDone flag
-                spi_write(0x12, 0x01)
-                break
-        
-        # Check for TX Done directly from register (bit 0 in RegIrqFlags)
-        irq_flags = spi_read(0x12)
-        if irq_flags & 0x01:  # TxDone flag
-            print(f"Transmission complete! IRQ: 0x{irq_flags:02X}")
+        # Check if we've transitioned from TX mode to Standby mode
+        if was_in_tx_mode and reg_op_mode == 0x81:
+            print("Detected transition from TX to Standby mode - transmission complete!")
             break
             
-        # Very short sleep to reduce CPU usage but still responsive
-        time.sleep(0.005)
+        was_in_tx_mode = (reg_op_mode == 0x83)
     
     elapsed = time.time() - start
     if elapsed >= 15:
