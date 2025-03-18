@@ -182,20 +182,25 @@ def init_module():
     spi_write(0x01, 0x80)
     time.sleep(0.1)
     
-    # Map DIO0 to TxDone in normal operation, but when transmitting
-    # it should be mapped to FhssChangeChannel for frequency hopping
+    # Explicitly disable all interrupts first
+    spi_write(0x11, 0x00)  # RegIrqFlagsMask - unmask all interrupts
+    
+    # Clear any existing IRQ flags
+    spi_write(0x12, 0xFF)
+    
+    # Map DIO0 to FhssChangeChannel in TX mode
     spi_write(0x40, 0x40)  # 0x40 = DIO0 mapped to FhssChangeChannel
     
     # Set initial frequency to channel 0 (902.2 MHz)
     set_frequency(0)
     
-    # RegModemConfig1: BW 125 kHz, CR 4/5, Implicit Header
-    # 0110 001 0 = 0x70
-    spi_write(0x1D, 0x70)
+    # RegModemConfig1: BW 125 kHz, CR 4/5, Explicit Header
+    # 0111 001 1 = 0x73  (changed to explicit header mode)
+    spi_write(0x1D, 0x73)
     
-    # RegModemConfig2: SF12, CRC on
-    # 1100 1 1 00 = 0xC4
-    spi_write(0x1E, 0xC4)
+    # RegModemConfig2: SF10, CRC on, TX timeout MSB
+    # 1010 1 1 00 = 0xA4  (changed to SF10 for faster transmission)
+    spi_write(0x1E, 0xA4)
     
     # RegModemConfig3: LDRO on, AGC on
     # 0000 1 1 00 = 0x0C
@@ -206,7 +211,6 @@ def init_module():
     spi_write(0x21, 0x08)
     
     # Enable frequency hopping: Hop every 10 symbols
-    # This MUST MATCH the receiver setting
     spi_write(0x24, 10)  # RegHopPeriod
     
     # Set PA configuration: +20 dBm with PA_BOOST
@@ -235,11 +239,17 @@ def spi_tx(payload):
     spi_write(0x01, 0x81)
     time.sleep(0.1)
     
+    # Reset IRQ flags
+    spi_write(0x12, 0xFF)
+    
     # Ensure DIO0 is mapped to FhssChangeChannel
+    spi_write(0x40, 0x40)  # Force setting DIO0 to FhssChangeChannel
     dio_mapping = spi_read(0x40)
-    if (dio_mapping & 0xC0) != 0x40:
-        print("Correcting DIO0 mapping to FhssChangeChannel")
-        spi_write(0x40, 0x40)
+    print(f"DIO0 mapping: 0x{dio_mapping:02X} (should be 0x40 for FhssChangeChannel)")
+    
+    # Verify hop period setting
+    hop_period = spi_read(0x24)
+    print(f"Hop period: {hop_period} symbols")
     
     # Reset FIFO pointer and prepare for TX
     spi_write(0x0E, 0x00)  # Set FIFO TX base address to 0
@@ -251,9 +261,6 @@ def spi_tx(payload):
     
     # Set payload length
     spi_write(0x22, len(payload))
-    
-    # Clear all IRQ flags
-    spi_write(0x12, 0xFF)
     
     # Set initial channel
     current_channel = 0
@@ -278,6 +285,14 @@ def spi_tx(payload):
     
     while (time.time() - tx_start_time) < max_tx_time and not tx_done:
         current_time = time.time()
+        
+        # Monitor mode and restore if needed
+        mode = spi_read(0x01)
+        if (mode & 0x07) != 0x03:  # If not in TX mode (0x03)
+            print(f"WARNING: Module not in TX mode! Current mode: 0x{mode:02X}")
+            print("Restoring TX mode...")
+            spi_write(0x01, 0x83)  # Restore TX mode
+            time.sleep(0.05)
         
         # Print status every second
         if int(current_time) > int(last_status_time):
@@ -305,9 +320,6 @@ def spi_tx(payload):
                 
                 # Clear FhssChangeChannel flag
                 spi_write(0x12, 0x40)
-                
-                # Important: Don't manually set frequency - let the module handle hopping
-                # The SX1276 automatically changes to the next channel, we just track it
             
             # Check for TxDone
             if irq_flags & 0x01:
@@ -317,6 +329,12 @@ def spi_tx(payload):
                 
                 # Clear TxDone flag
                 spi_write(0x12, 0x01)
+            
+            # Handle unexpected flags
+            if irq_flags & 0x0A:  # RxDone or ValidHeader 
+                print("WARNING: Unexpected RxDone/ValidHeader flags detected")
+                # Just clear these flags and continue
+                spi_write(0x12, 0x0A)
             
             # Clear any other flags that might be set
             remaining_flags = spi_read(0x12)
