@@ -135,35 +135,59 @@ def receive_loop():
     global current_channel
     hop_count = 0
     last_hop_time = time.time()
+    last_status_time = time.time()
     print("Listening for incoming LoRa packets with frequency hopping...")
     
     while True:
-        irq_flags = spi_read(0x12)
+        current_time = time.time()
         
-        # Check for FhssChangeChannel interrupt (bit 2)
-        if GPIO.input(DIO0) and (irq_flags & 0x40):  # 0x40 is for FhssChangeChannel
-            hop_count += 1
-            current_time = time.time()
-            hop_interval = current_time - last_hop_time
-            last_hop_time = current_time
-            
-            hop_channel = spi_read(0x1C)
-            current_channel = hop_channel & 0x3F
-            
-            print(f"FHSS Hop #{hop_count} detected: Channel {current_channel}, " +
-                  f"Interval: {hop_interval:.3f}s, IRQ: 0x{irq_flags:02X}")
-            
-            # Update to next channel
-            next_channel = (current_channel + 1) % len(HOP_CHANNELS)
-            set_frequency(next_channel)
-            print(f"Setting next channel to {next_channel}, " +
-                  f"Freq: {(FREQ_START + next_channel * FREQ_STEP)/1000000:.3f} MHz")
-            
-            # Clear FhssChangeChannel interrupt
-            spi_write(0x12, 0x40)  # Clear only the FhssChangeChannel bit
+        # Print status every 10 seconds for debugging
+        if current_time - last_status_time > 10:
+            irq_flags = spi_read(0x12)
+            reg_op_mode = spi_read(0x01)
+            reg_hop_channel = spi_read(0x1C)
+            print(f"[{time.strftime('%H:%M:%S')}] Status - OpMode: 0x{reg_op_mode:02X}, " +
+                  f"IRQ: 0x{irq_flags:02X}, HopChannel: 0x{reg_hop_channel:02X}")
+            last_status_time = current_time
         
-        # Check for RX Done (bit 6)
-        if irq_flags & 0x40:
+        # Check if DIO0 is high, indicating an interrupt
+        if GPIO.input(DIO0) == 1:
+            irq_flags = spi_read(0x12)
+            print(f"[{time.strftime('%H:%M:%S')}] DIO0 interrupt detected! IRQ flags: 0x{irq_flags:02X}")
+            
+            # Check all possible flags
+            if irq_flags & 0x80: print("  - CadDetected flag set")
+            if irq_flags & 0x40: print("  - FhssChangeChannel flag set")
+            if irq_flags & 0x20: print("  - CadDone flag set")
+            if irq_flags & 0x10: print("  - TxTimeout flag set")
+            if irq_flags & 0x08: print("  - ValidHeader flag set")
+            if irq_flags & 0x04: print("  - PayloadCrcError flag set")
+            if irq_flags & 0x02: print("  - RxDone flag set")
+            if irq_flags & 0x01: print("  - TxDone flag set")
+            
+            # Specific handling for FhssChangeChannel
+            if irq_flags & 0x40:  # This is the actual FhssChangeChannel bit
+                hop_count += 1
+                hop_interval = current_time - last_hop_time
+                last_hop_time = current_time
+                
+                reg_hop_channel = spi_read(0x1C)
+                current_channel = reg_hop_channel & 0x3F
+                
+                print(f"FHSS Hop #{hop_count}: Channel {current_channel}, " +
+                      f"Interval: {hop_interval:.3f}s")
+                
+                # Update to next channel
+                next_channel = (current_channel + 1) % len(HOP_CHANNELS)
+                set_frequency(next_channel)
+                print(f"Setting next channel to {next_channel}, " +
+                      f"Freq: {(FREQ_START + next_channel * FREQ_STEP)/1000000:.3f} MHz")
+                
+                # Clear FhssChangeChannel interrupt
+                spi_write(0x12, 0x40)
+            
+            # Check for RX Done
+            if irq_flags & 0x40:
             print(f"IRQ Flags: {bin(irq_flags)} (0x{irq_flags:02x})")
             
             # Clear IRQ flags
