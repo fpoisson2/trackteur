@@ -50,7 +50,7 @@ def init_lora():
         sys.exit(1)
 
     # Set to Sleep mode with LoRa enabled
-    spi_write(0x01, 0x80)
+    spi_write(0x01, 0x81)
     time.sleep(0.1)
 
     # Set frequency to 915 MHz (adjust if needed)
@@ -62,10 +62,10 @@ def init_lora():
     spi_write(0x08, frf & 0xFF)          # RegFrfLsb
 
     # RegModemConfig1: BW 125 kHz, CR 4/8, Implicit Header
-    spi_write(0x1D, 0x78)
+    spi_write(0x1D, 0xA3)
     
     # RegModemConfig2: SF12, CRC on
-    spi_write(0x1E, 0xC4)
+    spi_write(0x1E, 0xC0)
     
     # RegModemConfig3: LDRO on, AGC on
     spi_write(0x26, 0x0C)
@@ -76,6 +76,7 @@ def init_lora():
 
     # Set PA configuration: +20 dBm with PA_BOOST
     spi_write(0x09, 0x8F)
+    spi_write(0x0B, 0x3F)
 
     # Set FIFO TX base address and pointer
     spi_write(0x0E, 0x00)
@@ -84,8 +85,6 @@ def init_lora():
     # Map DIO0 to TxDone (bit 7:6 = 00)
     spi_write(0x40, 0x00)
 
-    # Set to Standby mode
-    spi_write(0x01, 0x81)
     time.sleep(0.1)
 
 def transmit_message(message):
