@@ -8,7 +8,7 @@ import argparse
 # Pin definitions (BCM mode)
 RESET = 17  # Reset pin
 NSS = 25    # SPI Chip Select pin
-DIO0 = 4    # DIO0 pin (interrupt)
+DIO0 = 4    # DIO0 pin (we'll use polling instead of relying on this interrupt)
 
 # Frequency hopping configuration (matching transmitter)
 FREQ_START = 902200000  # 902.2 MHz (US 915 band)
@@ -112,6 +112,75 @@ def print_registers():
                 print(f"{name}: 0x{val:02X}")
     print("=============================\n")
 
+def init_lora_simple(implicit=False, payload_len=26):
+    """Initialize LoRa with SF7 for higher data rate"""
+    reset_module()
+    
+    # Check module is responding
+    version = spi_read(0x42)
+    print(f"SX1276 Version: 0x{version:02X}")
+    if version != 0x12:
+        print("ERROR: Module not detected! Check connections.")
+        return False
+    
+    # Set Sleep mode first (required to change to LoRa mode)
+    spi_write(0x01, 0x00)  # FSK/OOK mode, sleep
+    time.sleep(0.1)
+    
+    # Set LoRa mode, sleep
+    spi_write(0x01, 0x80)
+    time.sleep(0.1)
+    
+    # Set standby mode
+    spi_write(0x01, 0x81)
+    time.sleep(0.1)
+    
+    # Set frequency 
+    set_frequency()
+    
+    # RegLna: Max gain, boost on
+    spi_write(0x0C, 0x23)  # LNA gain set by AGC, boost on
+    
+    # Configure modem - Simple Mode (SF7)
+    if implicit:
+        # RegModemConfig1: BW=125kHz, CR=4/5, Implicit header
+        spi_write(0x1D, 0x74)
+        # Set expected payload length (needed for implicit header mode)
+        spi_write(0x22, payload_len)
+    else:
+        # RegModemConfig1: BW=125kHz, CR=4/5, Explicit header
+        spi_write(0x1D, 0x72)
+    
+    # RegModemConfig2: SF7, normal mode, CRC on
+    spi_write(0x1E, 0x74)
+    
+    # RegModemConfig3: LNA auto gain, No low data rate optimization
+    spi_write(0x26, 0x04)
+    
+    # Set preamble length to 8 symbols
+    spi_write(0x20, 0x00)
+    spi_write(0x21, 0x08)
+    
+    # Set FIFO RX base address and pointer
+    spi_write(0x0F, 0x00)  # RegFifoRxBaseAddr
+    spi_write(0x0D, 0x00)  # RegFifoAddrPtr
+    
+    # Map DIO0 to RxDone (00 in bits 7:6 = 0x00)
+    spi_write(0x40, 0x00)
+    
+    # Unmask RX interrupts
+    spi_write(0x11, 0x00)
+    
+    # Clear IRQ flags
+    spi_write(0x12, 0xFF)
+    
+    # Set to RX continuous mode
+    spi_write(0x01, 0x85)
+    
+    header_mode = "Implicit" if implicit else "Explicit"
+    print(f"LoRa initialized with SIMPLE settings (SF7, 125kHz BW, {header_mode} header)")
+    return True
+
 def init_lora_full(implicit=True, payload_len=26):
     """Initialize LoRa with SF12 for maximum range"""
     reset_module()
@@ -143,42 +212,19 @@ def init_lora_full(implicit=True, payload_len=26):
     
     # Configure modem - Full Mode (SF12)
     if implicit:
-        # RegModemConfig1: BW=125kHz, CR=4/5, Implicit header
-        # BW (bits 7-4): 0111 (125kHz)
-        # CR (bits 3-1): 001 (4/5)
-        # Implicit header (bit 0): 1
-        spi_write(0x1D, 0x72 | 0x01)  # 0x73
-        print("Setting implicit header mode (RegModemConfig1 = 0x73)")
-        
+        # RegModemConfig1: BW=125kHz, CR=4/8, Implicit header
+        spi_write(0x1D, 0x74)
         # Set expected payload length (needed for implicit header mode)
         spi_write(0x22, payload_len)
-        print(f"Set fixed payload length to {payload_len} bytes (implicit mode)")
     else:
         # RegModemConfig1: BW=125kHz, CR=4/5, Explicit header
-        # BW (bits 7-4): 0111 (125kHz)
-        # CR (bits 3-1): 001 (4/5)
-        # Explicit header (bit 0): 0
         spi_write(0x1D, 0x72)
-        print("Setting explicit header mode (RegModemConfig1 = 0x72)")
-    
-    # Verify the value was written correctly
-    mc1_val = spi_read(0x1D)
-    print(f"Verified RegModemConfig1 = 0x{mc1_val:02X} (expected: 0x{0x73 if implicit else 0x72:02X})")
     
     # RegModemConfig2: SF12, CRC on, RX continuous
-    # SF (bits 7-4): 1100 (SF12)
-    # TxContinuousMode (bit 3): 0 (normal mode)
-    # RxPayloadCrcOn (bit 2): 1 (CRC enabled)
-    # SymbTimeout (bits 1-0): 00 (used with bits from RegSymbTimeout)
     spi_write(0x1E, 0xC4)
-    print(f"Setting SF12, normal mode, CRC on (RegModemConfig2 = 0xC4)")
     
     # RegModemConfig3: LNA auto gain, Low data rate optimization (needed for SF11/12)
-    # Reserved (bits 7-4): 0000
-    # LowDataRateOptimize (bit 3): 1 (enabled - essential for SF11/SF12)
-    # AgcAutoOn (bit 2): 1 (LNA gain set by AGC)
     spi_write(0x26, 0x0C)
-    print(f"Setting LNA auto gain, Low data rate optimization (RegModemConfig3 = 0x0C)")
     
     # Set preamble length to 8 symbols
     spi_write(0x20, 0x00)
@@ -204,6 +250,74 @@ def init_lora_full(implicit=True, payload_len=26):
     print(f"LoRa initialized with FULL settings (SF12, 125kHz BW, {header_mode} header)")
     return True
 
+def init_lora_fhss(payload_len=26):
+    """Initialize LoRa with frequency hopping like the GPS tracker"""
+    reset_module()
+    
+    # Check module is responding
+    version = spi_read(0x42)
+    print(f"SX1276 Version: 0x{version:02X}")
+    if version != 0x12:
+        print("ERROR: Module not detected! Check connections.")
+        return False
+    
+    # Set Sleep mode first (required to change to LoRa mode)
+    spi_write(0x01, 0x00)  # FSK/OOK mode, sleep
+    time.sleep(0.1)
+    
+    # Set LoRa mode, sleep
+    spi_write(0x01, 0x80)
+    time.sleep(0.1)
+    
+    # Set standby mode
+    spi_write(0x01, 0x81)
+    time.sleep(0.1)
+    
+    # Set initial frequency to channel 0
+    set_frequency(0)
+    
+    # Map DIO0 to FhssChangeChannel
+    spi_write(0x40, 0x00)  # DIO0 = RxDone in Rx mode (00 in bits 7:6)
+    
+    # Configure modem - Exactly like GPS tracker but for RX
+    # RegModemConfig1: BW=125kHz, CR=4/5, Implicit header
+    spi_write(0x1D, 0x74)
+    
+    # Set expected payload length (needed for implicit header mode)
+    spi_write(0x22, payload_len)
+    
+    # RegModemConfig2: SF12, RX continuous mode, CRC on
+    spi_write(0x1E, 0xC4)
+    
+    # RegModemConfig3: LNA auto gain, Low data rate optimization
+    spi_write(0x26, 0x0C)
+    
+    # Set preamble length to 8 symbols
+    spi_write(0x20, 0x00)
+    spi_write(0x21, 0x08)
+    
+    # Enable frequency hopping: Hop every 5 symbols to match transmitter
+    spi_write(0x24, 5)  # RegHopPeriod
+    
+    # RegLna: Max gain, boost on
+    spi_write(0x0C, 0xC3)  # LNA gain G4, boost on for HF
+    
+    # Set FIFO RX base address and pointer
+    spi_write(0x0F, 0x00)  # RegFifoRxBaseAddr
+    spi_write(0x0D, 0x00)  # RegFifoAddrPtr
+    
+    # Unmask RX interrupts
+    spi_write(0x11, 0x00)
+    
+    # Clear IRQ flags
+    spi_write(0x12, 0xFF)
+    
+    # Set to RX continuous mode
+    spi_write(0x01, 0x85)
+    
+    print("LoRa initialized with FHSS settings (SF12, 125kHz BW, Implicit header, Freq. Hopping)")
+    return True
+
 def receive_packets(max_time=None, use_fhss=False, expect_implicit=True, payload_len=26):
     """Listen for incoming packets with timeout option"""
     start_time = time.time()
@@ -211,10 +325,6 @@ def receive_packets(max_time=None, use_fhss=False, expect_implicit=True, payload
     current_channel = 0
     
     print(f"Listening for incoming LoRa packets...")
-    print(f"SETTINGS: {'Implicit' if expect_implicit else 'Explicit'} header, "
-          f"{'FHSS enabled' if use_fhss else 'Fixed frequency'}, "
-          f"{'Fixed payload length: ' + str(payload_len) + ' bytes' if expect_implicit else 'Variable payload length'}")
-    
     if max_time:
         print(f"Will stop after {max_time} seconds")
     
@@ -243,13 +353,6 @@ def receive_packets(max_time=None, use_fhss=False, expect_implicit=True, payload
                 print(f"Still listening... [Time: {int(current_time - start_time)}s, "
                       f"Packets: {packet_count}, RSSI: -{rssi} dBm, "
                       f"IRQ: 0x{irq_flags:02X}, DIO0: {GPIO.input(DIO0)}]")
-                
-                # Verify we're still in correct mode
-                op_mode = spi_read(0x01)
-                if (op_mode & 0x07) != 0x05:  # Not in RX mode
-                    print(f"WARNING: Device not in RX mode! OpMode: 0x{op_mode:02X}")
-                    spi_write(0x01, 0x85)  # Reset to RX continuous mode
-                
                 last_status_time = current_time
             
             # Handle frequency hopping
@@ -264,7 +367,6 @@ def receive_packets(max_time=None, use_fhss=False, expect_implicit=True, payload
             
             # Check for RxDone (bit 6) and ValidHeader (bit 4) flags if applicable
             rx_done = irq_flags & 0x40
-            valid_header = irq_flags & 0x10
             timeout = irq_flags & 0x80
             
             if timeout:
@@ -276,14 +378,9 @@ def receive_packets(max_time=None, use_fhss=False, expect_implicit=True, payload
                 dio0_state = GPIO.input(DIO0)
                 print(f"DIO0: {dio0_state}, IRQ Flags: {bin(irq_flags)} (0x{irq_flags:02x})")
                 
-                # Check for header errors
-                header_issues = ""
-                if not expect_implicit and not valid_header:
-                    header_issues = " - Header missing (but expecting explicit header)"
-                
                 # Check for CRC error (bit 5)
                 if irq_flags & 0x20:
-                    print(f"CRC error detected! Packet invalid.{header_issues}")
+                    print("CRC error detected! Packet invalid.")
                     spi_write(0x12, 0xFF)  # Clear flags
                     continue
                 
@@ -295,7 +392,7 @@ def receive_packets(max_time=None, use_fhss=False, expect_implicit=True, payload
                     # In explicit mode, length is in RegRxNbBytes
                     nb_bytes = spi_read(0x13)
                 
-                print(f"Packet size: {nb_bytes} bytes{header_issues}")
+                print(f"Packet size: {nb_bytes} bytes")
                 
                 # Read current FIFO address
                 current_addr = spi_read(0x10)  # RegFifoRxCurrentAddr
@@ -341,3 +438,63 @@ def receive_packets(max_time=None, use_fhss=False, expect_implicit=True, payload
     finally:
         print(f"Receive statistics: Duration: {time.time() - start_time:.1f}s, Packets received: {packet_count}")
         return packet_count
+
+def cleanup():
+    spi.close()
+    GPIO.cleanup()
+    print("Resources released.")
+
+def main():
+    parser = argparse.ArgumentParser(description='LoRa SX1276 Receiver')
+    parser.add_argument('--mode', choices=['simple', 'full', 'fhss'], default='full',
+                        help='Receive mode: simple (SF7), full (SF12), fhss (frequency hopping)')
+    parser.add_argument('--header', choices=['implicit', 'explicit'], default='implicit',
+                        help='Header mode: implicit or explicit (must match transmitter)')
+    parser.add_argument('--payload-length', type=int, default=26,
+                        help='Expected payload length for implicit header mode (default: 26)')
+    parser.add_argument('--time', type=float, default=0,
+                        help='Time to listen in seconds (default: 0, continuous)')
+    parser.add_argument('--registers', action='store_true',
+                        help='Print register values before starting')
+    
+    args = parser.parse_args()
+    
+    # Convert header mode to bool for implicit
+    implicit_header = (args.header == 'implicit')
+    
+    try:
+        # Initialize based on selected mode
+        if args.mode == 'simple':
+            success = init_lora_simple(implicit=implicit_header, payload_len=args.payload_length)
+        elif args.mode == 'fhss':
+            success = init_lora_fhss(payload_len=args.payload_length)
+        else:  # full mode
+            success = init_lora_full(implicit=implicit_header, payload_len=args.payload_length)
+        
+        if not success:
+            print("Failed to initialize LoRa module. Exiting.")
+            cleanup()
+            sys.exit(1)
+        
+        # Print register values if requested
+        if args.registers:
+            print_registers()
+        
+        # Set listen time (0 means continuous)
+        listen_time = args.time if args.time > 0 else None
+        
+        # Start receiving
+        receive_packets(
+            max_time=listen_time,
+            use_fhss=(args.mode == 'fhss'),
+            expect_implicit=implicit_header,
+            payload_len=args.payload_length
+        )
+        
+    except KeyboardInterrupt:
+        print("\nProgram interrupted by user.")
+    finally:
+        cleanup()
+
+if __name__ == "__main__":
+    main()
