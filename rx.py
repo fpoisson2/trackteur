@@ -24,22 +24,16 @@ spi.open(0, 0)
 spi.max_speed_hz = 5000000
 spi.mode = 0b00
 
-# Frequency hopping channels (902.2 MHz to 927.8 MHz, 400 kHz spacing)
-FREQ_START = 902200000  # 902.2 MHz
-FREQ_STEP = 400000      # 400 kHz
+# Fixed frequency configuration
+FREQUENCY = 915000000  # 915 MHz
 FXTAL = 32000000
 FRF_FACTOR = 2**19
 
-HOP_CHANNELS = []
-for i in range(64):
-    freq = FREQ_START + i * FREQ_STEP
-    frf = int((freq * FRF_FACTOR) / FXTAL)
-    msb = (frf >> 16) & 0xFF
-    mid = (frf >> 8) & 0xFF
-    lsb = frf & 0xFF
-    HOP_CHANNELS.append((msb, mid, lsb))
-
-current_channel = 0
+# Calculate frequency register values
+frf = int((FREQUENCY * FRF_FACTOR) / FXTAL)
+FRF_MSB = (frf >> 16) & 0xFF
+FRF_MID = (frf >> 8) & 0xFF
+FRF_LSB = frf & 0xFF
 
 # Traccar server configuration
 TRACCAR_URL = "http://trackteur.ve2fpd.com:5055"  # Adjust port if needed
@@ -63,12 +57,10 @@ def reset_module():
     GPIO.output(RESET, GPIO.HIGH)
     time.sleep(0.1)
 
-def set_frequency(channel_idx):
-    global HOP_CHANNELS
-    msb, mid, lsb = HOP_CHANNELS[channel_idx]
-    spi_write(0x06, msb)  # RegFrfMsb
-    spi_write(0x07, mid)  # RegFrfMid
-    spi_write(0x08, lsb)  # RegFrfLsb
+def set_frequency():
+    spi_write(0x06, FRF_MSB)  # RegFrfMsb
+    spi_write(0x07, FRF_MID)  # RegFrfMid
+    spi_write(0x08, FRF_LSB)  # RegFrfLsb
 
 def init_lora():
     reset_module()
@@ -82,8 +74,8 @@ def init_lora():
     spi_write(0x01, 0x80)  # LoRa sleep mode
     time.sleep(0.1)
 
-    # Set initial frequency to channel 0 (902.2 MHz)
-    set_frequency(0)
+    # Set fixed frequency (915 MHz)
+    set_frequency()
 
     # RegModemConfig1: BW 125 kHz, CR 4/8, Implicit Header
     spi_write(0x1D, 0x78)
@@ -98,11 +90,8 @@ def init_lora():
     spi_write(0x20, 0x00)
     spi_write(0x21, 0x08)
 
-    # Enable frequency hopping: Hop every 5 symbols (~327.7 ms at 62.5 kHz)
-    spi_write(0x24, 5)  # RegHopPeriod
-
-    # Map DIO0 to FhssChangeChannel (bit 7:6 = 01)
-    spi_write(0x40, 0x40)
+    # Map DIO0 to RxDone (bit 7:6 = 00)
+    spi_write(0x40, 0x00)
 
     # Set FIFO RX base addr and pointer
     spi_write(0x0F, 0x00)
@@ -110,6 +99,8 @@ def init_lora():
 
     # Continuous RX mode
     spi_write(0x01, 0x85)
+    
+    print(f"LoRa module initialized. Listening on {FREQUENCY/1000000} MHz")
 
 def send_to_traccar(latitude, longitude, altitude, timestamp):
     """Send GPS data to Traccar server using the OSMAnd protocol."""
@@ -132,23 +123,9 @@ def send_to_traccar(latitude, longitude, altitude, timestamp):
         print(f"Error sending data to Traccar: {e}")
 
 def receive_loop():
-    global current_channel
-    print("Listening for incoming LoRa packets with frequency hopping...")
+    print(f"Listening for incoming LoRa packets on {FREQUENCY/1000000} MHz...")
     while True:
         irq_flags = spi_read(0x12)
-        
-        # Check for FhssChangeChannel interrupt (bit 2)
-        if GPIO.input(DIO0) and (irq_flags & 0x04):
-            hop_channel = spi_read(0x1C)
-            current_channel = hop_channel & 0x3F
-            print(f"FHSS interrupt: Current channel {current_channel}")
-            
-            # Update to next channel
-            current_channel = (current_channel + 1) % len(HOP_CHANNELS)
-            set_frequency(current_channel)
-            
-            # Clear FhssChangeChannel interrupt
-            spi_write(0x12, 0x04)
         
         # Check for RX Done (bit 6)
         if irq_flags & 0x40:
@@ -180,7 +157,7 @@ def receive_loop():
                     lat, lon, alt, timestamp = struct.unpack(">iiHI", payload)
                     latitude = lat / 1_000_000.0
                     longitude = lon / 1_000_000.0
-                    time_str = time.strftime("%Y-%m-d %H:%M:%S", time.gmtime(timestamp))
+                    time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(timestamp))
                     print(f"Received: Latitude={latitude}, Longitude={longitude}, Altitude={alt}m, Timestamp={time_str}")
                     
                     # Send data to Traccar
