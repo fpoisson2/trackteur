@@ -66,6 +66,20 @@ def spi_read(addr):
     GPIO.output(NSS, GPIO.HIGH)
     return result
 
+def read_register_block(start_addr, count):
+    """Read a block of registers and return as a dictionary"""
+    result = {}
+    for i in range(count):
+        addr = start_addr + i
+        value = spi_read(addr)
+        result[addr] = value
+    return result
+
+def print_registers(registers):
+    """Print registers in a formatted way"""
+    for addr, value in sorted(registers.items()):
+        print(f"  Reg 0x{addr:02X}: 0x{value:02X}")
+
 def reset_module():
     GPIO.output(RESET, GPIO.LOW)
     time.sleep(0.1)
@@ -98,8 +112,8 @@ def init_module():
     # Set initial frequency to channel 0 (902.2 MHz)
     set_frequency(0)
     
-    # RegModemConfig1: BW 125 kHz, CR 4/8, Implicit Header
-    # 0110 100 0 = 0x68
+    # RegModemConfig1: BW 125 kHz, CR 4/5, Implicit Header
+    # 0110 001 0 = 0x70
     spi_write(0x1D, 0x70)
     
     # RegModemConfig2: SF12, CRC on
@@ -114,8 +128,8 @@ def init_module():
     spi_write(0x20, 0x00)
     spi_write(0x21, 0x08)
     
-    # Enable frequency hopping: Hop every 5 symbols (~327.7 ms at 62.5 kHz)
-    spi_write(0x24, 5)  # RegHopPeriod
+    # Enable frequency hopping: Hop every 10 symbols (increased from 5)
+    spi_write(0x24, 10)  # RegHopPeriod
     
     # Set PA configuration: +20 dBm with PA_BOOST
     spi_write(0x09, 0x8F)
@@ -127,10 +141,43 @@ def init_module():
     # Put module in standby mode
     spi_write(0x01, 0x81)
     time.sleep(0.1)
+    
+    # Dump all important registers for debugging
+    print("Module initialized with the following register values:")
+    important_regs = read_register_block(0x01, 0x40)
+    print_registers(important_regs)
+
+def dump_tx_status():
+    """Print current status of key registers during TX"""
+    reg_op_mode = spi_read(0x01)  # RegOpMode
+    reg_irq_flags = spi_read(0x12)  # RegIrqFlags
+    reg_fifo_addr_ptr = spi_read(0x0D)  # RegFifoAddrPtr
+    reg_fifo_tx_base_addr = spi_read(0x0E)  # RegFifoTxBaseAddr
+    reg_hop_channel = spi_read(0x1C)  # RegHopChannel
+    
+    print(f"TX Status: OpMode=0x{reg_op_mode:02X}, IRQ=0x{reg_irq_flags:02X}, " +
+          f"FifoPtr=0x{reg_fifo_addr_ptr:02X}, TxBase=0x{reg_fifo_tx_base_addr:02X}, " +
+          f"HopChannel=0x{reg_hop_channel:02X}")
+    
+    # Print detailed IRQ flags
+    if reg_irq_flags > 0:
+        print("  IRQ Flags:")
+        if reg_irq_flags & 0x80: print("    CadDetected")
+        if reg_irq_flags & 0x40: print("    FhssChangeChannel")
+        if reg_irq_flags & 0x20: print("    CadDone")
+        if reg_irq_flags & 0x10: print("    TxTimeout")
+        if reg_irq_flags & 0x08: print("    ValidHeader")
+        if reg_irq_flags & 0x04: print("    PayloadCrcError")
+        if reg_irq_flags & 0x02: print("    RxDone")
+        if reg_irq_flags & 0x01: print("    TxDone")
 
 def spi_tx(payload):
     global current_channel
     print(f"Raw TX Payload ({len(payload)} bytes): {payload.hex()}")
+    
+    # Put module back in standby mode to ensure clean state
+    spi_write(0x01, 0x81)
+    time.sleep(0.1)
 
     # Reset FIFO pointer
     spi_write(0x0D, 0x00)
@@ -141,46 +188,76 @@ def spi_tx(payload):
     
     spi_write(0x22, len(payload))  # Set payload length
     
-    # Clear IRQ flags
+    # Clear all IRQ flags
     spi_write(0x12, 0xFF)
     
     # Set initial channel
     current_channel = 0
     set_frequency(current_channel)
     
+    # Print pre-tx status
+    print("Pre-TX Status:")
+    dump_tx_status()
+    
     # Switch to TX mode
     spi_write(0x01, 0x83)
     print(f"Transmitting {len(payload)} bytes with frequency hopping.")
 
-    # Give a moment for transmission to start
-    time.sleep(0.1)
-
     # Handle frequency hopping during transmission
     start = time.time()
-    while time.time() - start < 5:  # Timeout after 5 seconds
-        if GPIO.input(DIO0) == 1:  # FhssChangeChannel interrupt
+    last_status_time = 0
+    dio0_count = 0
+    
+    # Increased timeout to 15 seconds
+    while time.time() - start < 15:  # Timeout after 15 seconds
+        current_time = time.time()
+        
+        # Print status every 1 second
+        if int(current_time) > int(last_status_time):
+            last_status_time = current_time
+            print(f"Time elapsed: {current_time - start:.1f}s")
+            dump_tx_status()
+            print(f"DIO0 interrupts so far: {dio0_count}")
+        
+        if GPIO.input(DIO0) == 1:  # FhssChangeChannel or TxDone interrupt
+            dio0_count += 1
             # Read current channel and IRQ flags
+            irq_flags = spi_read(0x12)
             hop_channel = spi_read(0x1C)
             current_channel = hop_channel & 0x3F
-            print(f"FHSS interrupt: Current channel {current_channel}")
             
-            # Update to next channel
-            current_channel = (current_channel + 1) % len(HOP_CHANNELS)
-            set_frequency(current_channel)
+            if irq_flags & 0x40:  # FhssChangeChannel flag
+                print(f"FHSS interrupt: Current channel {current_channel}, IRQ: 0x{irq_flags:02X}")
+                
+                # Update to next channel
+                next_channel = (current_channel + 1) % len(HOP_CHANNELS)
+                set_frequency(next_channel)
+                
+                # Clear FhssChangeChannel interrupt
+                spi_write(0x12, 0x40)
             
-            # Clear FhssChangeChannel interrupt
-            spi_write(0x12, 0x04)
+            if irq_flags & 0x01:  # TxDone flag
+                print(f"TxDone interrupt detected! IRQ: 0x{irq_flags:02X}")
+                # Clear TxDone flag
+                spi_write(0x12, 0x01)
+                break
         
-        # Check for TX Done (bit 3 in RegIrqFlags)
+        # Check for TX Done directly from register (bit 0 in RegIrqFlags)
         irq_flags = spi_read(0x12)
-        if irq_flags & 0x08:  # TxDone flag
-            print("Transmission complete!")
-            break   
-        
-        time.sleep(0.01)
+        if irq_flags & 0x01:  # TxDone flag
+            print(f"Transmission complete! IRQ: 0x{irq_flags:02X}")
+            break
+            
+        # Very short sleep to reduce CPU usage but still responsive
+        time.sleep(0.005)
     
-    if time.time() - start >= 5:
-        print("TX timeout. IRQ flags:", hex(spi_read(0x12)))
+    elapsed = time.time() - start
+    if elapsed >= 15:
+        print("TX timeout after 15 seconds.")
+        print("Final status:")
+        dump_tx_status()
+    else:
+        print(f"Transmission completed in {elapsed:.2f} seconds.")
     
     # Clear all IRQ flags
     spi_write(0x12, 0xFF)
