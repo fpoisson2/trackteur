@@ -139,10 +139,16 @@ def init_lora_simple(implicit=False):
     # Configure modem - Simple Mode (SF7)
     if implicit:
         # RegModemConfig1: BW=125kHz, CR=4/5, Implicit header
-        spi_write(0x1D, 0x74)
+        # BW (bits 7-4): 0111 (125kHz)
+        # CR (bits 3-1): 001 (4/5)
+        # Implicit header (bit 0): 1
+        spi_write(0x1D, 0x72 | 0x01)  # 0x73
     else:
         # RegModemConfig1: BW=125kHz, CR=4/5, Explicit header
-        spi_write(0x1D, 0x72)
+        # BW (bits 7-4): 0111 (125kHz)
+        # CR (bits 3-1): 001 (4/5)
+        # Explicit header (bit 0): 0
+        spi_write(0x1D, 0x72)  # Already 0x72
     
     # RegModemConfig2: SF7, normal mode, CRC on
     spi_write(0x1E, 0x74)
@@ -199,17 +205,38 @@ def init_lora_full(implicit=True):
     
     # Configure modem - Full Mode (SF12)
     if implicit:
-        # RegModemConfig1: BW=125kHz, CR=4/5, Implicit header (like GPS tracker)
-        spi_write(0x1D, 0x74)
+        # RegModemConfig1: BW=125kHz, CR=4/5, Implicit header
+        # BW (bits 7-4): 0111 (125kHz)
+        # CR (bits 3-1): 001 (4/5)
+        # Implicit header (bit 0): 1
+        spi_write(0x1D, 0x72 | 0x01)  # 0x73
+        print("Setting implicit header mode (RegModemConfig1 = 0x73)")
     else:
         # RegModemConfig1: BW=125kHz, CR=4/5, Explicit header
-        spi_write(0x1D, 0x72)
+        # BW (bits 7-4): 0111 (125kHz)
+        # CR (bits 3-1): 001 (4/5)
+        # Explicit header (bit 0): 0
+        spi_write(0x1D, 0x72)  # Already 0x72
+        print("Setting explicit header mode (RegModemConfig1 = 0x72)")
+    
+    # Verify the value was written correctly
+    mc1_val = spi_read(0x1D)
+    print(f"Verified RegModemConfig1 = 0x{mc1_val:02X} (expected: 0x{0x73 if implicit else 0x72:02X})")
     
     # RegModemConfig2: SF12, normal mode, CRC on
+    # SF (bits 7-4): 1100 (SF12)
+    # TxContinuousMode (bit 3): 0 (normal mode)
+    # RxPayloadCrcOn (bit 2): 1 (CRC enabled)
+    # SymbTimeout (bits 1-0): 00 (used with bits from RegSymbTimeout)
     spi_write(0x1E, 0xC4)
+    print(f"Setting SF12, normal mode, CRC on (RegModemConfig2 = 0xC4)")
     
     # RegModemConfig3: LNA auto gain, Low data rate optimization (needed for SF11/12)
+    # Reserved (bits 7-4): 0000
+    # LowDataRateOptimize (bit 3): 1 (enabled - essential for SF11/SF12)
+    # AgcAutoOn (bit 2): 1 (LNA gain set by AGC)
     spi_write(0x26, 0x0C)
+    print(f"Setting LNA auto gain, Low data rate optimization (RegModemConfig3 = 0x0C)")
     
     # Set preamble length to 8 symbols
     spi_write(0x20, 0x00)
@@ -270,10 +297,16 @@ def init_lora_fhss(implicit=True):
     # Configure modem - Exactly like GPS tracker
     if implicit:
         # RegModemConfig1: BW=125kHz, CR=4/5, Implicit header
-        spi_write(0x1D, 0x74)
+        # BW (bits 7-4): 0111 (125kHz)
+        # CR (bits 3-1): 001 (4/5)
+        # Implicit header (bit 0): 1
+        spi_write(0x1D, 0x72 | 0x01)  # 0x73
     else:
         # RegModemConfig1: BW=125kHz, CR=4/5, Explicit header
-        spi_write(0x1D, 0x72)
+        # BW (bits 7-4): 0111 (125kHz)
+        # CR (bits 3-1): 001 (4/5)
+        # Explicit header (bit 0): 0
+        spi_write(0x1D, 0x72)  # Already 0x72
     
     # RegModemConfig2: SF12, normal mode, CRC on
     spi_write(0x1E, 0xC4)
