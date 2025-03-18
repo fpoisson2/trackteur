@@ -143,8 +143,8 @@ def init_lora_simple(implicit=False, payload_len=26):
     
     # Configure modem - Simple Mode (SF7)
     if implicit:
-        # RegModemConfig1: BW=125kHz, CR=4/8, Implicit header
-        spi_write(0x1D, 0x78)
+        # RegModemConfig1: BW=125kHz, CR=4/5, Implicit header
+        spi_write(0x1D, 0x74)
         # Set expected payload length (needed for implicit header mode)
         spi_write(0x22, payload_len)
     else:
@@ -213,12 +213,12 @@ def init_lora_full(implicit=True, payload_len=26):
     # Configure modem - Full Mode (SF12)
     if implicit:
         # RegModemConfig1: BW=125kHz, CR=4/8, Implicit header
-        spi_write(0x1D, 0x78)
+        spi_write(0x1D, 0x74)
         # Set expected payload length (needed for implicit header mode)
         spi_write(0x22, payload_len)
     else:
         # RegModemConfig1: BW=125kHz, CR=4/5, Explicit header
-        spi_write(0x1D, 0xA3)
+        spi_write(0x1D, 0x72)
     
     # RegModemConfig2: SF12, CRC on, RX continuous
     spi_write(0x1E, 0xC4)
@@ -280,8 +280,8 @@ def init_lora_fhss(payload_len=26):
     spi_write(0x40, 0x00)  # DIO0 = RxDone in Rx mode (00 in bits 7:6)
     
     # Configure modem - Exactly like GPS tracker but for RX
-    # RegModemConfig1: BW=125kHz, CR=4/8, Implicit header
-    spi_write(0x1D, 0x78)
+    # RegModemConfig1: BW=125kHz, CR=4/5, Implicit header
+    spi_write(0x1D, 0x74)
     
     # Set expected payload length (needed for implicit header mode)
     spi_write(0x22, payload_len)

@@ -138,8 +138,8 @@ def init_lora_simple(implicit=False):
     
     # Configure modem - Simple Mode (SF7)
     if implicit:
-        # RegModemConfig1: BW=125kHz, CR=4/8, Implicit header
-        spi_write(0x1D, 0x78)
+        # RegModemConfig1: BW=125kHz, CR=4/5, Implicit header
+        spi_write(0x1D, 0x74)
     else:
         # RegModemConfig1: BW=125kHz, CR=4/5, Explicit header
         spi_write(0x1D, 0x72)
@@ -199,8 +199,8 @@ def init_lora_full(implicit=True):
     
     # Configure modem - Full Mode (SF12)
     if implicit:
-        # RegModemConfig1: BW=125kHz, CR=4/8, Implicit header (like GPS tracker)
-        spi_write(0x1D, 0x78)
+        # RegModemConfig1: BW=125kHz, CR=4/5, Implicit header (like GPS tracker)
+        spi_write(0x1D, 0x74)
     else:
         # RegModemConfig1: BW=125kHz, CR=4/5, Explicit header
         spi_write(0x1D, 0x72)
@@ -269,8 +269,8 @@ def init_lora_fhss(implicit=True):
     
     # Configure modem - Exactly like GPS tracker
     if implicit:
-        # RegModemConfig1: BW=125kHz, CR=4/8, Implicit header
-        spi_write(0x1D, 0x78)
+        # RegModemConfig1: BW=125kHz, CR=4/5, Implicit header
+        spi_write(0x1D, 0x74)
     else:
         # RegModemConfig1: BW=125kHz, CR=4/5, Explicit header
         spi_write(0x1D, 0x72)
