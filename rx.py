@@ -284,17 +284,51 @@ def send_to_traccar(latitude, longitude, altitude, timestamp):
     except requests.RequestException as e:
         print(f"Error sending data to Traccar: {e}")
 
+def read_rssi():
+    # In LoRa mode, RSSI is read from register 0x1B
+    # But for continuous monitoring, we need to read current RSSI from 0x1A
+    rssi_raw = spi_read(0x1A)
+    return rssi_raw - 137
+
+def read_signal_quality():
+    # Read RSSI (current channel)
+    rssi = read_rssi()
+    
+    # Read SNR (last packet) if needed
+    snr_raw = spi_read(0x19)
+    
+    # Convert SNR to decimal value (signed 8-bit)
+    if snr_raw > 127:
+        snr = (snr_raw - 256) / 4
+    else:
+        snr = snr_raw / 4
+    
+    return rssi, snr
+
 def receive_loop():
     packet_count = 0
     last_status_time = time.time()
+    last_rssi_time = 0
     
     print(f"Listening for incoming LoRa packets on {FREQUENCY/1000000} MHz...")
     
     while True:
         current_time = time.time()
         
+        # Display RSSI continuously if enabled
+        if display_rssi and (current_time - last_rssi_time >= 0.5):
+            last_rssi_time = current_time
+            rssi = read_rssi()
+            timestamp = time.strftime("%H:%M:%S", time.localtime())
+            # Use carriage return to overwrite the same line
+            sys.stdout.write(f"\r[{timestamp}] Current RSSI: {rssi} dBm                          ")
+            sys.stdout.flush()
+        
         # Print status every minute if no packets received and verbose mode
         if verbose_mode >= 1 and current_time - last_status_time > 60:
+            if display_rssi:
+                # Need to print a newline first to not mess up RSSI display
+                print("\n", end='')
             print(f"Still listening... ({packet_count} packets received so far)")
             last_status_time = current_time
         
@@ -303,6 +337,10 @@ def receive_loop():
         
         # Check for RX Done (bit 6)
         if irq_flags & 0x40:
+            if display_rssi:
+                # Print a newline to not mess up the next output
+                print("\n", end='')
+                
             last_status_time = current_time
             packet_count += 1
             
@@ -336,17 +374,8 @@ def receive_loop():
                 print(format_hex_dump(payload))
             
             # Check RSSI and SNR
-            if verbose_mode >= 1:
-                # Read after packet reception
-                rssi = spi_read(0x1A) - 137  # Convert to dBm (see datasheet)
-                snr = spi_read(0x19)
-                # Convert SNR to decimal value (signed 8-bit)
-                if snr > 127:
-                    snr = (snr - 256) / 4
-                else:
-                    snr = snr / 4
-                
-                print(f"Signal quality: RSSI={rssi} dBm, SNR={snr:.1f} dB")
+            rssi, snr = read_signal_quality()
+            print(f"Signal quality: RSSI={rssi} dBm, SNR={snr:.1f} dB")
             
             # Decode payload if 14 bytes (expected format)
             if len(payload) == 14:
