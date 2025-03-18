@@ -186,10 +186,65 @@ def receive_loop():
                 # Clear FhssChangeChannel interrupt
                 spi_write(0x12, 0x40)
             
-            # Check for RX Done
-            if irq_flags & 0x40:
-            print(f"IRQ Flags: {bin(irq_flags)} (0x{irq_flags:02x})")
+            # Check for RxDone
+            if irq_flags & 0x02:  # RxDone flag
+                print(f"Packet received at channel {current_channel}")
+                
+                # Clear IRQ flags
+                spi_write(0x12, 0xFF)
+                
+                # Read payload length
+                nb_bytes = spi_read(0x13)
+                print(f"Packet size: {nb_bytes} bytes")
+                
+                # Read current FIFO address
+                current_addr = spi_read(0x10)
+                
+                # Set FIFO address pointer
+                spi_write(0x0D, current_addr)
+                
+                # Read payload
+                payload = bytearray()
+                for _ in range(nb_bytes):
+                    payload.append(spi_read(0x00))
+
+                print(f"Raw RX Payload ({len(payload)} bytes): {payload.hex()}")
+                
+                # Decode payload if 14 bytes
+                if len(payload) == 14:
+                    try:
+                        lat, lon, alt, timestamp = struct.unpack(">iiHI", payload)
+                        latitude = lat / 1_000_000.0
+                        longitude = lon / 1_000_000.0
+                        time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(timestamp))
+                        print(f"Received: Latitude={latitude}, Longitude={longitude}, Altitude={alt}m, Timestamp={time_str}")
+                        
+                        # Send data to Traccar
+                        send_to_traccar(latitude, longitude, alt, timestamp)
+                    except struct.error as e:
+                        print("Error decoding payload:", e)
+                else:
+                    print(f"Unexpected payload size: {nb_bytes} bytes (expected 14)")
+                    try:
+                        message = ''.join(chr(b) for b in payload if 32 <= b <= 126)
+                        print(f"Raw data: {payload.hex()}")
+                        print(f"As text: {message}")
+                    except Exception as e:
+                        print(f"Error processing raw payload: {e}")
+                
+                # Check for CRC error
+                if irq_flags & 0x04:
+                    print("CRC error detected")
             
+            # Clear all IRQ flags after processing
+            spi_write(0x12, 0xFF)
+        
+        # Polling for RxDone as a backup method (in case interrupt is missed)
+        irq_flags = spi_read(0x12)
+        if irq_flags & 0x02:  # RxDone flag
+            print(f"RxDone detected via polling! IRQ: 0x{irq_flags:02X}")
+            
+            # Handle packet reception (same code as above)
             # Clear IRQ flags
             spi_write(0x12, 0xFF)
             
@@ -216,7 +271,7 @@ def receive_loop():
                     lat, lon, alt, timestamp = struct.unpack(">iiHI", payload)
                     latitude = lat / 1_000_000.0
                     longitude = lon / 1_000_000.0
-                    time_str = time.strftime("%Y-%m-d %H:%M:%S", time.gmtime(timestamp))
+                    time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(timestamp))
                     print(f"Received: Latitude={latitude}, Longitude={longitude}, Altitude={alt}m, Timestamp={time_str}")
                     
                     # Send data to Traccar
@@ -233,7 +288,7 @@ def receive_loop():
                     print(f"Error processing raw payload: {e}")
             
             # Check for CRC error
-            if irq_flags & 0x20:
+            if irq_flags & 0x04:
                 print("CRC error detected")
         
         time.sleep(0.01)  # Small delay to prevent CPU hogging
