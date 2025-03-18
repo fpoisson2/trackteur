@@ -190,31 +190,24 @@ def get_power_config():
         return 0x80 | ((min(TX_POWER, 17) - 2) & 0x0F)
 
 def should_enable_ldro():
-    """Calculate if LDRO should be enabled based on current SF and BW settings"""
-    # Symbol duration = 2^SF / BW (in Hz)
-    # LDRO should be enabled when symbol duration exceeds 16ms
+    """Determine if Low Data Rate Optimization should be enabled based on SF and BW."""
+    # For LoRa, LDRO should be enabled if symbol duration exceeds 16ms
+    # Symbol duration (seconds) = 2^SF / BW (Hz)
     
-    symbol_duration = (2**SPREADING_FACTOR) / (BANDWIDTH * 1000)  # Duration in ms
+    # Convert bandwidth from kHz to Hz
+    bw_hz = BANDWIDTH * 1000
     
-    if verbose_mode >= 2:
-        print(f"Symbol duration: {symbol_duration:.3f}ms (LDRO threshold: 16ms)")
+    # Calculate symbol duration in milliseconds
+    symbol_duration_ms = (2**SPREADING_FACTOR) / bw_hz * 1000
     
-    return symbol_duration > 16.0
-
-def set_modem_config3():
-    """Set ModemConfig3 register with proper LDRO setting"""
-    # Bit 3 is LDRO, Bit 2 is AGC (always enabled)
-    ldro_enabled = should_enable_ldro()
-    
-    if ldro_enabled:
-        modem_config3 = 0x0C  # LDRO on (0x08), AGC on (0x04)
-    else:
-        modem_config3 = 0x04  # LDRO off (0x00), AGC on (0x04)
+    # Calculate threshold based on datasheet (enable if > 16ms)
+    should_enable = symbol_duration_ms > 16.0
     
     if verbose_mode >= 1:
-        print(f"Setting LDRO: {'Enabled' if ldro_enabled else 'Disabled'}")
+        print(f"Symbol duration: {symbol_duration_ms:.3f}ms (threshold: 16.0ms)")
+        print(f"LDRO should be: {'ENABLED' if should_enable else 'DISABLED'}")
     
-    spi_write(0x26, modem_config3)  # RegModemConfig3
+    return should_enable
     
 def init_module():
     reset_module()
@@ -247,8 +240,13 @@ def init_module():
     modem_config2 = get_spreading_factor_value()
     spi_write(0x1E, modem_config2)
     
-    # Set RegModemConfig3 with appropriate LDRO setting
-    set_modem_config3()
+    # RegModemConfig3: Set LDRO dynamically based on SF and BW
+    ldro_enabled = should_enable_ldro()
+    if ldro_enabled:
+        modem_config3 = 0x0C  # LDRO enabled (0x08) + AGC enabled (0x04)
+    else:
+        modem_config3 = 0x04  # LDRO disabled (0x00) + AGC enabled (0x04)
+    spi_write(0x26, modem_config3)
     
     # Set preamble length
     spi_write(0x20, (PREAMBLE_LENGTH >> 8) & 0xFF)  # MSB
