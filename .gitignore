@@ -4,3 +4,5 @@ analysis_guide.md
 parameter_analysis.py
 /myenv
 automated_test.py
+*.csv
+*.png
