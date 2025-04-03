@@ -65,6 +65,118 @@
         )
       )
     )
+    (symbol "Connector:TestPoint" (pin_numbers hide) (pin_names (offset 0.762) hide) (in_bom yes) (on_board yes)
+      (property "Reference" "TP" (at 0 6.858 0)
+        (effects (font (size 1.27 1.27)))
+      )
+      (property "Value" "TestPoint" (at 0 5.08 0)
+        (effects (font (size 1.27 1.27)))
+      )
+      (property "Footprint" "" (at 5.08 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (property "Datasheet" "~" (at 5.08 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (property "ki_keywords" "test point tp" (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (property "ki_description" "test point" (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (property "ki_fp_filters" "Pin* Test*" (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (symbol "TestPoint_0_1"
+        (circle (center 0 3.302) (radius 0.762)
+          (stroke (width 0) (type default))
+          (fill (type none))
+        )
+      )
+      (symbol "TestPoint_1_1"
+        (pin passive line (at 0 0 90) (length 2.54)
+          (name "1" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27))))
+        )
+      )
+    )
+    (symbol "Connector_Generic:Conn_01x06" (pin_names (offset 1.016) hide) (in_bom yes) (on_board yes)
+      (property "Reference" "J" (at 0 7.62 0)
+        (effects (font (size 1.27 1.27)))
+      )
+      (property "Value" "Conn_01x06" (at 0 -10.16 0)
+        (effects (font (size 1.27 1.27)))
+      )
+      (property "Footprint" "" (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (property "Datasheet" "~" (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (property "ki_keywords" "connector" (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (property "ki_description" "Generic connector, single row, 01x06, script generated (kicad-library-utils/schlib/autogen/connector/)" (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (property "ki_fp_filters" "Connector*:*_1x??_*" (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (symbol "Conn_01x06_1_1"
+        (rectangle (start -1.27 -7.493) (end 0 -7.747)
+          (stroke (width 0.1524) (type default))
+          (fill (type none))
+        )
+        (rectangle (start -1.27 -4.953) (end 0 -5.207)
+          (stroke (width 0.1524) (type default))
+          (fill (type none))
+        )
+        (rectangle (start -1.27 -2.413) (end 0 -2.667)
+          (stroke (width 0.1524) (type default))
+          (fill (type none))
+        )
+        (rectangle (start -1.27 0.127) (end 0 -0.127)
+          (stroke (width 0.1524) (type default))
+          (fill (type none))
+        )
+        (rectangle (start -1.27 2.667) (end 0 2.413)
+          (stroke (width 0.1524) (type default))
+          (fill (type none))
+        )
+        (rectangle (start -1.27 5.207) (end 0 4.953)
+          (stroke (width 0.1524) (type default))
+          (fill (type none))
+        )
+        (rectangle (start -1.27 6.35) (end 1.27 -8.89)
+          (stroke (width 0.254) (type default))
+          (fill (type background))
+        )
+        (pin passive line (at -5.08 5.08 0) (length 3.81)
+          (name "Pin_1" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27))))
+        )
+        (pin passive line (at -5.08 2.54 0) (length 3.81)
+          (name "Pin_2" (effects (font (size 1.27 1.27))))
+          (number "2" (effects (font (size 1.27 1.27))))
+        )
+        (pin passive line (at -5.08 0 0) (length 3.81)
+          (name "Pin_3" (effects (font (size 1.27 1.27))))
+          (number "3" (effects (font (size 1.27 1.27))))
+        )
+        (pin passive line (at -5.08 -2.54 0) (length 3.81)
+          (name "Pin_4" (effects (font (size 1.27 1.27))))
+          (number "4" (effects (font (size 1.27 1.27))))
+        )
+        (pin passive line (at -5.08 -5.08 0) (length 3.81)
+          (name "Pin_5" (effects (font (size 1.27 1.27))))
+          (number "5" (effects (font (size 1.27 1.27))))
+        )
+        (pin passive line (at -5.08 -7.62 0) (length 3.81)
+          (name "Pin_6" (effects (font (size 1.27 1.27))))
+          (number "6" (effects (font (size 1.27 1.27))))
+        )
+      )
+    )
     (symbol "Connector_Generic:Conn_01x07" (pin_names (offset 1.016) hide) (in_bom yes) (on_board yes)
       (property "Reference" "J" (at 0 10.16 0)
         (effects (font (size 1.27 1.27)))
@@ -147,6 +259,67 @@
         (pin passive line (at -5.08 -7.62 0) (length 3.81)
           (name "Pin_7" (effects (font (size 1.27 1.27))))
           (number "7" (effects (font (size 1.27 1.27))))
+        )
+      )
+    )
+    (symbol "Connector_Generic:Conn_02x02_Counter_Clockwise" (pin_names (offset 1.016) hide) (in_bom yes) (on_board yes)
+      (property "Reference" "J" (at 1.27 2.54 0)
+        (effects (font (size 1.27 1.27)))
+      )
+      (property "Value" "Conn_02x02_Counter_Clockwise" (at 1.27 -5.08 0)
+        (effects (font (size 1.27 1.27)))
+      )
+      (property "Footprint" "" (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (property "Datasheet" "~" (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (property "ki_keywords" "connector" (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (property "ki_description" "Generic connector, double row, 02x02, counter clockwise pin numbering scheme (similar to DIP package numbering), script generated (kicad-library-utils/schlib/autogen/connector/)" (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (property "ki_fp_filters" "Connector*:*_2x??_*" (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (symbol "Conn_02x02_Counter_Clockwise_1_1"
+        (rectangle (start -1.27 -2.413) (end 0 -2.667)
+          (stroke (width 0.1524) (type default))
+          (fill (type none))
+        )
+        (rectangle (start -1.27 0.127) (end 0 -0.127)
+          (stroke (width 0.1524) (type default))
+          (fill (type none))
+        )
+        (rectangle (start -1.27 1.27) (end 3.81 -3.81)
+          (stroke (width 0.254) (type default))
+          (fill (type background))
+        )
+        (rectangle (start 3.81 -2.413) (end 2.54 -2.667)
+          (stroke (width 0.1524) (type default))
+          (fill (type none))
+        )
+        (rectangle (start 3.81 0.127) (end 2.54 -0.127)
+          (stroke (width 0.1524) (type default))
+          (fill (type none))
+        )
+        (pin passive line (at -5.08 0 0) (length 3.81)
+          (name "Pin_1" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27))))
+        )
+        (pin passive line (at -5.08 -2.54 0) (length 3.81)
+          (name "Pin_2" (effects (font (size 1.27 1.27))))
+          (number "2" (effects (font (size 1.27 1.27))))
+        )
+        (pin passive line (at 7.62 -2.54 180) (length 3.81)
+          (name "Pin_3" (effects (font (size 1.27 1.27))))
+          (number "3" (effects (font (size 1.27 1.27))))
+        )
+        (pin passive line (at 7.62 0 180) (length 3.81)
+          (name "Pin_4" (effects (font (size 1.27 1.27))))
+          (number "4" (effects (font (size 1.27 1.27))))
         )
       )
     )
@@ -1091,6 +1264,35 @@
         )
       )
     )
+    (symbol "Mechanical:MountingHole" (pin_names (offset 1.016)) (in_bom yes) (on_board yes)
+      (property "Reference" "H" (at 0 5.08 0)
+        (effects (font (size 1.27 1.27)))
+      )
+      (property "Value" "MountingHole" (at 0 3.175 0)
+        (effects (font (size 1.27 1.27)))
+      )
+      (property "Footprint" "" (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (property "Datasheet" "~" (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (property "ki_keywords" "mounting hole" (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (property "ki_description" "Mounting Hole without connection" (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (property "ki_fp_filters" "MountingHole*" (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (symbol "MountingHole_0_1"
+        (circle (center 0 0) (radius 1.27)
+          (stroke (width 1.27) (type default))
+          (fill (type none))
+        )
+      )
+    )
     (symbol "Regulator_Linear:LD1117S33TR_SOT223" (in_bom yes) (on_board yes)
       (property "Reference" "U" (at -3.81 3.175 0)
         (effects (font (size 1.27 1.27)))
@@ -1360,8 +1562,14 @@
     )
   )
 
+  (junction (at 71.12 96.52) (diameter 0) (color 0 0 0 0)
+    (uuid 0e0ababe-15ba-4381-aff1-ea030f6d5f0d)
+  )
   (junction (at 132.08 86.36) (diameter 0) (color 0 0 0 0)
     (uuid 16723875-7886-494f-b3ca-be32f11b833a)
+  )
+  (junction (at 81.28 46.99) (diameter 0) (color 0 0 0 0)
+    (uuid 1a8368c2-c2a2-4374-bd42-f8329bc11d5d)
   )
   (junction (at 43.18 39.37) (diameter 0) (color 0 0 0 0)
     (uuid 31a0a60a-7206-4d18-9aac-0e314ee494c9)
@@ -1392,6 +1600,9 @@
   )
   (junction (at 224.79 148.59) (diameter 0) (color 0 0 0 0)
     (uuid a534e273-0603-4741-b840-ffbaf423bd27)
+  )
+  (junction (at 81.28 49.53) (diameter 0) (color 0 0 0 0)
+    (uuid ba729fa8-2c6e-4ff3-a890-399cec93357e)
   )
   (junction (at 55.88 109.22) (diameter 0) (color 0 0 0 0)
     (uuid cdd403eb-3fc3-4b1e-97c9-ee55f9ec10f2)
@@ -1473,6 +1684,10 @@
     (stroke (width 0) (type default))
     (uuid 1275a835-6e1a-440e-8281-7b658ab2dd7f)
   )
+  (wire (pts (xy 130.81 146.05) (xy 137.16 146.05))
+    (stroke (width 0) (type default))
+    (uuid 147ba0d2-8267-4962-a7b0-ac5cca8e62c4)
+  )
   (wire (pts (xy 242.57 107.95) (xy 251.46 107.95))
     (stroke (width 0) (type default))
     (uuid 1bde6177-4617-4a5a-9eaf-d0c561b32b14)
@@ -1497,9 +1712,17 @@
     (stroke (width 0) (type default))
     (uuid 2a0fd1b0-e581-4572-b5c0-4085448789b3)
   )
+  (wire (pts (xy 76.2 96.52) (xy 71.12 96.52))
+    (stroke (width 0) (type default))
+    (uuid 2b2cee5d-8a50-42ec-88d5-ba82e3421f04)
+  )
   (wire (pts (xy 251.46 43.18) (xy 257.81 43.18))
     (stroke (width 0) (type default))
     (uuid 2b9e9cd9-96ad-4a0a-ba80-ce76a26782b9)
+  )
+  (wire (pts (xy 78.74 49.53) (xy 81.28 49.53))
+    (stroke (width 0) (type default))
+    (uuid 2d99dd35-1e2c-48a7-974e-4e63d24dc01c)
   )
   (wire (pts (xy 229.87 130.81) (xy 224.79 130.81))
     (stroke (width 0) (type default))
@@ -1512,6 +1735,10 @@
   (wire (pts (xy 43.18 39.37) (xy 53.34 39.37))
     (stroke (width 0) (type default))
     (uuid 3fcc4a3b-f3c4-43bf-8490-25a5c8c63d96)
+  )
+  (wire (pts (xy 76.2 90.17) (xy 76.2 96.52))
+    (stroke (width 0) (type default))
+    (uuid 40b2b5d4-1ef7-4ef8-b3d3-465268dee24a)
   )
   (wire (pts (xy 43.18 49.53) (xy 66.04 49.53))
     (stroke (width 0) (type default))
@@ -1545,6 +1772,10 @@
     (stroke (width 0) (type default))
     (uuid 4fd84cc8-7428-493f-89ba-e093d6a59072)
   )
+  (wire (pts (xy 86.36 43.18) (xy 86.36 46.99))
+    (stroke (width 0) (type default))
+    (uuid 50c1c745-4a0b-4b0a-ac10-4989e6e1bf21)
+  )
   (wire (pts (xy 81.28 43.18) (xy 81.28 46.99))
     (stroke (width 0) (type default))
     (uuid 53b4cd3d-5c0a-4656-9e4f-bb07b6d11dca)
@@ -1560,6 +1791,10 @@
   (wire (pts (xy 40.64 96.52) (xy 40.64 91.44))
     (stroke (width 0) (type default))
     (uuid 5f7f374d-7316-4084-90ca-500214b3e1b5)
+  )
+  (wire (pts (xy 86.36 46.99) (xy 81.28 46.99))
+    (stroke (width 0) (type default))
+    (uuid 5ffc85b9-9c2c-48be-80be-4fa0690c476b)
   )
   (wire (pts (xy 243.84 78.74) (xy 247.65 78.74))
     (stroke (width 0) (type default))
@@ -1629,6 +1864,10 @@
     (stroke (width 0) (type default))
     (uuid a65d0fc7-5afc-45de-b224-f13d1a2bd0c9)
   )
+  (wire (pts (xy 132.08 133.35) (xy 137.16 133.35))
+    (stroke (width 0) (type default))
+    (uuid aa4db6b1-7e85-45ec-bca3-dcda0dff8784)
+  )
   (wire (pts (xy 228.6 49.53) (xy 236.22 49.53))
     (stroke (width 0) (type default))
     (uuid b2049844-a641-442b-845c-b02e1ef4760a)
@@ -1637,13 +1876,9 @@
     (stroke (width 0) (type default))
     (uuid b32ba698-875d-441a-8a03-4f6145bc2839)
   )
-  (wire (pts (xy 81.28 52.07) (xy 81.28 49.53))
+  (wire (pts (xy 81.28 49.53) (xy 81.28 52.07))
     (stroke (width 0) (type default))
     (uuid b76ba23f-b064-450b-8bf3-ae26cbb2f885)
-  )
-  (wire (pts (xy 81.28 49.53) (xy 78.74 49.53))
-    (stroke (width 0) (type default))
-    (uuid b8b7612c-8596-4574-8f23-4f17f3bd0ffe)
   )
   (wire (pts (xy 133.35 86.36) (xy 132.08 86.36))
     (stroke (width 0) (type default))
@@ -1681,6 +1916,10 @@
     (stroke (width 0) (type default))
     (uuid d28cba4f-1761-4621-838a-d50c0ad54935)
   )
+  (wire (pts (xy 90.17 49.53) (xy 81.28 49.53))
+    (stroke (width 0) (type default))
+    (uuid d5e62a53-71a5-4953-9516-21f856f51390)
+  )
   (wire (pts (xy 248.92 115.57) (xy 248.92 123.19))
     (stroke (width 0) (type default))
     (uuid dea9afc3-18bf-412e-9cca-ebeab6e53f07)
@@ -1702,10 +1941,45 @@
     (uuid ea739928-70b2-49ec-87bc-042cd0e7fd3c)
   )
 
+  (global_label "A3" (shape bidirectional) (at 143.51 68.58 0) (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify left))
+    (uuid 0200427f-dec4-4e7d-b14e-4e3b4a41f8cb)
+    (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 149.9046 68.58 0)
+      (effects (font (size 1.27 1.27)) (justify left) hide)
+    )
+  )
+  (global_label "A2" (shape bidirectional) (at 137.16 120.65 180) (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right))
+    (uuid 0954f6ac-10f9-4ca9-b25c-b1f971e27ecd)
+    (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 130.7654 120.65 0)
+      (effects (font (size 1.27 1.27)) (justify right) hide)
+    )
+  )
+  (global_label "A3" (shape bidirectional) (at 137.16 118.11 180) (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right))
+    (uuid 11f01f3b-300a-42c3-b97c-10d0a9c2b7e2)
+    (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 130.7654 118.11 0)
+      (effects (font (size 1.27 1.27)) (justify right) hide)
+    )
+  )
+  (global_label "D10" (shape bidirectional) (at 118.11 71.12 180) (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right))
+    (uuid 1dfa1fc2-38cf-4d16-9b44-19c7edc6f199)
+    (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 110.3245 71.12 0)
+      (effects (font (size 1.27 1.27)) (justify right) hide)
+    )
+  )
   (global_label "DO" (shape bidirectional) (at 118.11 76.2 180) (fields_autoplaced)
     (effects (font (size 1.27 1.27)) (justify right))
     (uuid 2c976591-9caa-4b1a-9470-dd8f9224c5da)
     (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 111.413 76.2 0)
+      (effects (font (size 1.27 1.27)) (justify right) hide)
+    )
+  )
+  (global_label "D10" (shape bidirectional) (at 137.16 143.51 180) (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right))
+    (uuid 361af791-c486-4412-b86d-c0965b790876)
+    (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 129.3745 143.51 0)
       (effects (font (size 1.27 1.27)) (justify right) hide)
     )
   )
@@ -1716,10 +1990,24 @@
       (effects (font (size 1.27 1.27)) (justify right) hide)
     )
   )
+  (global_label "D5" (shape bidirectional) (at 118.11 58.42 180) (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right))
+    (uuid 4616a1c8-5980-410d-90f0-f95ec9894c41)
+    (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 111.534 58.42 0)
+      (effects (font (size 1.27 1.27)) (justify right) hide)
+    )
+  )
   (global_label "TXD_5V" (shape bidirectional) (at 118.11 53.34 180) (fields_autoplaced)
     (effects (font (size 1.27 1.27)) (justify right))
     (uuid 4e5921ac-a862-4918-a538-92f860d70a6b)
     (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 107.3007 53.34 0)
+      (effects (font (size 1.27 1.27)) (justify right) hide)
+    )
+  )
+  (global_label "D7" (shape bidirectional) (at 137.16 140.97 180) (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right))
+    (uuid 5049b0b2-04e2-4a6d-8ce0-dd56a3c04772)
+    (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 130.584 140.97 0)
       (effects (font (size 1.27 1.27)) (justify right) hide)
     )
   )
@@ -1751,6 +2039,13 @@
       (effects (font (size 1.27 1.27)) (justify right) hide)
     )
   )
+  (global_label "D9" (shape bidirectional) (at 118.11 60.96 180) (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right))
+    (uuid 6fcfc91c-4b1b-42bd-9c60-414a2df59bc0)
+    (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 111.534 60.96 0)
+      (effects (font (size 1.27 1.27)) (justify right) hide)
+    )
+  )
   (global_label "{slash}CS" (shape bidirectional) (at 118.11 66.04 180) (fields_autoplaced)
     (effects (font (size 1.27 1.27)) (justify right))
     (uuid 71726b76-6d88-46f2-8773-a6bbf1ba082b)
@@ -1772,10 +2067,38 @@
       (effects (font (size 1.27 1.27)) (justify right) hide)
     )
   )
+  (global_label "A0" (shape bidirectional) (at 149.86 118.11 0) (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify left))
+    (uuid 81127134-65f0-4bac-9257-83d17a5050da)
+    (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 156.2546 118.11 0)
+      (effects (font (size 1.27 1.27)) (justify left) hide)
+    )
+  )
+  (global_label "A1" (shape bidirectional) (at 143.51 63.5 0) (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify left))
+    (uuid 884b024c-d3aa-407f-8f73-d76271d3205f)
+    (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 149.9046 63.5 0)
+      (effects (font (size 1.27 1.27)) (justify left) hide)
+    )
+  )
   (global_label "CTL" (shape bidirectional) (at 222.25 107.95 180) (fields_autoplaced)
     (effects (font (size 1.27 1.27)) (justify right))
     (uuid 8b82811a-4c36-4a39-be26-b19c2c40a161)
     (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 214.8878 107.95 0)
+      (effects (font (size 1.27 1.27)) (justify right) hide)
+    )
+  )
+  (global_label "D5" (shape bidirectional) (at 137.16 135.89 180) (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right))
+    (uuid a01166a0-0222-46a1-aaf8-12cc7b21774a)
+    (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 130.584 135.89 0)
+      (effects (font (size 1.27 1.27)) (justify right) hide)
+    )
+  )
+  (global_label "D9" (shape bidirectional) (at 137.16 138.43 180) (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right))
+    (uuid a1bbc832-2924-4808-9020-c5f536b41dc6)
+    (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 130.584 138.43 0)
       (effects (font (size 1.27 1.27)) (justify right) hide)
     )
   )
@@ -1786,11 +2109,25 @@
       (effects (font (size 1.27 1.27)) (justify right) hide)
     )
   )
+  (global_label "A2" (shape bidirectional) (at 143.51 66.04 0) (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify left))
+    (uuid ad4d5ab0-fe00-4c6e-b4a9-e49cd32e1c00)
+    (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 149.9046 66.04 0)
+      (effects (font (size 1.27 1.27)) (justify left) hide)
+    )
+  )
   (global_label "CD" (shape bidirectional) (at 181.61 52.07 180) (fields_autoplaced)
     (effects (font (size 1.27 1.27)) (justify right))
     (uuid b8c344c4-cdc0-470b-9598-50631325d7de)
     (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 174.9735 52.07 0)
       (effects (font (size 1.27 1.27)) (justify right) hide)
+    )
+  )
+  (global_label "A1" (shape bidirectional) (at 149.86 120.65 0) (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify left))
+    (uuid bd991ad4-ea77-4800-bbc2-9c4d2b3163af)
+    (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 156.2546 120.65 0)
+      (effects (font (size 1.27 1.27)) (justify left) hide)
     )
   )
   (global_label "RXD" (shape bidirectional) (at 254 78.74 0) (fields_autoplaced)
@@ -1800,11 +2137,25 @@
       (effects (font (size 1.27 1.27)) (justify left) hide)
     )
   )
+  (global_label "A0" (shape bidirectional) (at 143.51 60.96 0) (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify left))
+    (uuid c81ba3c4-da06-44b2-8d72-d9600b232ce2)
+    (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 149.9046 60.96 0)
+      (effects (font (size 1.27 1.27)) (justify left) hide)
+    )
+  )
   (global_label "TXD" (shape bidirectional) (at 251.46 110.49 0) (fields_autoplaced)
     (effects (font (size 1.27 1.27)) (justify left))
     (uuid cc7649cd-a9f9-4183-9576-8b803521470f)
     (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 259.0036 110.49 0)
       (effects (font (size 1.27 1.27)) (justify left) hide)
+    )
+  )
+  (global_label "D7" (shape bidirectional) (at 118.11 63.5 180) (fields_autoplaced)
+    (effects (font (size 1.27 1.27)) (justify right))
+    (uuid cf0eea94-1b1a-4769-acf3-867b3ee7c423)
+    (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 111.534 63.5 0)
+      (effects (font (size 1.27 1.27)) (justify right) hide)
     )
   )
   (global_label "SCK" (shape bidirectional) (at 118.11 78.74 180) (fields_autoplaced)
@@ -1874,7 +2225,7 @@
     )
     (pin "1" (uuid 9ce5e555-cdee-4ef8-a7a7-e01b24ebfebb))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "#PWR011") (unit 1)
         )
@@ -1906,7 +2257,7 @@
     (pin "1" (uuid 5d0c6b03-a4a6-42fc-9d0e-ca48257b79b5))
     (pin "2" (uuid b47b6244-db5e-4398-8cc1-6fc5454eca76))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "D3") (unit 1)
         )
@@ -1933,9 +2284,63 @@
     (pin "2" (uuid f61dc33a-bdb7-4cf9-9b68-88d9500c9ab4))
     (pin "3" (uuid 65623bf6-996d-44ba-9114-09c61cb370c3))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "U1") (unit 1)
+        )
+      )
+    )
+  )
+
+  (symbol (lib_id "Mechanical:MountingHole") (at 38.1 146.05 0) (unit 1)
+    (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
+    (uuid 179f36a1-7c84-4b43-b987-a447320dfac7)
+    (property "Reference" "H1" (at 40.64 144.78 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Value" "MountingHole" (at 40.64 147.32 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Footprint" "MountingHole:MountingHole_2.7mm_M2.5" (at 38.1 146.05 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Datasheet" "~" (at 38.1 146.05 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (instances
+      (project "trackteur_arduino_V1"
+        (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
+          (reference "H1") (unit 1)
+        )
+      )
+    )
+  )
+
+  (symbol (lib_id "Connector_Generic:Conn_01x06") (at 142.24 138.43 0) (unit 1)
+    (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
+    (uuid 1e210d84-4038-4650-86f6-7a84b513c7d5)
+    (property "Reference" "J6" (at 144.78 138.43 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Value" "Conn_01x06" (at 144.78 140.97 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical" (at 142.24 138.43 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Datasheet" "~" (at 142.24 138.43 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (pin "4" (uuid a6092c37-d887-49eb-9c78-437577875555))
+    (pin "6" (uuid b34f9ef3-1f8c-4f76-8471-cc238ba1bd46))
+    (pin "5" (uuid 77c85ad8-aefd-43dc-8b82-303a5cdfcd8e))
+    (pin "1" (uuid 59eeb13c-1521-45aa-a864-2b2cfafea884))
+    (pin "2" (uuid 6cb9817a-b85c-41fc-9f46-f6b79855c59b))
+    (pin "3" (uuid eb786a1c-3c64-402d-9f14-51b8069bb9f9))
+    (instances
+      (project "trackteur_arduino_V1"
+        (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
+          (reference "J6") (unit 1)
         )
       )
     )
@@ -1959,7 +2364,7 @@
     (pin "2" (uuid 87198f64-dc39-40c7-a383-7967ed4424a9))
     (pin "1" (uuid 3da7f2c7-4209-4229-b065-0a8ffef7ef3c))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "R2") (unit 1)
         )
@@ -1984,7 +2389,7 @@
     )
     (pin "1" (uuid 4b4ebcee-6cc0-404c-a88d-85a86ca1672c))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "#PWR04") (unit 1)
         )
@@ -2009,7 +2414,7 @@
     )
     (pin "1" (uuid 938e4dfe-dcd9-48e4-bf12-1c7f9fda312c))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "#PWR010") (unit 1)
         )
@@ -2034,7 +2439,7 @@
     )
     (pin "1" (uuid a246dfe2-0585-4211-9a01-6d4cdc70bf13))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "#PWR07") (unit 1)
         )
@@ -2059,7 +2464,7 @@
     )
     (pin "1" (uuid 1075b1dd-32aa-43bb-a21e-0ce57109b949))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "#PWR05") (unit 1)
         )
@@ -2085,9 +2490,58 @@
     (pin "2" (uuid 79aaeae7-62f8-4f99-adee-0ef3b487640b))
     (pin "1" (uuid e49c80f9-d06c-4a29-9f60-7bc9362f807c))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "R1") (unit 1)
+        )
+      )
+    )
+  )
+
+  (symbol (lib_id "power:GND") (at 130.81 146.05 0) (unit 1)
+    (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
+    (uuid 34eceac8-9710-40bf-be83-8af18bb57b79)
+    (property "Reference" "#PWR018" (at 130.81 152.4 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Value" "GND" (at 130.81 151.13 0)
+      (effects (font (size 1.27 1.27)))
+    )
+    (property "Footprint" "" (at 130.81 146.05 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Datasheet" "" (at 130.81 146.05 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (pin "1" (uuid 2f651e0d-cff6-4304-8a0a-840d4ff2c954))
+    (instances
+      (project "trackteur_arduino_V1"
+        (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
+          (reference "#PWR018") (unit 1)
+        )
+      )
+    )
+  )
+
+  (symbol (lib_id "Mechanical:MountingHole") (at 36.83 163.83 0) (unit 1)
+    (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
+    (uuid 3aceff60-3221-406c-87d6-38d70defbf08)
+    (property "Reference" "H3" (at 39.37 162.56 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Value" "MountingHole" (at 39.37 165.1 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Footprint" "MountingHole:MountingHole_2.7mm_M2.5" (at 36.83 163.83 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Datasheet" "~" (at 36.83 163.83 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (instances
+      (project "trackteur_arduino_V1"
+        (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
+          (reference "H3") (unit 1)
         )
       )
     )
@@ -2110,7 +2564,7 @@
     )
     (pin "1" (uuid 9cb07ef6-187a-4c38-8e75-54907deef94c))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "#PWR015") (unit 1)
         )
@@ -2141,7 +2595,7 @@
     (pin "5" (uuid 79ff416f-6485-4ee7-8be8-958b1135201b))
     (pin "4" (uuid c75e0dde-2e50-44bb-a414-f490ef27c491))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "J4") (unit 1)
         )
@@ -2166,7 +2620,7 @@
     )
     (pin "1" (uuid eefa09a9-34e0-48dc-8887-796135ebe904))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "#PWR03") (unit 1)
         )
@@ -2230,7 +2684,7 @@
     (pin "37" (uuid b9d1d277-00c5-4dfa-bfc3-0f7871bbaca6))
     (pin "22" (uuid deb3b32b-1dbf-4d64-b54e-33725759c8bf))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "J1") (unit 1)
         )
@@ -2258,9 +2712,33 @@
     (pin "1" (uuid cff3e531-614e-4d24-8665-8427807c9be3))
     (pin "3" (uuid ebde7aa1-0e98-478f-b3e8-ff6a13ca6ebd))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "J2") (unit 1)
+        )
+      )
+    )
+  )
+
+  (symbol (lib_id "Mechanical:MountingHole") (at 36.83 153.67 0) (unit 1)
+    (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
+    (uuid 6939dbbd-f70a-4642-8e07-b747a5f44857)
+    (property "Reference" "H2" (at 39.37 152.4 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Value" "MountingHole" (at 39.37 154.94 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Footprint" "MountingHole:MountingHole_2.7mm_M2.5" (at 36.83 153.67 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Datasheet" "~" (at 36.83 153.67 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (instances
+      (project "trackteur_arduino_V1"
+        (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
+          (reference "H2") (unit 1)
         )
       )
     )
@@ -2283,9 +2761,34 @@
     )
     (pin "1" (uuid f89e5667-252b-4959-8e9f-e827258916c7))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "#PWR016") (unit 1)
+        )
+      )
+    )
+  )
+
+  (symbol (lib_id "Connector:TestPoint") (at 76.2 90.17 0) (unit 1)
+    (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
+    (uuid 6f9a9676-09f3-4626-be3d-3215ba8e653c)
+    (property "Reference" "TP3" (at 78.74 85.598 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Value" "+3.3V" (at 78.74 88.138 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x01_P2.54mm_Vertical" (at 81.28 90.17 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Datasheet" "~" (at 81.28 90.17 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (pin "1" (uuid 0169f179-c3fa-4683-9aa5-bbd84eac4e5d))
+    (instances
+      (project "trackteur_arduino_V1"
+        (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
+          (reference "TP3") (unit 1)
         )
       )
     )
@@ -2308,7 +2811,7 @@
     )
     (pin "1" (uuid b374f65e-fe62-47f6-aece-b48366919691))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "#PWR013") (unit 1)
         )
@@ -2334,7 +2837,7 @@
     (pin "1" (uuid 375b7d76-4140-4783-9ea1-bd773d1fa55d))
     (pin "2" (uuid e054c97c-c5e0-4560-8228-da6bfb6a6132))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "D2") (unit 1)
         )
@@ -2360,7 +2863,7 @@
     (pin "2" (uuid df3e1040-605a-450c-b1fc-f9a9afe0deab))
     (pin "1" (uuid 78235955-8b7c-4b42-bfa1-c03d17c178d8))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "R3") (unit 1)
         )
@@ -2385,7 +2888,7 @@
     )
     (pin "1" (uuid e6373501-4152-4671-9a9b-fc62c35e97b0))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "#PWR014") (unit 1)
         )
@@ -2411,7 +2914,7 @@
     (pin "2" (uuid a7db0b02-e0e7-494a-a671-58d450417622))
     (pin "1" (uuid 6b163a0e-ba87-49be-ac4f-4989a886e0b9))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "D1") (unit 1)
         )
@@ -2436,7 +2939,7 @@
     )
     (pin "1" (uuid e6954850-c379-4e0b-bd24-e8d34b2f74db))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "#PWR09") (unit 1)
         )
@@ -2462,9 +2965,37 @@
     (pin "1" (uuid 4dbe66d6-de35-4ae6-9932-7a80d34b9510))
     (pin "2" (uuid 8413d671-7638-4245-b41e-cd47ca1260aa))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "C1") (unit 1)
+        )
+      )
+    )
+  )
+
+  (symbol (lib_id "Connector_Generic:Conn_02x02_Counter_Clockwise") (at 142.24 118.11 0) (unit 1)
+    (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
+    (uuid b4d8bd56-eb4c-4f8f-8632-49d1a84718a0)
+    (property "Reference" "J5" (at 143.51 111.76 0)
+      (effects (font (size 1.27 1.27)))
+    )
+    (property "Value" "Conn_02x02_Counter_Clockwise" (at 143.51 114.3 0)
+      (effects (font (size 1.27 1.27)))
+    )
+    (property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_2x02_P2.54mm_Vertical" (at 142.24 118.11 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Datasheet" "~" (at 142.24 118.11 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (pin "1" (uuid a6aae28a-89e2-4943-a925-1bbc88e9cb66))
+    (pin "2" (uuid f21f8915-abf6-4a1a-b3e7-e5cf9d215c33))
+    (pin "3" (uuid 2e0125e7-186f-4eb2-abdf-a97fccc6e795))
+    (pin "4" (uuid 238e3498-fa0d-42b6-b2c0-ac5dec60e65b))
+    (instances
+      (project "trackteur_arduino_V1"
+        (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
+          (reference "J5") (unit 1)
         )
       )
     )
@@ -2487,9 +3018,34 @@
     )
     (pin "1" (uuid 9dc99046-5f55-40b4-a528-67c41c4913a7))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "#PWR012") (unit 1)
+        )
+      )
+    )
+  )
+
+  (symbol (lib_id "Connector:TestPoint") (at 90.17 49.53 0) (unit 1)
+    (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
+    (uuid bab2ada3-e596-443b-a94f-faff916ead9b)
+    (property "Reference" "TP2" (at 92.71 44.958 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Value" "GND" (at 92.71 47.498 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x01_P2.54mm_Vertical" (at 95.25 49.53 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Datasheet" "~" (at 95.25 49.53 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (pin "1" (uuid 9e4b6674-ee1c-4b87-99cd-5251b364a994))
+    (instances
+      (project "trackteur_arduino_V1"
+        (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
+          (reference "TP2") (unit 1)
         )
       )
     )
@@ -2512,7 +3068,7 @@
     )
     (pin "1" (uuid 6f61015e-758d-41aa-af8d-7ab76eaaf062))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "#PWR06") (unit 1)
         )
@@ -2538,7 +3094,7 @@
     (pin "2" (uuid 8f038ddb-2a92-4c4b-81f9-5b5e23ef49ad))
     (pin "1" (uuid 0879374b-95b3-4b3a-aebf-71993b8fd4db))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "R4") (unit 1)
         )
@@ -2564,7 +3120,7 @@
     (pin "1" (uuid c0930b32-f056-4508-91b2-e22223a2e125))
     (pin "2" (uuid 82b1733e-e175-42fb-a611-222cba6e95f2))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "J3") (unit 1)
         )
@@ -2589,7 +3145,7 @@
     )
     (pin "1" (uuid 9d52c3bc-cfde-4c5e-99e6-f2dd85be0210))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "#PWR08") (unit 1)
         )
@@ -2643,7 +3199,7 @@
     (pin "15" (uuid 6334e946-6355-45cc-abf7-bde524b93b31))
     (pin "13" (uuid b9f47e97-c521-4eee-94bd-e02a71b7743b))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "A1") (unit 1)
         )
@@ -2670,7 +3226,7 @@
     (pin "3" (uuid ba61d540-b9d7-48cd-bce6-fda38fe93cc4))
     (pin "1" (uuid fd0cd3e4-d3d7-4f68-a7e1-d99440bacf19))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "Q1") (unit 1)
         )
@@ -2696,7 +3252,7 @@
     (pin "1" (uuid 3554506d-75a2-4a6e-9630-52bd335e750a))
     (pin "2" (uuid 47577e93-88c1-4874-8d40-0f92cbb7aad7))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "C2") (unit 1)
         )
@@ -2721,7 +3277,7 @@
     )
     (pin "1" (uuid c55ba0e8-a4c2-4d17-ba9a-8a12016593e1))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "#PWR01") (unit 1)
         )
@@ -2753,9 +3309,34 @@
     (pin "1" (uuid e6f9d39f-83d7-4916-ac4a-4ff22f1fc490))
     (pin "2" (uuid d548fb11-8760-4367-a77d-f60f35f6ebd2))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "D4") (unit 1)
+        )
+      )
+    )
+  )
+
+  (symbol (lib_id "Connector:TestPoint") (at 86.36 43.18 0) (unit 1)
+    (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
+    (uuid f35db07d-e199-4958-b916-be48223a1044)
+    (property "Reference" "TP1" (at 88.9 38.608 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Value" "+5V" (at 88.9 41.148 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x01_P2.54mm_Vertical" (at 91.44 43.18 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Datasheet" "~" (at 91.44 43.18 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (pin "1" (uuid 68c26c45-a745-4f49-8fea-51ae349f80a7))
+    (instances
+      (project "trackteur_arduino_V1"
+        (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
+          (reference "TP1") (unit 1)
         )
       )
     )
@@ -2778,9 +3359,34 @@
     )
     (pin "1" (uuid 6fa82884-6cb2-4f5a-b08c-b4a10b41477d))
     (instances
-      (project "trackteur"
+      (project "trackteur_arduino_V1"
         (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
           (reference "#PWR02") (unit 1)
+        )
+      )
+    )
+  )
+
+  (symbol (lib_id "power:+5V") (at 132.08 133.35 0) (unit 1)
+    (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
+    (uuid ff215c20-4913-4b80-ba78-46678c68b088)
+    (property "Reference" "#PWR017" (at 132.08 137.16 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Value" "+5V" (at 132.08 128.27 0)
+      (effects (font (size 1.27 1.27)))
+    )
+    (property "Footprint" "" (at 132.08 133.35 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Datasheet" "" (at 132.08 133.35 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (pin "1" (uuid e88bd8ae-0ee7-4873-918a-c1c4080757ca))
+    (instances
+      (project "trackteur_arduino_V1"
+        (path "/cfd5ded2-38d6-4a10-b121-f1bdd5f82cee"
+          (reference "#PWR017") (unit 1)
         )
       )
     )

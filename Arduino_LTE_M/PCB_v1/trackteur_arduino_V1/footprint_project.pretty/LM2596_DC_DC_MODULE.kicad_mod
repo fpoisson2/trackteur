@@ -18,5 +18,5 @@
   (pad "1" thru_hole rect (at 1.5 1.5) (size 3 3) (drill 1.4) (layers "*.Cu" "*.Mask") (tstamp e539fee0-bb0d-452f-b25f-f09a3f89e7ac))
   (pad "2" thru_hole rect (at 41.05 1.5) (size 3 3) (drill 1.4) (layers "*.Cu" "*.Mask") (tstamp 50d0051e-11e4-4833-a66a-c5ba5f0207d3))
   (pad "3" thru_hole rect (at 1.5 19) (size 3 3) (drill 1.4) (layers "*.Cu" "*.Mask") (tstamp a1ab9141-ff39-4625-ba72-3f0f821a9581))
-  (pad "3" thru_hole rect (at 41.05 19) (size 3 3) (drill 1.4) (layers "*.Cu" "*.Mask") (tstamp 9ba07745-9ec5-4dd6-99b9-dfa7c92c0575))
+  (pad "4" thru_hole rect (at 41.05 19) (size 3 3) (drill 1.4) (layers "*.Cu" "*.Mask") (tstamp 9ba07745-9ec5-4dd6-99b9-dfa7c92c0575))
 )
