@@ -199,7 +199,7 @@ void loop() {
 
 
 // ========================================================================
-// Get and Format GPS Data (Optimized Parsing - Corrected Declaration)
+// Get and Format GPS Data (Manual Float Parsing)
 // ========================================================================
 bool getGpsData(float &lat, float &lon, char* timestampOutput) {
     Serial.println(F("Requesting GNSS info (AT+CGNSINF)..."));
@@ -211,46 +211,97 @@ bool getGpsData(float &lat, float &lon, char* timestampOutput) {
         Serial.println(F("ERROR: No '+CGNSINF:' in response."));
         return false;
     }
-
-    // Pointer skipping the "+CGNSINF: " part (10 chars)
-    char* dataStart = startOfResponse + 10;
+    char* dataStart = startOfResponse + 10; // Skip "+CGNSINF: "
 
     int gnssRunStatus = 0;
     int fixStatus = 0;
+    int initialParsed = sscanf(dataStart, "%d,%d", &gnssRunStatus, &fixStatus);
 
-    // *** CORRECTION: Define size and declare local buffer ***
-    const int TEMP_TIMESTAMP_BUF_SIZE = 20; // yyyyMMddHHmmss.sss + null
-    char tempTimestamp[TEMP_TIMESTAMP_BUF_SIZE] = {0};
-    // *** END CORRECTION ***
-
-    // Use sscanf on the data part. Read timestamp as a string first into the local buffer.
-    // Use %19[^,] to prevent buffer overflow (19 chars + null) for tempTimestamp
-    int parsedFields = sscanf(dataStart, "%d,%d,%19[^,],%f,%f",
-                                &gnssRunStatus, &fixStatus, tempTimestamp, &lat, &lon);
-
-    if (parsedFields < 5) {
-         Serial.println(F("ERROR: Failed parsing +CGNSINF."));
-         Serial.print(F(" Parsed: ")); Serial.println(parsedFields);
+    if (initialParsed < 2) {
+         Serial.println(F("ERROR: Failed parsing GNSS run/fix status."));
          Serial.print(F(" Data starts at: ")); Serial.println(dataStart);
          return false;
     }
 
     Serial.print(F("GNSS Status: run=")); Serial.print(gnssRunStatus); Serial.print(F(", fix=")); Serial.println(fixStatus);
 
+    // --- Check Fix Status FIRST ---
     if (gnssRunStatus != 1 || fixStatus != 1) {
         Serial.println(F("No valid fix."));
-        return false;
+        return false; // Return false without trying to parse lat/lon/time
     }
 
-    // --- Format Timestamp ---
+    // --- If we get here, fixStatus is 1 ---
+    const int TEMP_TIMESTAMP_BUF_SIZE = 20;
+    char tempTimestamp[TEMP_TIMESTAMP_BUF_SIZE] = {0};
+    float tempLat = 0.0, tempLon = 0.0;
+    char tempFloatBuf[16]; // Buffer for atof conversion (needs null termination)
+
+    // Find the start of the timestamp field (after the second comma)
+    char* fieldStart = strchr(dataStart, ','); // Find first comma (after run status)
+    if (fieldStart) fieldStart = strchr(fieldStart + 1, ','); // Find second comma (after fix status)
+    else { Serial.println(F("ERR: Parse fail (comma 1)")); return false; }
+
+    if (!fieldStart) { Serial.println(F("ERR: Parse fail (comma 2)")); return false; }
+    fieldStart++; // Move to start of timestamp field '2' in "...,1,2025..."
+
+    // Find the end of the timestamp field (the next comma)
+    char* fieldEnd = strchr(fieldStart, ',');
+    if (!fieldEnd) { Serial.println(F("ERR: Parse fail (comma 3 - after timestamp)")); return false; }
+
+    // Copy the timestamp string manually (more robust than sscanf %[^,])
+    uint16_t fieldLen = fieldEnd - fieldStart;
+    if (fieldLen >= TEMP_TIMESTAMP_BUF_SIZE) { fieldLen = TEMP_TIMESTAMP_BUF_SIZE - 1; } // Prevent overflow
+    strncpy(tempTimestamp, fieldStart, fieldLen);
+    tempTimestamp[fieldLen] = '\0'; // Null terminate
+
+    // --- Parse Latitude ---
+    fieldStart = fieldEnd + 1; // Move to start of latitude field '4' in "...0,46..."
+    fieldEnd = strchr(fieldStart, ',');
+    if (!fieldEnd) { Serial.println(F("ERR: Parse fail (comma 4 - after latitude)")); return false; }
+
+    // Copy latitude substring to buffer for atof
+    fieldLen = fieldEnd - fieldStart;
+    if (fieldLen >= sizeof(tempFloatBuf)) { fieldLen = sizeof(tempFloatBuf) - 1; }
+    strncpy(tempFloatBuf, fieldStart, fieldLen);
+    tempFloatBuf[fieldLen] = '\0'; // Null terminate for atof
+    tempLat = atof(tempFloatBuf); // Convert using atof
+
+    // --- Parse Longitude ---
+    fieldStart = fieldEnd + 1; // Move to start of longitude field '-' in "...7,-71..."
+    fieldEnd = strchr(fieldStart, ','); // Find comma after longitude
+    if (!fieldEnd) { Serial.println(F("ERR: Parse fail (comma 5 - after longitude)")); return false; }
+
+    // Copy longitude substring to buffer for atof
+    fieldLen = fieldEnd - fieldStart;
+    if (fieldLen >= sizeof(tempFloatBuf)) { fieldLen = sizeof(tempFloatBuf) - 1; }
+    strncpy(tempFloatBuf, fieldStart, fieldLen);
+    tempFloatBuf[fieldLen] = '\0'; // Null terminate for atof
+    tempLon = atof(tempFloatBuf); // Convert using atof
+
+    // Assign to output parameters
+    lat = tempLat;
+    lon = tempLon;
+
+    Serial.print(F(" Parsed Lat: ")); Serial.print(lat, 6); // Print parsed values for debug
+    Serial.print(F(" Parsed Lon: ")); Serial.println(lon, 6);
+
+    // --- Format Timestamp --- (Using sscanf on the copied string, which should be OK)
     int year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0;
     int timeParsed = sscanf(tempTimestamp, "%4d%2d%2d%2d%2d%2d",
                              &year, &month, &day, &hour, &minute, &second);
 
     if (timeParsed < 6) {
-        Serial.println(F("ERROR: Failed parsing time components."));
+        Serial.println(F("ERROR: Failed parsing time components from string."));
         Serial.print(F(" Timestamp str: ")); Serial.println(tempTimestamp);
-         return false;
+        return false;
+    }
+
+    // Basic sanity check for the year
+    if (year < 2024 || year > 2038) { // Adjusted lower bound slightly
+        Serial.print(F("WARNING: Unlikely year parsed from GPS: ")); Serial.println(year);
+        // Decide if you want to return false or proceed with potentially bad time
+        // return false;
     }
 
     snprintf(timestampOutput, GPS_TIMESTAMP_TRACCAR_BUF_SIZE,
