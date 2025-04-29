@@ -10,7 +10,6 @@ Ce guide explique, pas à pas, comment :
 > - Un ordinateur (Windows, macOS, Linux) avec accès Internet
 > - Une carte microSD (minimum 8 Go)
 > - Un lecteur de carte microSD ou adaptateur USB
-> - (Optionnel) Un câble Ethernet pour la connexion réseau filaire temporaire
 
 ---
 
@@ -19,6 +18,7 @@ Ce guide explique, pas à pas, comment :
 1. **Téléchargez et installez** Raspberry Pi Imager depuis :
    - Site officiel : https://www.raspberrypi.com/software/
 
+*Fin du guide.*
 2. **Insérez** la carte microSD dans votre ordinateur.
 
 3. **Lancez** Raspberry Pi Imager.
