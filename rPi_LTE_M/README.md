@@ -123,6 +123,7 @@ Ce guide explique, pas à pas, comment :
    cd ~
    git clone https://github.com/fpoisson2/trackteur.git
    cd trackteur
+   git checkout dev
    ```
 
 2. **Mettez à jour** le dépôt existant (branche dev) :
