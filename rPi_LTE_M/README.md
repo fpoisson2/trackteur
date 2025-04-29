@@ -10,6 +10,7 @@ Ce guide explique, pas à pas, comment :
 > - Un ordinateur (Windows, macOS, Linux) avec accès Internet
 > - Une carte microSD (minimum 8 Go)
 > - Un lecteur de carte microSD ou adaptateur USB
+> - (Optionnel) Un câble Ethernet pour la connexion réseau filaire temporaire
 
 ---
 
@@ -18,7 +19,6 @@ Ce guide explique, pas à pas, comment :
 1. **Téléchargez et installez** Raspberry Pi Imager depuis :
    - Site officiel : https://www.raspberrypi.com/software/
 
-*Fin du guide.*
 2. **Insérez** la carte microSD dans votre ordinateur.
 
 3. **Lancez** Raspberry Pi Imager.
@@ -113,3 +113,64 @@ Ce guide explique, pas à pas, comment :
 
 🎉 **Félicitations !** Votre Raspberry Pi OS Lite est installé, connecté en Wi‑Fi au démarrage, et prêt à utiliser Git.
 
+*Fin du guide.*
+
+## 4. Cloner et mettre à jour le dépôt
+
+1. **Clonez** ce dépôt sur votre Raspberry Pi :
+
+   ```bash
+   cd ~
+   git clone https://github.com/fpoisson2/trackteur.git
+   cd trackteur
+   ```
+
+2. **Mettez à jour** le dépôt existant (branche dev) :
+
+   ```bash
+   cd ~/trackteur
+   git pull origin dev
+   ```
+
+## 5. Exécution automatique d'un script Python au démarrage
+
+1. **Créez** un service systemd pour lancer `main.py` au démarrage :
+
+   ```bash
+   sudo nano /etc/systemd/system/trackteur.service
+   ```
+
+   **Contenu à coller :**
+
+   ```ini
+   [Unit]
+   Description=Trackteur démarrage automatique
+   After=network.target
+
+   [Service]
+   WorkingDirectory=/home/pi/trackteur/rPi_LTE_M
+   ExecStart=/usr/bin/python3 /home/pi/trackteur/rPi_LTE_M/main.py
+   Restart=always
+   User=pi
+
+   [Install]
+   WantedBy=multi-user.target
+   ```
+
+2. **Rechargez** systemd et **activez** votre service :
+
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl enable trackteur.service
+   sudo systemctl start trackteur.service
+   ```
+
+3. **Vérifiez** le statut du service :
+
+   ```bash
+   sudo systemctl status trackteur.service
+   ```
+
+---
+
+🎉 Votre script `main.py` se lancera automatiquement à chaque démarrage.
