@@ -1,333 +1,545 @@
-#include <SPI.h>
-#include <SD.h>
 #include <SoftwareSerial.h>
-#include <stdio.h>   // snprintf
-#include <string.h>  // strstr, memset, strncpy, strchr, sscanf
-#include <stdlib.h>  // dtostrf, atof
-#include <ctype.h>   // isprint
+#include <stdio.h>   // pour snprintf
+#include <string.h>  // pour strstr, memset, strncpy, strchr, sscanf
+#include <stdlib.h>  // pour dtostrf, atof
+#include <SD.h>
+const uint8_t chipSelect = 8;
+
+#define HTTP_REQUEST_BUFFER_SIZE 128
 
 // --- Définition des Pins
 const uint8_t powerPin = 2;
 const uint8_t swRxPin  = 3;
 const uint8_t swTxPin  = 4;
-const uint8_t SD_CS    = 8;
 
-// --- SoftwareSerial pour le module LTE
+// --- Objet Software Serial
 SoftwareSerial moduleSerial(swRxPin, swTxPin);
 
 // --- Baud Rate
 const unsigned long moduleBaudRate = 9600UL;
 
-// --- APN
+// --- Configuration réseau
 const char* APN = "em";
 
-// --- Traccar
+// --- Configuration Traccar
 const char* TRACCAR_HOST = "trackteur.ve2fpd.com";
 const uint16_t TRACCAR_PORT = 5055;
-const char* DEVICE_ID = "212910";
+const char* DEVICE_ID = "212910"; // UTILISE TON DEVICE ID
 
-// --- Timing
+// --- Timing d’envoi
 unsigned long lastSendTime = 0;
-const unsigned long sendInterval = 60000UL; // 60 s
+const unsigned long sendInterval = 1UL; // 60 sec
 
-// --- Buffers
-#define RESPONSE_BUFFER_SIZE 64
+// --- Buffers globaux (diminués pour économiser de la RAM)
+#define RESPONSE_BUFFER_SIZE 96          // ← A3 : réduit de 128 à 96 octets
 static char responseBuffer[RESPONSE_BUFFER_SIZE];
 static uint8_t responseBufferPos = 0;
 
-#define CMD_BUFFER_SIZE 32
-static char cmdBuffer[CMD_BUFFER_SIZE];
-
-#define HTTP_REQUEST_BUFFER_SIZE 128
-static char httpRequestBuffer[HTTP_REQUEST_BUFFER_SIZE];
-
-// --- GPS
+// --- Stockage des données GPS
 float currentLat = 0.0f;
 float currentLon = 0.0f;
-#define GPS_TIMESTAMP_BUF_SIZE 25
-static char gpsTimestampTraccar[GPS_TIMESTAMP_BUF_SIZE];
+#define GPS_TIMESTAMP_TRACCAR_BUF_SIZE 25
+static char gpsTimestampTraccar[GPS_TIMESTAMP_TRACCAR_BUF_SIZE];
 
-// --- Flags
+// --- État global
 bool setupSuccess = false;
-bool sdAvailable  = false;
 
-// --- Prototypes SD
-void storeDataOffline(float lat, float lon, const char* timestamp);
-void replayOfflineData();
+// --- Fonctions Optimisées
 
-// --- Fonctions AT/GNSS/Traccar (identiques) ---
+// Vide le buffer série
+void clearSerialBuffer() {
+  while (moduleSerial.available()) moduleSerial.read();
+}
+
+// Lit la réponse série dans responseBuffer
 void readSerialResponse(unsigned long waitMillis) {
   unsigned long start = millis();
   memset(responseBuffer, 0, RESPONSE_BUFFER_SIZE);
   responseBufferPos = 0;
-  bool any = false;
+  bool anythingReceived = false;
   while (millis() - start < waitMillis) {
     while (moduleSerial.available()) {
-      any = true;
+      anythingReceived = true;
       if (responseBufferPos < RESPONSE_BUFFER_SIZE - 1) {
         char c = moduleSerial.read();
-        if (c && isprint(c)) responseBuffer[responseBufferPos++] = c;
-      } else moduleSerial.read();
+        if (c != '\0') {
+          responseBuffer[responseBufferPos++] = c;
+          responseBuffer[responseBufferPos] = '\0';
+        }
+      } else {
+        moduleSerial.read(); // Jette le surplus
+      }
     }
     if (!moduleSerial.available()) delay(5);
   }
-  responseBuffer[responseBufferPos] = '\0';
-  if (responseBufferPos) {
+  // Debug
+  if (responseBufferPos > 0) {
     Serial.print(F("Rcvd: ["));
-    for (uint8_t i=0;i<responseBufferPos;i++){
-      char c=responseBuffer[i];
-      if (c=='\r') continue;
-      else if (c=='\n') Serial.print(F("<LF>"));
-      else Serial.print(c);
+    for (uint8_t i = 0; i < responseBufferPos; i++) {
+      char c = responseBuffer[i];
+      if (c == '\r') continue;
+      else if (c == '\n') Serial.print(F("<LF>"));
+      else if (isprint(c)) Serial.print(c);
+      else Serial.print('.');
     }
     Serial.println(F("]"));
-  } else if (any) {
-    Serial.println(F("Rcvd: [Empty]"));
+  } else if (anythingReceived) {
+    Serial.println(F("Rcvd: [Empty/Discarded]"));
   }
 }
 
-bool executeSimpleCommand(const char* cmd, const char* expect,
-                          unsigned long timeout, uint8_t retries) {
-  for (uint8_t i=0; i<retries; i++) {
-    Serial.print(F("Send: ")); Serial.println(cmd);
-    moduleSerial.println(cmd);
-    readSerialResponse(timeout);
-    if (strstr(responseBuffer, expect)) {
-      Serial.println(F(">> OK"));
+// Envoie une commande simple en attendant une réponse donnée
+bool executeSimpleCommand(const char* command, const char* expectedResponse,
+                          unsigned long timeoutMillis, uint8_t retries) {
+  for (uint8_t i = 0; i < retries; i++) {
+    Serial.print(F("Send ["));
+    Serial.print(i + 1);
+    Serial.print(F("]: "));
+    Serial.println(command);
+    moduleSerial.println(command);
+    readSerialResponse(timeoutMillis);
+    if (strstr(responseBuffer, expectedResponse)) {
+      Serial.println(F(">> OK Resp."));
       return true;
     }
-    delay(200);
+    if (strstr(responseBuffer, "ERROR"))
+      Serial.println(F(">> ERROR Resp."));
+    Serial.println(F(">> No/Wrong Resp."));
+    if (i < (retries - 1)) delay(500);
   }
-  Serial.println(F(">> FAILED"));
+  Serial.println(F(">> Failed after retries."));
   return false;
 }
 
-bool waitForInitialOK(uint8_t tries) {
-  for (uint8_t i=0; i<tries; i++) {
-    moduleSerial.println(F("AT"));
-    readSerialResponse(500);
-    if (strstr(responseBuffer, "OK")) return true;
-    delay(200);
+// Attends une réponse initiale OK
+bool waitForInitialOK(uint8_t maxRetries) {
+  for (uint8_t i = 0; i < maxRetries; i++) {
+    Serial.print(F("AT (Try "));
+    Serial.print(i + 1);
+    Serial.print(F(")... "));
+    moduleSerial.println("AT");
+    readSerialResponse(1000UL);
+    if (strstr(responseBuffer, "OK")) {
+      Serial.println(F("OK."));
+      return true;
+    }
+    Serial.println(F("No OK."));
+    delay(500);
   }
   return false;
 }
 
-bool getGpsData(float &lat, float &lon, char* tsOut) {
-  moduleSerial.println(F("AT+CGNSINF"));
-  readSerialResponse(2000);
-  char* r = strstr(responseBuffer, "+CGNSINF:");
-  if (!r) return false;
-  char* p = r+10;
-  uint8_t run, fix;
-  if (sscanf(p, "%hhu,%hhu", &run, &fix)<2 || run!=1 || fix!=1) return false;
+// Récupère et formate les données GPS
+bool getGpsData(float &lat, float &lon, char* timestampOutput) {
+  Serial.println(F("Requesting GNSS info (AT+CGNSINF)..."));
+  moduleSerial.println("AT+CGNSINF");
+  readSerialResponse(3000UL);
 
-  // timestamp
-  char tmpTS[20]={0}, tmpF[16]={0};
-  char* q=p;
-  for (uint8_t i=0;i<3;i++){
-    q=strchr(q, ','); if(!q) return false; q++;
+  char* startOfResponse = strstr(responseBuffer, "+CGNSINF:");
+  if (!startOfResponse) {
+    Serial.println(F("ERROR: No '+CGNSINF:' in response."));
+    return false;
   }
-  char* e=strchr(q, ','); if(!e) return false;
-  uint8_t L=e-q; if(L>=sizeof(tmpTS))L=sizeof(tmpTS)-1;
-  strncpy(tmpTS,q,L); tmpTS[L]=0;
+  char* dataStart = startOfResponse + 10; // passe le "+CGNSINF: "
 
-  // lat
-  q=e+1; e=strchr(q, ','); if(!e) return false;
-  L=e-q; if(L>=sizeof(tmpF))L=sizeof(tmpF)-1;
-  strncpy(tmpF,q,L); tmpF[L]=0; lat=atof(tmpF);
+  uint8_t gnssRunStatus = 0, fixStatus = 0;
+  if (sscanf(dataStart, "%hhu,%hhu", &gnssRunStatus, &fixStatus) < 2) {
+    Serial.println(F("ERROR: Failed parsing GNSS run/fix status."));
+    Serial.print(F(" Data starts at: ")); Serial.println(dataStart);
+    return false;
+  }
+  Serial.print(F("GNSS Status: run="));
+  Serial.print(gnssRunStatus);
+  Serial.print(F(", fix="));
+  Serial.println(fixStatus);
 
-  // lon
-  q=e+1; e=strchr(q, ','); if(!e) return false;
-  L=e-q; if(L>=sizeof(tmpF))L=sizeof(tmpF)-1;
-  strncpy(tmpF,q,L); tmpF[L]=0; lon=atof(tmpF);
+  if (gnssRunStatus != 1 || fixStatus != 1) {
+    Serial.println(F("No valid fix."));
+    return false;
+  }
 
-  // format URL timestamp
-  int Y,Mo,D,h,mi,s;
-  if (sscanf(tmpTS,"%4d%2d%2d%2d%2d%2d",&Y,&Mo,&D,&h,&mi,&s)<6) return false;
-  snprintf(tsOut, GPS_TIMESTAMP_BUF_SIZE,
+  char tempTimestamp[20] = {0};
+  float tempLat = 0.0f, tempLon = 0.0f;
+  char tempFloatBuf[16] = {0};
+
+  // Récupère le timestamp
+  char* fieldStart = strchr(dataStart, ',');
+  if (fieldStart) fieldStart = strchr(fieldStart + 1, ',');
+  else { Serial.println(F("ERR: Parse fail (comma 1)")); return false; }
+  if (!fieldStart) { Serial.println(F("ERR: Parse fail (comma 2)")); return false; }
+  fieldStart++;
+  char* fieldEnd = strchr(fieldStart, ',');
+  if (!fieldEnd) { Serial.println(F("ERR: Parse fail (comma 3)")); return false; }
+  uint8_t fieldLen = fieldEnd - fieldStart;
+  if (fieldLen >= sizeof(tempTimestamp)) fieldLen = sizeof(tempTimestamp) - 1;
+  strncpy(tempTimestamp, fieldStart, fieldLen);
+  tempTimestamp[fieldLen] = '\0';
+
+  // Parse la latitude
+  fieldStart = fieldEnd + 1;
+  fieldEnd = strchr(fieldStart, ',');
+  if (!fieldEnd) { Serial.println(F("ERR: Parse fail (comma 4)")); return false; }
+  fieldLen = fieldEnd - fieldStart;
+  if (fieldLen >= sizeof(tempFloatBuf)) fieldLen = sizeof(tempFloatBuf) - 1;
+  strncpy(tempFloatBuf, fieldStart, fieldLen);
+  tempFloatBuf[fieldLen] = '\0';
+  tempLat = atof(tempFloatBuf);
+
+  // Parse la longitude
+  fieldStart = fieldEnd + 1;
+  fieldEnd = strchr(fieldStart, ',');
+  if (!fieldEnd) { Serial.println(F("ERR: Parse fail (comma 5)")); return false; }
+  fieldLen = fieldEnd - fieldStart;
+  if (fieldLen >= sizeof(tempFloatBuf)) fieldLen = sizeof(tempFloatBuf) - 1;
+  strncpy(tempFloatBuf, fieldStart, fieldLen);
+  tempFloatBuf[fieldLen] = '\0';
+  tempLon = atof(tempFloatBuf);
+
+  lat = tempLat;
+  lon = tempLon;
+  Serial.print(F("Parsed Lat: ")); Serial.print(lat, 6);
+  Serial.print(F(" Parsed Lon: ")); Serial.println(lon, 6);
+
+  int year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0;
+  if (sscanf(tempTimestamp, "%4d%2d%2d%2d%2d%2d",
+             &year, &month, &day, &hour, &minute, &second) < 6) {
+    Serial.println(F("ERROR: Failed parsing time."));
+    Serial.print(F(" Timestamp str: ")); Serial.println(tempTimestamp);
+    return false;
+  }
+  if (year < 2024 || year > 2038) {
+    Serial.print(F("WARNING: Unlikely year parsed: "));
+    Serial.println(year);
+  }
+  snprintf(timestampOutput, GPS_TIMESTAMP_TRACCAR_BUF_SIZE,
            "%04d-%02d-%02d%%20%02d:%02d:%02d",
-           Y,Mo,D,h,mi,s);
+           year, month, day, hour, minute, second);
   return true;
 }
 
-bool sendGpsToTraccar(const char* host, uint16_t port,
-                      const char* devId, float lat, float lon,
-                      const char* ts) {
-  bool conn=false, sent=false;
-  snprintf(cmdBuffer,CMD_BUFFER_SIZE,
-           "AT+CIPSTART=\"TCP\",\"%s\",%u",host,port);
-  if (executeSimpleCommand(cmdBuffer,"OK",10000,1)) {
-    readSerialResponse(500);
-    if (strstr(responseBuffer,"CONNECT OK")||
-        strstr(responseBuffer,"ALREADY CONNECT")) {
-      conn=true;
-      Serial.println(F("Connected"));
-    }
-  }
-  if (conn) {
-    char lats[15],lons[15];
-    dtostrf(lat,4,6,lats);
-    dtostrf(lon,4,6,lons);
-    snprintf(httpRequestBuffer,HTTP_REQUEST_BUFFER_SIZE,
-             "GET /?id=%s&lat=%s&lon=%s&timestamp=%s HTTP/1.1\r\n"
-             "Host: %s\r\n\r\n",
-             devId,lats,lons,ts,host);
-    int L=strlen(httpRequestBuffer);
-    snprintf(cmdBuffer,CMD_BUFFER_SIZE,"AT+CIPSEND=%d",L);
-    moduleSerial.println(cmdBuffer);
-    readSerialResponse(500);
-    if (strchr(responseBuffer,'>')) {
-      moduleSerial.print(httpRequestBuffer);
-      readSerialResponse(5000);
-      if (strstr(responseBuffer,"SEND OK")) {
-        sent=true;
-        Serial.println(F("SEND OK"));
+// Envoie des données GPS au serveur Traccar
+bool sendGpsToTraccar(const char* host, uint16_t port, const char* deviceId,
+                      float lat, float lon, const char* timestampStr) {
+  bool connectSuccess = false, sendSuccess = false;
+  static char httpRequestBuffer[HTTP_REQUEST_BUFFER_SIZE];
+
+  Serial.println(F("Connecting to Traccar..."));
+  snprintf(responseBuffer, RESPONSE_BUFFER_SIZE, "AT+CIPSTART=\"TCP\",\"%s\",%u", host, port);
+  if (executeSimpleCommand(responseBuffer, "OK", 20000UL, 1)) {
+    if (strstr(responseBuffer, "CONNECT OK") || strstr(responseBuffer, "ALREADY CONNECT")) {
+      connectSuccess = true;
+      Serial.println(F("Connection établie."));
+    } else {
+      readSerialResponse(500UL);
+      if (strstr(responseBuffer, "CONNECT OK") || strstr(responseBuffer, "ALREADY CONNECT")) {
+        connectSuccess = true;
+        Serial.println(F("Connection établie (async)."));
+      } else {
+        Serial.println(F("Échec de connexion."));
       }
     }
+  } else {
+    Serial.println(F("CIPSTART command failed."));
   }
-  if (conn) executeSimpleCommand("AT+CIPCLOSE=0","CLOSE OK",500,1);
-  else     executeSimpleCommand("AT+CIPSHUT","SHUT OK",5000,1);
-  delay(500);
-  return conn && sent;
-}
 
-// --- Stockage Offline ---
-void storeDataOffline(float lat, float lon, const char* ts) {
-  if (!sdAvailable) return;
-  File f=SD.open("pending.txt",FILE_WRITE);
-  if (!f) return;
-  f.print(ts);f.print(',');f.print(lat,6);
-  f.print(',');f.println(lon,6);
-  f.close();
-  Serial.println(F("Stored offline"));
-}
-
-void replayOfflineData() {
-  if (!sdAvailable||!SD.exists("pending.txt")) return;
-  File f=SD.open("pending.txt",FILE_READ);
-  if (!f) return;
-  bool allOK=true;
-  char line[80];
-  while(f.available()) {
-    int len=f.readBytesUntil('\n',line,sizeof(line)-1);
-    if (len<=0) continue;
-    line[len]=0;
-    char ts[GPS_TIMESTAMP_BUF_SIZE];
-    float la,lo;
-    if (sscanf(line,"%24[^,],%f,%f",ts,&la,&lo)==3) {
-      Serial.print(F("Replaying: "));Serial.println(ts);
-      if (!sendGpsToTraccar(TRACCAR_HOST,TRACCAR_PORT,DEVICE_ID,la,lo,ts)) {
-        allOK=false;break;
+  if (connectSuccess) {
+    char latStr[15], lonStr[15];
+    dtostrf(lat, 4, 6, latStr);
+    dtostrf(lon, 4, 6, lonStr);
+    snprintf(httpRequestBuffer, HTTP_REQUEST_BUFFER_SIZE,
+             "GET /?id=%s&lat=%s&lon=%s&timestamp=%s HTTP/1.1\r\nHost: %s\r\n\r\n",
+             deviceId, latStr, lonStr, timestampStr, host);
+    int dataLength = strlen(httpRequestBuffer);
+    Serial.print(F("Sending CIPSEND (len "));
+    Serial.print(dataLength);
+    Serial.println(F(")..."));
+    if (dataLength >= HTTP_REQUEST_BUFFER_SIZE || dataLength >= 1460) {
+      Serial.println(F("ERROR: Request too long!"));
+      sendSuccess = false;
+    } else {
+      snprintf(responseBuffer, RESPONSE_BUFFER_SIZE, "AT+CIPSEND=%d", dataLength);
+      moduleSerial.println(responseBuffer);
+      readSerialResponse(500UL);  // Attend le ">"
+      if (strchr(responseBuffer, '>')) {
+        Serial.println(F("Got '>'. Sending HTTP..."));
+        moduleSerial.print(httpRequestBuffer);
+        readSerialResponse(10000UL);
+        if (strstr(responseBuffer, "SEND OK")) {
+          sendSuccess = true;
+          Serial.println(F("SEND OK."));
+          readSerialResponse(500UL);
+        } else {
+          sendSuccess = false;
+          Serial.println(F("SEND FAIL/TIMEOUT?"));
+        }
+      } else {
+        sendSuccess = false;
+        Serial.println(F("No '>' prompt."));
       }
-      delay(200);
     }
+  } else {
+    Serial.println(F("Skipping send (no connection)."));
   }
-  f.close();
-  if (allOK) {
-    SD.remove("pending.txt");
-    Serial.println(F("Offline cleared"));
+
+  if (connectSuccess) {
+    Serial.println(F("Closing connection..."));
+    if (!executeSimpleCommand("AT+CIPCLOSE=0", "CLOSE OK", 500UL, 1))
+      Serial.println(F("CIPCLOSE failed?"));
+  } else {
+    executeSimpleCommand("AT+CIPSHUT", "SHUT OK", 5000UL, 1);
+  }
+  delay(1000);
+  return connectSuccess && sendSuccess;
+}
+
+void logGpsToSd(const char* timestampStr, float lat, float lon) {
+  File logFile = SD.open("gps_log.csv", FILE_WRITE);
+  if (logFile) {
+    logFile.print(timestampStr);   // timestamp
+    logFile.print(",");
+    logFile.print(lat, 6);         // latitude
+    logFile.print(",");
+    logFile.println(lon, 6);       // longitude
+    logFile.close();
+    Serial.println(F("Logged to SD."));
+  } else {
+    Serial.println(F("ERROR: Failed to open gps_log.csv"));
   }
 }
+
 
 // --- Setup
 void setup() {
+  setupSuccess = false;
+  bool currentStepSuccess = true;
+
   Serial.begin(9600);
-  while(!Serial);
-
+  while (!Serial) { ; }
   Serial.println(F("--- Arduino Initialized ---"));
-  sdAvailable = SD.begin(SD_CS);
-  Serial.print(F("SD ")); Serial.println(sdAvailable?F("OK"):F("FAIL"));
 
-  pinMode(powerPin,OUTPUT);
-  digitalWrite(powerPin,LOW);
+  pinMode(powerPin, OUTPUT);
+  digitalWrite(powerPin, LOW);
+  Serial.println(F("Module power pin configured (D2)."));
+
   moduleSerial.begin(moduleBaudRate);
+  Serial.print(F("Software Serial initialized on Pins RX:"));
+  Serial.print(swRxPin);
+  Serial.print(F(", TX:"));
+  Serial.print(swTxPin);
+  Serial.print(F(" at "));
+  Serial.print(moduleBaudRate);
+  Serial.println(F(" baud."));
 
-  Serial.println(F("Power ON module"));
+  Serial.println(F("Initializing SD card..."));
+  if (!SD.begin(chipSelect)) {
+    Serial.println(F("ERROR: SD card init failed!"));
+    // Tu peux décider de continuer sans SD
+  } else {
+    Serial.println(F("SD card ready."));
+  }
+
+  Serial.println(F("Turning module ON..."));
   digitalWrite(powerPin, HIGH);
   delay(5000);
+  Serial.println(F("Module boot wait complete."));
 
+  Serial.println(F("Attempting initial communication..."));
   if (!waitForInitialOK(15)) {
-    Serial.println(F("Module unresponsive"));
-    return;
+    Serial.println(F("FATAL: Module unresponsive."));
+    currentStepSuccess = false;
+  } else {
+    Serial.println(F("Initial communication OK."));
+    executeSimpleCommand("ATE0", "OK", 1000UL, 2);
+    executeSimpleCommand("AT+CMEE=2", "OK", 1000UL, 2);
   }
-  Serial.println(F("Initial OK"));
-  executeSimpleCommand("ATE0","OK",1000,2);
-  executeSimpleCommand("AT+CMEE=2","OK",1000,2);
 
-  // --- STEP 1: Network Settings
-  executeSimpleCommand("AT+CIPSHUT","SHUT OK",500,2);
-  executeSimpleCommand("AT+CFUN=0","OK",500,3);
-  executeSimpleCommand("AT+CNMP=38","OK",500,3);
-  executeSimpleCommand("AT+CMNB=1","OK",500,3);
-  moduleSerial.println("AT+CFUN=1,1");
-  delay(500);
-  waitForInitialOK(15);
+  // --- STEP 1 : Network Settings
+  if (currentStepSuccess) {
+    Serial.println(F("\n=== STEP 1: Network Settings ==="));
+    executeSimpleCommand("AT+CIPSHUT", "SHUT OK", 500UL, 2);
+    currentStepSuccess &= executeSimpleCommand("AT+CFUN=0", "OK", 500UL, 3);
+    currentStepSuccess &= executeSimpleCommand("AT+CNMP=38", "OK", 500UL, 3);
+    currentStepSuccess &= executeSimpleCommand("AT+CMNB=1", "OK", 500UL, 3);
+  }
+  if (currentStepSuccess) {
+    Serial.println(F("Turning radio ON (CFUN=1,1)..."));
+    moduleSerial.println("AT+CFUN=1,1");
+  } else {
+    Serial.println(F("Skipping CFUN=1."));
+  }
+  if (currentStepSuccess) {
+    const unsigned long rebootWaitMillis = 500UL;
+    Serial.print(F("Waiting "));
+    Serial.print(rebootWaitMillis / 1000);
+    Serial.println(F("s for reboot..."));
+    unsigned long startWait = millis();
+    while (millis() - startWait < rebootWaitMillis) { readSerialResponse(100UL); delay(100); }
+    Serial.println(F("Attempting communication post-reboot..."));
+    if (!waitForInitialOK(15)) {
+      Serial.println(F("ERROR: Module unresponsive post-reboot."));
+      currentStepSuccess = false;
+    } else {
+      Serial.println(F("Communication OK post-reboot."));
+      executeSimpleCommand("ATE0", "OK", 2000UL, 2);
+    }
+  }
 
-  // --- STEP 2: SIM PIN puis Network Registration
-  {
-    Serial.println(F("--- Waiting SIM READY ---"));
-    for (uint8_t i=0; i<15; i++) {
-      moduleSerial.println("AT+CPIN?");
-      readSerialResponse(1000);
-      if (strstr(responseBuffer,"+CPIN: READY")) {
-        Serial.println(F("SIM READY"));
+  // --- STEP 2 : Network Registration
+  if (currentStepSuccess) {
+    Serial.println(F("\n=== STEP 2: Network Registration ==="));
+    bool registered = false;
+    const uint8_t maxRegRetries = 20;
+    for (uint8_t i = 0; i < maxRegRetries && currentStepSuccess; i++) {
+      Serial.print(F("Reg check "));
+      Serial.print(i + 1);
+      Serial.println(F("..."));
+      if (!executeSimpleCommand("AT+CPIN?", "READY", 3000UL, 1)) {
+        Serial.println(F("ERROR: SIM not READY."));
+        currentStepSuccess = false;
         break;
       }
-      Serial.println(F("SIM NOT READY"));
-      delay(2000);
-    }
-
-    Serial.println(F("--- Waiting network reg ---"));
-    bool registered=false;
-    for (uint8_t i=0; i<20 && !registered; i++) {
-      moduleSerial.println("AT+CREG?");
-      readSerialResponse(1000);
-      char* cr=strstr(responseBuffer,"+CREG:");
-      if (cr) {
-        int n,st;
-        if (sscanf(cr,"+CREG: %d,%d",&n,&st)==2 && (st==1||st==5)) {
-          Serial.println(F("Registered"));
-          registered=true;
-          break;
-        }
+      executeSimpleCommand("AT+CSQ", "+CSQ", 500UL, 1);
+      executeSimpleCommand("AT+COPS?", "+COPS", 3000UL, 1);
+      bool creg_ok = false, cereg_ok = false;
+      executeSimpleCommand("AT+CREG?", "+CREG:", 500UL, 1);
+      if (strstr(responseBuffer, ",1") || strstr(responseBuffer, ",5"))
+        creg_ok = true;
+      executeSimpleCommand("AT+CEREG?", "+CEREG:", 500UL, 1);
+      if (strstr(responseBuffer, ",1") || strstr(responseBuffer, ",5"))
+        cereg_ok = true;
+      if (creg_ok || cereg_ok) {
+        Serial.println(F("Registered."));
+        registered = true;
+        break;
+      } else {
+        Serial.println(F("Not registered yet..."));
+        delay(2000);
       }
-      Serial.print(F("Not registered ("));Serial.print(i+1);
-      Serial.println(F("/20)"));
-      delay(2000);
     }
     if (!registered) {
-      Serial.println(F("ERROR: Registration failed"));
-      return;
+      Serial.println(F("ERROR: Failed network registration."));
+      currentStepSuccess = false;
     }
   }
 
-  // --- STEP 3: PDP context
-  snprintf(cmdBuffer,CMD_BUFFER_SIZE,"AT+CGDCONT=1,\"IP\",\"%s\"",APN);
-  executeSimpleCommand(cmdBuffer,"OK",500,3);
-  executeSimpleCommand("AT+CGATT=1","OK",500,3);
-  executeSimpleCommand("AT+CGACT=1,1","OK",1000,2);
+  // --- STEP 3 : PDP Context
+  if (currentStepSuccess) {
+    Serial.println(F("\n=== STEP 3: PDP Context ==="));
+    snprintf(responseBuffer, RESPONSE_BUFFER_SIZE, "AT+CGDCONT=1,\"IP\",\"%s\"", APN);
+    currentStepSuccess &= executeSimpleCommand(responseBuffer, "OK", 500UL, 3);
+    if (currentStepSuccess) {
+      currentStepSuccess &= executeSimpleCommand("AT+CGATT=1", "OK", 500UL, 3);
+    }
+    if (currentStepSuccess) {
+      Serial.println(F("Activating PDP (AT+CGACT=1,1)..."));
+      bool activationAttempted = false;
+      if (executeSimpleCommand("AT+CGACT=1,1", "OK", 500UL, 1)) {
+        Serial.println(F("OK received. Waiting..."));
+        activationAttempted = true;
+        delay(2000);
+      } else {
+        if (strstr(responseBuffer, "ERROR")) {
+          Serial.println(F("CGACT ERROR."));
+          if (strstr(responseBuffer, "148"))
+            activationAttempted = true;
+          else
+            currentStepSuccess = false;
+        } else {
+          Serial.println(F("CGACT Timeout?"));
+          currentStepSuccess = false;
+        }
+      }
+      if (activationAttempted && currentStepSuccess) {
+        Serial.println(F("Verifying PDP (AT+CGACT?)..."));
+        bool contextActive = false;
+        for (uint8_t i = 0; i < 3 && !contextActive; i++) {
+          if (executeSimpleCommand("AT+CGACT?", "+CGACT:", 500UL, 1)) {
+            if (strstr(responseBuffer, "+CGACT: 1,1")) {
+              Serial.println(F("PDP Active."));
+              contextActive = true;
+              executeSimpleCommand("AT+CGPADDR=1", "+CGPADDR:", 500UL, 1);
+            } else {
+              Serial.println(F("PDP not active."));
+            }
+          } else {
+            Serial.println(F("No response CGACT?."));
+          }
+          if (!contextActive && i < 2) delay(2000);
+        }
+        if (!contextActive) {
+          Serial.println(F("ERROR: Failed PDP verification."));
+          currentStepSuccess = false;
+        }
+      } else if (!activationAttempted) {
+        Serial.println(F("Skipping PDP verify."));
+      }
+    }
+  }
 
-  // --- STEP 4: Enable GNSS
-  executeSimpleCommand("AT+CGNSPWR=1","OK",500,3);
+  // --- STEP 4 : Enable GNSS
+  if (currentStepSuccess) {
+    Serial.println(F("\n=== STEP 4: Enable GNSS ==="));
+    if (executeSimpleCommand("AT+CGNSPWR=1", "OK", 500UL, 3)) {
+      Serial.println(F("GNSS Power Enabled."));
+      delay(1000);
+    } else {
+      Serial.println(F("ERROR: Failed to enable GNSS!"));
+      currentStepSuccess = false;
+    }
+  }
 
-  setupSuccess = true;
+  if (currentStepSuccess) {
+    Serial.println(F("\n=== SETUP COMPLETE ==="));
+    setupSuccess = true;
+  } else {
+    Serial.println(F("\n--- SETUP FAILED ---"));
+    setupSuccess = false;
+  }
+  Serial.println(F("Entering main loop..."));
   lastSendTime = millis();
 }
 
-// --- Loop
+int freeRam() {
+  extern int __heap_start, *__brkval;
+  int v;
+  return (int)&v - (__brkval == 0 ? (int)&__heap_start : (int)__brkval);
+}
+
+// --- Loop principal
 void loop() {
-  if (!setupSuccess) return;
-  if (millis() - lastSendTime >= sendInterval) {
+  if (setupSuccess && (millis() - lastSendTime >= sendInterval)) {
+    Serial.print(F("\n--- Interval Timer ("));
+    Serial.print(millis() / 1000);
+    Serial.println(F("s) ---"));
+    if (getGpsData(currentLat, currentLon, gpsTimestampTraccar)) {
+      Serial.print(F("GPS OK: Lat="));
+      Serial.print(currentLat, 6);
+      Serial.print(F(" Lon="));
+      Serial.print(currentLon, 6);
+      Serial.print(F(" Time="));
+      Serial.println(gpsTimestampTraccar);
+      logGpsToSd(gpsTimestampTraccar, currentLat, currentLon);
+      
+      if (sendGpsToTraccar(TRACCAR_HOST, TRACCAR_PORT, DEVICE_ID,
+                            currentLat, currentLon, gpsTimestampTraccar))
+        Serial.println(F(">>> Send OK."));
+      else
+        Serial.println(F(">>> Send FAIL."));
+
+    } else {
+      Serial.println(F(">>> No GPS fix, skipping send."));
+    }
     lastSendTime = millis();
-    if (getGpsData(currentLat,currentLon,gpsTimestampTraccar)) {
-      if (sendGpsToTraccar(TRACCAR_HOST,TRACCAR_PORT,DEVICE_ID,
-                           currentLat,currentLon,gpsTimestampTraccar)) {
-        replayOfflineData();
-      } else {
-        storeDataOffline(currentLat,currentLon,gpsTimestampTraccar);
-      }
+  }
+  readSerialResponse(50UL);
+  if (responseBufferPos > 0) {
+    if (!strstr(responseBuffer, "+CSQ:") && !strstr(responseBuffer, "+CREG:") &&
+        !strstr(responseBuffer, "+CEREG:") && !strstr(responseBuffer, "+CGNSINF:")) {
+      Serial.print(F("Idle URC?: "));
+      Serial.println(responseBuffer);
     }
   }
-  readSerialResponse(50);
+  Serial.print(F("Free RAM: "));
+  Serial.println(freeRam());
   delay(100);
 }
