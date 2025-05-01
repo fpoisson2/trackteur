@@ -82,6 +82,10 @@ Ce guide explique, pas à pas, comment :
 
 ---
 
+## 3. Activer le port série
+
+À écrire
+
 ## 3. Installation de Git
 
 1. **Mettez à jour** la liste des paquets :
