@@ -109,13 +109,21 @@ Ce guide explique, pas à pas, comment :
    git config --global user.email "votre.email@example.com"
    ```
 
----
+## 4. Installation de pip
 
-🎉 **Félicitations !** Votre Raspberry Pi OS Lite est installé, connecté en Wi‑Fi au démarrage, et prêt à utiliser Git.
+1. **Mettez à jour** la liste des paquets :
 
-*Fin du guide.*
+   ```bash
+   sudo apt update && sudo apt upgrade -y
+   ```
 
-## 4. Cloner et mettre à jour le dépôt
+2. **Installez pip** :
+
+   ```bash
+   sudo apt install python3-pip -y
+   ```
+
+## 5. Cloner et mettre à jour le dépôt
 
 1. **Clonez** ce dépôt sur votre Raspberry Pi :
 
@@ -133,7 +141,30 @@ Ce guide explique, pas à pas, comment :
    git pull origin dev
    ```
 
-## 5. Exécution automatique d'un script Python au démarrage
+
+## 6. Installer les paquets
+
+1. Créez un environnement virtuel Python :
+
+   ```bash
+   python3 -m venv venv
+   ```
+
+2. Activez l’environnement virtuel :
+
+   ```bash
+   source venv/bin/activate
+   ```
+
+3. Installez les dépendances avec pip :
+
+   ```bash
+   pip install --upgrade pip
+   pip install -r requirements.txt
+   ```
+
+
+## 7. Exécution automatique d'un script Python au démarrage
 
 1. **Créez** un service systemd pour lancer `main.py` au démarrage :
 
