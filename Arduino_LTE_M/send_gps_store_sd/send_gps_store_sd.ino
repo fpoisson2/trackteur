@@ -59,21 +59,22 @@ void clearSerialBuffer() {
   while (moduleSerial.available()) moduleSerial.read();
 }
 
-/* =============================================================
-   logDummyPositionToSd() – version robuste (création auto)
-   ============================================================= */
-void logDummyPositionToSd()
+void logRealPositionToSd(float lat, float lon, const char* ts)
 {
-  /* ligne « bidon » à écrire */
-  const char* lineTemplate   = "2000-01-01 12:00:00,45.501701,-73.567298\n";
-  char  line[48];
-  uint16_t len = snprintf(line, sizeof(line), "%s", lineTemplate);
+  /* mise en forme : "<timestamp>,<lat>,<lon>\n" */
+  char latStr[15], lonStr[15];
+  dtostrf(lat, 4, 6, latStr);
+  dtostrf(lon, 4, 6, lonStr);
 
-  /* -------- WRITE exactement comme AppendGPSLog ------------------ */
+  char line[64];
+  uint16_t len = snprintf(line, sizeof(line),
+                           "%s,%s,%s\n", ts, latStr, lonStr);
+
+  /* --- écriture au début du secteur sectorIndex ----------------- */
   FRESULT res = PF.open(LOG_FILE);
-  if (res != FR_OK) {                          // s’il n’existe pas → erreur
+  if (res != FR_OK) {
     Serial.print(F("PF.open failed: ")); Serial.println(res, DEC);
-    return;
+    return;                              // identique à AppendGPSLog.ino
   }
 
   uint32_t sectorStart = sectorIndex * 512UL;
@@ -83,28 +84,23 @@ void logDummyPositionToSd()
   PF.seek(sectorStart);
   res = PF.writeFile(line, len, &bw);
   if (res != FR_OK) { Serial.println(F("writeFile error")); return; }
-  PF.writeFile(nullptr, 0, &bw);               // flush & close
-  Serial.print(F("Wrote: ")); Serial.print(line);
+  PF.writeFile(nullptr, 0, &bw);         // flush / close
 
-  /* -------- READ BACK les HISTORY derniers secteurs -------------- */
-  uint32_t startSector = (sectorIndex > HISTORY) ? sectorIndex - HISTORY : 0;
-  for (uint32_t s = startSector; s <= sectorIndex; s++) {
+  /* lecture de contrôle (HISTORY) -------------------------------- */
+  uint32_t startS = (sectorIndex > HISTORY) ? sectorIndex - HISTORY : 0;
+  for (uint32_t s = startS; s <= sectorIndex; s++) {
     res = PF.open(LOG_FILE);
-    if (res != FR_OK) {
-      Serial.print(F("PF.open verify failed: ")); Serial.println(res, DEC);
-      return;
-    }
+    if (res != FR_OK) { Serial.print(F("PF.open verify err ")); Serial.println(res); return; }
     PF.seek(s * 512UL);
-    char readBuf[48];
-    UINT br;
-    res = PF.readFile(readBuf, len, &br);
+    char buf[64]; UINT br;
+    res = PF.readFile(buf, len, &br);
     if (res != FR_OK) { Serial.println(F("readFile error")); return; }
 
     Serial.print(F("Sector ")); Serial.print(s); Serial.print(F(" read: "));
-    Serial.write((uint8_t*)readBuf, br); Serial.println();
+    Serial.write((uint8_t*)buf, br); Serial.println();
   }
 
-  sectorIndex++;                                // passe au suivant
+  sectorIndex++;                         // prochain secteur à la prochaine boucle
 }
 
 
@@ -547,11 +543,9 @@ void loop() {
     Serial.print(millis() / 1000);
     Serial.println(F("s) ---"));
 
-    /* -------- LOG DUMMY POSITION SUR SD (NOUVEAU) -------- */
-    logDummyPositionToSd();
-
     /* -------- Code original : GNSS / Traccar -------------- */
     if (getGpsData(currentLat, currentLon, gpsTimestampTraccar)) {
+      logRealPositionToSd(currentLat, currentLon, gpsTimestampTraccar);
       Serial.print(F("GPS OK: Lat=")); Serial.print(currentLat, 6);
       Serial.print(F(" Lon="));        Serial.print(currentLon, 6);
       Serial.print(F(" Time="));       Serial.println(gpsTimestampTraccar);
