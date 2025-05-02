@@ -4,40 +4,44 @@
 #include <stdlib.h>
 
 /* --------------------------------------------------
-   Brochage – adapte si besoin
+   Pin configuration
    --------------------------------------------------*/
-const uint8_t PWR_PIN = 2;     // HIGH → mise sous tension du module
+const uint8_t PWR_PIN = 2;     // HIGH → Power on module
 const uint8_t RX_PIN  = 3;     // Arduino RX  ←  Module TX
 const uint8_t TX_PIN  = 4;     // Arduino TX  →  Module RX
 SoftwareSerial modem(RX_PIN, TX_PIN);
 
 /* --------------------------------------------------
-   Paramètres utilisateur
+   User parameters
    --------------------------------------------------*/
-const char APN[]            = "mobile.bm";
+const char APN[]            = "onomondo";
 const char TRACCAR_HOST[]   = "trackteur.ve2fpd.com";
 const uint16_t TRACCAR_PORT = 5055;
 const char DEVICE_ID[]      = "212910";
 
-/* Position factice – remplace par ton GPS */
+/* Dummy position – replace with GPS */
 const float dummyLat = 46.8139;
 const float dummyLon = -71.2082;
 
-/* Périodicité d’envoi (ms) */
+/* Send period (ms) */
 const unsigned long SEND_PERIOD_MS = 5000UL;
 
-/* Buffer circulaire pour les réponses */
+/* Retry parameters */
+const uint8_t MAX_RETRIES = 3;
+const unsigned long RETRY_DELAY_MS = 2000;
+
+/* Response buffer */
 #define RES_BUF 256
-char  resBuf[RES_BUF];
+char resBuf[RES_BUF];
 uint16_t resPos = 0;
 
-/* État */
+/* State */
 unsigned long lastSend    = 0;
 bool modemReady           = false;
 volatile bool registered  = false;
 
 /* --------------------------------------------------
-   Déclarations anticipées
+   Function declarations
    --------------------------------------------------*/
 bool sendAT(const char *cmd, const char *expect, unsigned long timeout = 2000);
 void flushRx();
@@ -48,6 +52,7 @@ bool netOpen();
 bool tcpOpen();
 bool tcpSend(float lat, float lon);
 void netClose();
+bool checkSIM();
 
 /* ==================================================
    Arduino SETUP
@@ -59,36 +64,67 @@ void setup()
 
   pinMode(PWR_PIN, OUTPUT);
   digitalWrite(PWR_PIN, LOW);
-
   modem.begin(9600);
 
   Serial.println(F("Booting A7670E ..."));
   digitalWrite(PWR_PIN, HIGH);
-  delay(5000);                              // laisse le temps de booter
+  delay(5000); // Module boot
 
-  /* On boucle jusqu’à ce que “AT” réponde “OK” */
-  while (!sendAT("AT", "OK", 2000)) {
-    Serial.println(F("... toujours en attente de AT OK"));
-    delay(500);
+  // Robust startup with retries
+  for (uint8_t i = 0; i < MAX_RETRIES; i++) {
+    if (sendAT("AT", "OK", 2000)) break;
+    Serial.println(F("... waiting for AT OK"));
+    if (i == MAX_RETRIES - 1) {
+      Serial.println(F("Modem init failed"));
+      return;
+    }
+    delay(RETRY_DELAY_MS);
   }
 
-  sendAT("ATE0", "OK");                     // écho OFF
-  sendAT("AT+CMEE=2", "OK");                // erreurs verbeuses
+  sendAT("ATE0", "OK");                     // Echo OFF
+  sendAT("AT+CMEE=2", "OK");                // Verbose errors
 
+  // Check SIM card
+  if (!checkSIM()) {
+    Serial.println(F("SIM card not detected"));
+    return;
+  }
+
+  // Reset data stack with retries
+  for (uint8_t i = 0; i < MAX_RETRIES; i++) {
+    if (sendAT("AT+CIPSHUT", "SHUT OK", 5000)) break;
+    Serial.println(F("Retrying CIPSHUT..."));
+    if (i == MAX_RETRIES - 1) {
+      Serial.println(F("CIPSHUT failed"));
+      // Continue, as stack may still be usable
+    }
+    delay(RETRY_DELAY_MS);
+  }
+
+  sendAT("AT+CFUN=0", "OK", 3000);
+  delay(3000);
+  sendAT("AT+CFUN=1", "OK", 3000);
+  delay(3000);
+
+  // Configure APN
   char cmd[64];
-  snprintf(cmd, sizeof(cmd), "AT+CGDCONT=1,\"IP\",\"%s\"", APN);
+  snprintf(cmd, sizeof(cmd), "AT+CGDCONT=1,\"IP\",\"%s\",\"0.0.0.0\",0,0", APN);
   sendAT(cmd, "OK");
 
-  sendAT("AT+CEREG=2", "OK");               // URC +CEREG détaillé
+  sendAT("AT+CEREG=2", "OK");               // Verbose URC
 
-  /* Attacher LTE */
-  if (!waitReg(30000)) return;              // 30 s maxi
+  if (!waitReg(30000)) {
+    Serial.println(F("Network registration failed"));
+    return;
+  }
 
-  /* Activer la pile socket */
-  if (!netOpen())   return;
+  if (!netOpen()) {
+    Serial.println(F("Network open failed"));
+    return;
+  }
 
   modemReady = true;
-  lastSend   = millis();
+  lastSend = millis();
 }
 
 /* ==================================================
@@ -96,27 +132,37 @@ void setup()
    ==================================================*/
 void loop()
 {
-  collect(50);                              // écouler les URC
+  collect(50);                              // Process URCs
 
   if (modemReady && millis() - lastSend >= SEND_PERIOD_MS) {
-
-    if (tcpOpen()) {
-      if (tcpSend(dummyLat, dummyLon)) {
-        Serial.println(F("Traccar packet sent ✔"));
-      } else {
-        Serial.println(F("Traccar packet failed ✘"));
+    bool success = false;
+    for (uint8_t i = 0; i < MAX_RETRIES; i++) {
+      if (tcpOpen()) {
+        if (tcpSend(dummyLat, dummyLon)) {
+          Serial.println(F("Traccar packet sent ✔"));
+          success = true;
+          break;
+        } else {
+          Serial.println(F("Traccar packet failed ✘"));
+        }
       }
+      Serial.print(F("Retry TCP connection/send #")); Serial.println(i + 1);
+      netClose();
+      delay(RETRY_DELAY_MS);
     }
-    netClose();                             // on ferme puis on attend 3 s
+    
+    if (!success) Serial.println(F("All TCP send retries failed"));
+    
+    netClose();
     lastSend = millis();
   }
 }
 
 /* ==================================================
-   Fonctions utilitaires
+   Utility functions
    ==================================================*/
 
-/* Envoi d’une commande AT et attente de la chaîne `expect` */
+/* Send AT command and wait for expected response */
 bool sendAT(const char *cmd, const char *expect, unsigned long timeout)
 {
   flushRx();
@@ -125,8 +171,8 @@ bool sendAT(const char *cmd, const char *expect, unsigned long timeout)
   unsigned long t0 = millis();
   bool ok = false;
   while (millis() - t0 < timeout) {
-    collect(10);                            // lit un petit paquet
-    if (strstr(resBuf, expect)) {           // trouvé !
+    collect(10);
+    if (strstr(resBuf, expect)) {
       ok = true;
       break;
     }
@@ -137,7 +183,7 @@ bool sendAT(const char *cmd, const char *expect, unsigned long timeout)
   return ok;
 }
 
-/* Vidange RX + remise à zéro du buffer */
+/* Clear RX and reset buffer */
 void flushRx()
 {
   while (modem.available()) modem.read();
@@ -145,13 +191,15 @@ void flushRx()
   resPos = 0;
 }
 
-/* Collecte des données reçues et mise à jour des flags */
+/* Collect received data and update flags */
 void collect(unsigned long ms)
 {
+  static char lastPrinted[RES_BUF] = {0}; // Track last printed response
   unsigned long t0 = millis();
   while (millis() - t0 < ms) {
     if (!modem.available()) continue;
     char c = modem.read();
+    if (c < 0x20 || c > 0x7E) continue; // Skip non-printable characters
     if (resPos < RES_BUF - 1) {
       resBuf[resPos++] = c;
       resBuf[resPos] = 0;
@@ -160,36 +208,56 @@ void collect(unsigned long ms)
     if (isRegistered(resBuf)) registered = true;
   }
 
-  /* ——— filtre anti-spam ——— */
+  // Anti-spam filter
   if (resPos == 0) return;
 
-  if (strcmp(resBuf, "OK\r\n") == 0)            { /* ignore */ return; }
-  if (strcmp(resBuf, "ERROR\r\n") == 0)         { /* ignore */ return; }
-  if (strstr(resBuf, "IP ERROR"))               { /* ignore */ return; }
-  if (strncmp(resBuf, "+NETOPEN:", 9) == 0)     { /* ignore */ return; }
-  if (strncmp(resBuf, "+NETCLOSE:", 10) == 0)   { /* ignore */ return; }
+  // Skip common responses to avoid repetition
+  if (strcmp(resBuf, "OK\r\n") == 0) return;
+  if (strcmp(resBuf, "ERROR\r\n") == 0) return;
+  if (strstr(resBuf, "IP ERROR")) return;
+  if (strncmp(resBuf, "+NETOPEN:", 9) == 0) return;
+  if (strncmp(resBuf, "+NETCLOSE:", 10) == 0) return;
 
-  Serial.print(F("<< "));
-  Serial.write(resBuf, resPos);
-  Serial.println();
+  // Only print if different from last printed response
+  if (strcmp(resBuf, lastPrinted) != 0) {
+    Serial.print(F("<< "));
+    Serial.write(resBuf, resPos);
+    Serial.println();
+    strncpy(lastPrinted, resBuf, RES_BUF); // Update last printed
+  }
 }
 
-/* Parse strict du +CEREG */
+/* Parse +CEREG response */
 bool isRegistered(const char *buf)
 {
-  /* On cherche le début exact de “+CEREG:” dans le buffer */
   const char *p = strstr(buf, "+CEREG:");
   if (!p) return false;
 
   int n, stat;
-  /*           +CEREG: <n> , <stat>   */
   if (sscanf(p, "+CEREG: %d,%d", &n, &stat) == 2) {
     return stat == 1 || stat == 5;          // 1 = home, 5 = roaming
   }
   return false;
 }
 
-/* Attente de l’attach LTE */
+/* Check SIM card presence */
+bool checkSIM()
+{
+  for (uint8_t i = 0; i < MAX_RETRIES; i++) {
+    flushRx();
+    modem.println("AT+CPIN?");
+    collect(2000);
+    if (strstr(resBuf, "+CPIN: READY")) {
+      Serial.println(F("SIM card ready"));
+      return true;
+    }
+    Serial.println(F("SIM check failed, retrying..."));
+    delay(RETRY_DELAY_MS);
+  }
+  return false;
+}
+
+/* Wait for LTE registration */
 bool waitReg(unsigned long ms)
 {
   Serial.println(F("Waiting for network ..."));
@@ -210,36 +278,30 @@ bool waitReg(unsigned long ms)
   return false;
 }
 
-/* Activation PDP / pile socket */
+/* Activate PDP/socket stack with retries */
 bool netOpen()
 {
-  /* 1) Essai direct -------------------------------------------------- */
-  if (sendAT("AT+NETOPEN", "+NETOPEN: 0", 60000)) {
-    Serial.println(F("NETOPEN OK"));
-    return true;
+  for (uint8_t i = 0; i < MAX_RETRIES; i++) {
+    if (sendAT("AT+NETOPEN", "+NETOPEN: 0", 60000)) {
+      Serial.println(F("NETOPEN OK"));
+      return true;
+    }
+
+    if (strstr(resBuf, "already opened")) {
+      Serial.println(F("NETOPEN says 'already opened' → forcing NETCLOSE"));
+    } else {
+      Serial.println(F("NETOPEN failed → trying NETCLOSE"));
+    }
+
+    sendAT("AT+NETCLOSE", "+NETCLOSE:", 30000);
+    delay(RETRY_DELAY_MS);
   }
 
-  /* 2) Si “already opened”, on ferme quand même puis on retente ------- */
-  if (strstr(resBuf, "already opened")) {
-    Serial.println(F("NETOPEN dit « already opened » → on force NETCLOSE"));
-  } else {
-    Serial.println(F("NETOPEN a échoué → tentative de NETCLOSE"));
-  }
-
-  /* On ferme proprement (30 s max, ignore le résultat) */
-  sendAT("AT+NETCLOSE", "+NETCLOSE:", 30000);
-
-  /* 3) Nouvelle tentative NETOPEN ------------------------------------ */
-  if (sendAT("AT+NETOPEN", "+NETOPEN: 0", 60000)) {
-    Serial.println(F("NETOPEN OK après reset"));
-    return true;
-  }
-
-  Serial.println(F("Échec NETOPEN même après reset PDP"));
+  Serial.println(F("NETOPEN failed after retries"));
   return false;
 }
 
-/* Ouverture du socket TCP vers Traccar */
+/* Open TCP socket to Traccar */
 bool tcpOpen()
 {
   char cmd[96];
@@ -249,7 +311,7 @@ bool tcpOpen()
   return sendAT(cmd, "+CIPOPEN: 0,0", 30000);
 }
 
-/* Envoi du GET “style OsmAnd” */
+/* Send OsmAnd-style GET request */
 bool tcpSend(float lat, float lon)
 {
   char req[200], latStr[16], lonStr[16];
@@ -273,9 +335,9 @@ bool tcpSend(float lat, float lon)
   return strstr(resBuf, "+CIPSEND: 0") && strstr(resBuf, ",");
 }
 
-/* Fermeture du socket + temporisation fixe */
+/* Close socket with timeout */
 void netClose()
 {
   sendAT("AT+CIPCLOSE=0", "+CIPCLOSE: 0", 10000);
-  delay(3000);            // le socket repasse en “INITIAL” en ≤ 3 s
+  delay(3000);
 }
