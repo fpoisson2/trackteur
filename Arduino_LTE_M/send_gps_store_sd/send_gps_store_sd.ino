@@ -49,13 +49,21 @@ void setup() {
   if (setupOk) setupOk = step4EnableGNSS();
   setupSuccess = setupOk;
 
-  // En cas d'échec : arrêt sécurisé
-  if (!setupSuccess) {
-    Serial.println(F("=== SETUP FAILED, HALTING ==="));
-    while (1) {
-      wdt_reset();
+  // En cas d'échec : tentative de reprise périodique
+  while (!setupSuccess) {
+    Serial.println(F("=== SETUP FAILED. RETRYING IN 15s ==="));
+    for (int i = 0; i < 15; i++) {
       delay(1000);
+      wdt_reset();
     }
+    Serial.println(F("--- Retrying setup..."));
+  
+    setupSuccess = initialCommunication();
+    if (setupSuccess) setupSuccess = step1NetworkSettings();
+    if (setupSuccess) setupSuccess = waitForSimReady();
+    if (setupSuccess) setupSuccess = step2NetworkRegistration();
+    if (setupSuccess) setupSuccess = step3PDPContext();
+    if (setupSuccess) setupSuccess = step4EnableGNSS();
   }
 
   // 6. Vidage des logs pendants au démarrage
@@ -73,7 +81,6 @@ void loop() {
     Serial.print(millis() / 1000);
     Serial.println(F("s) ---"));
 
-    /* -------- Code original : GNSS / Traccar -------------- */
     if (getGpsData(currentLat, currentLon, gpsTimestampTraccar)) {
       Serial.print(F("GPS OK: Lat=")); Serial.print(currentLat, 6);
       Serial.print(F(" Lon="));        Serial.print(currentLon, 6);
