@@ -76,6 +76,7 @@ void clearSerialBuffer() {
 
 
 void saveLogMetadata(uint32_t currentIndex) {
+  wdt_reset(); 
   FRESULT res = PF.open(LOG_FILE);
   if (res != FR_OK) {
     Serial.println(F("PF.open (metadata) failed"));
@@ -89,6 +90,7 @@ void saveLogMetadata(uint32_t currentIndex) {
   } meta = { currentIndex, "LOGDATA" };
 
   UINT bw;
+  wdt_reset(); 
   res = PF.writeFile(&meta, sizeof(meta), &bw);
   if (res != FR_OK || bw != sizeof(meta)) {
     Serial.println(F("Failed to write metadata."));
@@ -755,6 +757,7 @@ void setup() {
   }
   for (uint8_t i = 0; i < 5 && lastSectorUsed > 0; i++) {
     resendLastLog();  // flush up to 5 entries max
+    wdt_reset();
   }
   Serial.println(F("Entering main loop..."));
   lastSendTime = millis();
