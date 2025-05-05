@@ -5,15 +5,29 @@
 #include <stdio.h>   // pour snprintf
 #include <string.h>  // pour strstr, memset, strncpy, strchr, sscanf
 #include <stdlib.h>  // pour dtostrf, atof
+#include <avr/wdt.h>
 
 #define HTTP_REQUEST_BUFFER_SIZE 256
+static uint32_t lastSectorUsed = 1;  // updated when sectorIndex advances
+#define MAX_SECTORS 1000UL  // excluding sector 0
 
 /* ====================== Configuration SD ====================== */
-#define HISTORY 10     
+#define HISTORY 3    
 #define SD_CS_PIN 8
 FATFS   fs;
 const char* LOG_FILE = "GPS_LOG.CSV";
 static uint32_t sectorIndex = 0;   // sector‑append counter
+
+struct LogMeta {
+  uint32_t lastSectorIndex;
+  uint32_t logCount;         // optional
+  char signature[8];         // optional: to verify it's valid
+};
+
+
+// networkfails detection
+static uint8_t consecutiveNetFails = 0;
+const uint8_t NET_FAIL_THRESHOLD = 5;
 
 // --- Définition des Pins
 const uint8_t powerPin = 2;
@@ -59,35 +73,197 @@ void clearSerialBuffer() {
   while (moduleSerial.available()) moduleSerial.read();
 }
 
+
+
+void saveLogMetadata(uint32_t currentIndex) {
+  FRESULT res = PF.open(LOG_FILE);
+  if (res != FR_OK) {
+    Serial.println(F("PF.open (metadata) failed"));
+    return;
+  }
+  PF.seek(0);  // sector 0 reserved
+
+  struct {
+    uint32_t index;
+    char signature[8];
+  } meta = { currentIndex, "LOGDATA" };
+
+  UINT bw;
+  res = PF.writeFile(&meta, sizeof(meta), &bw);
+  if (res != FR_OK || bw != sizeof(meta)) {
+    Serial.println(F("Failed to write metadata."));
+    return;
+  }
+
+  PF.writeFile(nullptr, 0, &bw); // flush
+  Serial.println(F("Metadata updated."));
+}
+
+uint32_t loadLogMetadata() {
+  PF.open(LOG_FILE);
+  PF.seek(0);
+
+  struct {
+    uint32_t index;
+    char signature[8];
+  } meta;
+
+  UINT br;
+  FRESULT res = PF.readFile(&meta, sizeof(meta), &br);
+  if (res != FR_OK || br != sizeof(meta)) {
+    Serial.println(F("Failed to read metadata."));
+    lastSectorUsed = 0;
+    return 1;
+  }
+
+  if (strncmp(meta.signature, "LOGDATA", 7) != 0) {
+    Serial.println(F("Metadata invalid. Starting fresh."));
+    lastSectorUsed = 0;
+    return 1;
+  }
+
+  lastSectorUsed = meta.index - 1;
+  return meta.index;
+}
+
+void resendLastLog() {
+  // Nothing to do if we have no saved sectors
+  if (lastSectorUsed < 1) return;
+
+  uint32_t s = lastSectorUsed;
+  if (PF.open(LOG_FILE) != FR_OK) {
+    Serial.print(F("Cannot open log file to resend sector ")); Serial.println(s);
+    return;
+  }
+
+  // Read just that one sector
+  PF.seek(s * 512UL);
+  char buf[64];
+  UINT br;
+  FRESULT res = PF.readFile(buf, sizeof(buf)-1, &br);
+  if (res != FR_OK || br < 10) {
+    Serial.print(F("Sector ")); Serial.print(s);
+    Serial.println(F(" empty or read error—skipping."));
+    lastSectorUsed--;
+    saveLogMetadata(lastSectorUsed + 1);
+    return;
+  }
+  buf[br] = '\0';
+
+  Serial.print(F("→ Resend sector ")); Serial.print(s);
+  Serial.print(F(": “")); Serial.print(buf); Serial.println(F("”"));
+
+  // If already marked sent (#), just bump pointer
+  if (buf[0] == '#') {
+    Serial.println(F("    Already sent, moving pointer back."));
+    lastSectorUsed--;
+    saveLogMetadata(lastSectorUsed);
+    return;
+  }
+
+  // Strip off leading '!' or '#' if present
+  char* p = buf;
+  if (*p == '!' || *p == '#') p++;
+
+  // Tokenize by commas: timestamp, lat, lon
+  char ts[32];
+  float lat, lon;
+  char* tok = strtok(p, ",");
+  if (!tok) { Serial.println(F("    Bad CSV, skipping.")); lastSectorUsed--; return; }
+  strncpy(ts, tok, sizeof(ts));
+
+  tok = strtok(NULL, ",");
+  if (!tok) { Serial.println(F("    Missing lat, skipping.")); lastSectorUsed--; return; }
+  lat = atof(tok);
+
+  tok = strtok(NULL, ",");
+  if (!tok) { Serial.println(F("    Missing lon, skipping.")); lastSectorUsed--; return; }
+  lon = atof(tok);
+
+  // Attempt the send
+  Serial.print(F("    Retrying send: ")); Serial.print(ts);
+  Serial.print(F(", ")); Serial.print(lat, 6);
+  Serial.print(F(", ")); Serial.println(lon, 6);
+
+  if (sendGpsToTraccar(TRACCAR_HOST, TRACCAR_PORT, DEVICE_ID, lat, lon, ts)) {
+    Serial.println(F("    SEND OK! Marking as sent."));
+    consecutiveNetFails = 0;
+  
+    // Overwrite sector[0] = '#'
+    PF.seek(s * 512UL);
+    buf[0] = '#';
+    memset(buf + br, 0, 512 - br);
+    PF.writeFile(buf, 512, &br);
+    PF.writeFile(nullptr, 0, &br);
+    lastSectorUsed--;
+  } else {
+    consecutiveNetFails++;
+    Serial.print(F("    SEND FAIL (#"));
+    Serial.print(consecutiveNetFails);
+    Serial.println(F("). Will retry same sector next time."));
+  
+    if (consecutiveNetFails >= NET_FAIL_THRESHOLD) {
+      resetGsmModule();
+      consecutiveNetFails = 0;
+    }
+  }
+
+}
+
+
+
+
 void logRealPositionToSd(float lat, float lon, const char* ts)
 {
-  /* mise en forme : "<timestamp>,<lat>,<lon>\n" */
   char latStr[15], lonStr[15];
   dtostrf(lat, 4, 6, latStr);
   dtostrf(lon, 4, 6, lonStr);
 
   char line[64];
-  uint16_t len = snprintf(line, sizeof(line),
-                           "%s,%s,%s\n", ts, latStr, lonStr);
+  uint16_t len = snprintf(line, sizeof(line), "!%s,%s,%s\n", ts, latStr, lonStr);
 
-  /* --- écriture au début du secteur sectorIndex ----------------- */
-  FRESULT res = PF.open(LOG_FILE);
-  if (res != FR_OK) {
-    Serial.print(F("PF.open failed: ")); Serial.println(res, DEC);
-    return;                              // identique à AppendGPSLog.ino
+  // Check if current sector is reusable
+  bool isReusable = false;
+  if (PF.open(LOG_FILE) == FR_OK) {
+    PF.seek(sectorIndex * 512UL);
+    char firstByte;
+    UINT br;
+    if (PF.readFile(&firstByte, 1, &br) == FR_OK && br == 1 && firstByte == '#') {
+      isReusable = true;
+    }
   }
 
-  uint32_t sectorStart = sectorIndex * 512UL;
-  Serial.print(F("Writing at sector ")); Serial.println(sectorIndex);
+  // If not reusable and not new, skip
+  if (!isReusable && sectorIndex <= lastSectorUsed) {
+    Serial.println(F("Skipping log: sector not reusable yet."));
+    return;
+  }
+
+  FRESULT res = PF.open(LOG_FILE);
+  if (res != FR_OK) return;
+  PF.seek(sectorIndex * 512UL);
 
   UINT bw;
-  PF.seek(sectorStart);
   res = PF.writeFile(line, len, &bw);
-  if (res != FR_OK) { Serial.println(F("writeFile error")); return; }
-  PF.writeFile(nullptr, 0, &bw);         // flush / close
+  if (res != FR_OK || bw != len) {
+    Serial.println(F("Write line failed."));
+    return;
+  }
 
-  /* lecture de contrôle (HISTORY) -------------------------------- */
-  uint32_t startS = (sectorIndex > HISTORY) ? sectorIndex - HISTORY : 0;
+  const uint8_t zeros[16] = {0};
+  for (uint16_t i = len; i < 512; i += 16) {
+    uint16_t chunk = (512 - i < 16) ? (512 - i) : 16;
+    res = PF.writeFile(zeros, chunk, &bw);
+    if (res != FR_OK || bw != chunk) {
+      Serial.println(F("Zero pad write failed."));
+      return;
+    }
+  }
+
+  PF.writeFile(nullptr, 0, &bw);
+
+  // Log verification
+  uint32_t startS = (sectorIndex > HISTORY) ? sectorIndex - HISTORY : 1;
   for (uint32_t s = startS; s <= sectorIndex; s++) {
     res = PF.open(LOG_FILE);
     if (res != FR_OK) { Serial.print(F("PF.open verify err ")); Serial.println(res); return; }
@@ -100,8 +276,15 @@ void logRealPositionToSd(float lat, float lon, const char* ts)
     Serial.write((uint8_t*)buf, br); Serial.println();
   }
 
-  sectorIndex++;                         // prochain secteur à la prochaine boucle
+  if (sectorIndex > lastSectorUsed) {
+    lastSectorUsed = sectorIndex;
+    saveLogMetadata(lastSectorUsed);  // ✅ mise à jour immédiate
+  }
+
+  sectorIndex++;
+  if (sectorIndex > MAX_SECTORS) sectorIndex = 1;
 }
+
 
 
 // Lit la réponse série dans responseBuffer
@@ -111,6 +294,7 @@ void readSerialResponse(unsigned long waitMillis) {
   responseBufferPos = 0;
   bool anythingReceived = false;
   while (millis() - start < waitMillis) {
+    wdt_reset();
     while (moduleSerial.available()) {
       anythingReceived = true;
       if (responseBufferPos < RESPONSE_BUFFER_SIZE - 1) {
@@ -145,6 +329,7 @@ void readSerialResponse(unsigned long waitMillis) {
 bool executeSimpleCommand(const char* command, const char* expectedResponse,
                           unsigned long timeoutMillis, uint8_t retries) {
   for (uint8_t i = 0; i < retries; i++) {
+    wdt_reset();
     Serial.print(F("Send ["));
     Serial.print(i + 1);
     Serial.print(F("]: "));
@@ -181,6 +366,29 @@ bool waitForInitialOK(uint8_t maxRetries) {
   }
   return false;
 }
+
+void resetGsmModule() {
+  Serial.println(F("*** Power-cycling GSM module ***"));
+  // Turn the module off
+  digitalWrite(powerPin, LOW);
+  delay(2000);
+  clearSerialBuffer();
+
+  // Turn it back on
+  digitalWrite(powerPin, HIGH);
+  delay(5000);
+
+  // Re-init AT interface
+  if (!waitForInitialOK(10)) {
+    Serial.println(F("  ERROR: module still unresponsive after reset"));
+  } else {
+    Serial.println(F("  GSM module is back online"));
+    executeSimpleCommand("ATE0", "OK", 1000, 2);
+    executeSimpleCommand("AT+CMEE=2", "OK", 1000, 2);
+    // (Re-attach PDP here if needed)
+  }
+}
+
 
 // Récupère et formate les données GPS
 bool getGpsData(float &lat, float &lon, char* timestampOutput) {
@@ -277,7 +485,10 @@ bool sendGpsToTraccar(const char* host, uint16_t port, const char* deviceId,
   char httpRequestBuffer[HTTP_REQUEST_BUFFER_SIZE];
 
   Serial.println(F("Connecting to Traccar..."));
-  snprintf(responseBuffer, RESPONSE_BUFFER_SIZE, "AT+CIPSTART=\"TCP\",\"%s\",%u", host, port);
+  moduleSerial.print(F("AT+CIPSTART=\"TCP\",\""));
+  moduleSerial.print(host);
+  moduleSerial.print(F("\","));
+  moduleSerial.println(port);
   if (executeSimpleCommand(responseBuffer, "OK", 20000UL, 1)) {
     if (strstr(responseBuffer, "CONNECT OK") || strstr(responseBuffer, "ALREADY CONNECT")) {
       connectSuccess = true;
@@ -347,10 +558,13 @@ bool sendGpsToTraccar(const char* host, uint16_t port, const char* deviceId,
 
 // --- Setup
 void setup() {
+  // enable the watchdog with an 8-second timeout
+  wdt_enable(WDTO_8S);
+  
   setupSuccess = false;
   bool currentStepSuccess = true;
 
-  Serial.begin(9600);
+  Serial.begin(115200);
   while (!Serial) { ; }
   Serial.println(F("--- Arduino Initialized ---"));
 
@@ -361,6 +575,9 @@ void setup() {
     Serial.println(F("Failed to mount SD"));
   else
     Serial.println(F("SD mounted"));
+
+  sectorIndex = loadLogMetadata();
+  Serial.print(F("Resuming at sector ")); Serial.println(sectorIndex);
 
   pinMode(powerPin, OUTPUT);
   digitalWrite(powerPin, LOW);
@@ -393,8 +610,12 @@ void setup() {
   // --- STEP 1 : Network Settings
   if (currentStepSuccess) {
     Serial.println(F("\n=== STEP 1: Network Settings ==="));
-    executeSimpleCommand("AT+CIPSHUT", "SHUT OK", 500UL, 2);
-    currentStepSuccess &= executeSimpleCommand("AT+CFUN=0", "OK", 500UL, 3);
+    if (!executeSimpleCommand("AT+CIPSHUT", "SHUT OK", 2000UL, 2)) {
+      Serial.println(F("WARNING: CIPSHUT failed. Continuing anyway..."));
+    }
+    if (!executeSimpleCommand("AT+CFUN=0", "OK", 1000UL, 1)) {
+      Serial.println(F("WARNING: CFUN=0 failed. Continuing..."));
+    }
     currentStepSuccess &= executeSimpleCommand("AT+CNMP=38", "OK", 500UL, 3);
     currentStepSuccess &= executeSimpleCommand("AT+CMNB=1", "OK", 500UL, 3);
   }
@@ -532,12 +753,16 @@ void setup() {
     Serial.println(F("\n--- SETUP FAILED ---"));
     setupSuccess = false;
   }
+  for (uint8_t i = 0; i < 5 && lastSectorUsed > 0; i++) {
+    resendLastLog();  // flush up to 5 entries max
+  }
   Serial.println(F("Entering main loop..."));
   lastSendTime = millis();
 }
 
 /* ============================= LOOP =========================== */
 void loop() {
+  
   if (setupSuccess && (millis() - lastSendTime >= sendInterval)) {
     Serial.print(F("\n--- Interval Timer ("));
     Serial.print(millis() / 1000);
@@ -545,16 +770,27 @@ void loop() {
 
     /* -------- Code original : GNSS / Traccar -------------- */
     if (getGpsData(currentLat, currentLon, gpsTimestampTraccar)) {
-      logRealPositionToSd(currentLat, currentLon, gpsTimestampTraccar);
       Serial.print(F("GPS OK: Lat=")); Serial.print(currentLat, 6);
       Serial.print(F(" Lon="));        Serial.print(currentLon, 6);
       Serial.print(F(" Time="));       Serial.println(gpsTimestampTraccar);
 
-      if (sendGpsToTraccar(TRACCAR_HOST, TRACCAR_PORT, DEVICE_ID,
-                           currentLat, currentLon, gpsTimestampTraccar))
+      bool ok = sendGpsToTraccar(TRACCAR_HOST, TRACCAR_PORT, DEVICE_ID, currentLat, currentLon, gpsTimestampTraccar);
+     if (ok) {
+        consecutiveNetFails = 0;
         Serial.println(F(">>> Send OK."));
-      else
+        resendLastLog();
+      }
+      else {
+        consecutiveNetFails++;
+        Serial.print(F("Network fail #")); Serial.println(consecutiveNetFails);
         Serial.println(F(">>> Send FAIL."));
+        logRealPositionToSd(currentLat, currentLon, gpsTimestampTraccar);
+        if (consecutiveNetFails >= NET_FAIL_THRESHOLD) {
+          resetGsmModule();
+          consecutiveNetFails = 0;
+        }
+      }
+
     } else {
       Serial.println(F(">>> No GPS fix, skipping send."));
     }
@@ -570,4 +806,5 @@ void loop() {
     }
   }
   delay(100);
+  wdt_reset();
 }
