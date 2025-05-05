@@ -15,6 +15,89 @@
 #include "common.h"
 #include "gsm.h"
 
+GsmModel gsmModel = GSM_SIM7000;  // valeur par défaut
+
+static void detectModel()
+{
+  executeSimpleCommand("ATI", "OK", 1500, 2);       // réponse contient «SIM7000» ou «A7670»
+  if (strstr(responseBuffer, "A7670"))  gsmModel = GSM_A7670;
+  else if (strstr(responseBuffer, "SIM7000")) gsmModel = GSM_SIM7000;
+
+  Serial.print(F(">> Modem detected: "));
+  Serial.println(gsmModel == GSM_A7670 ? F("A7670E") : F("SIM7000G"));
+}
+
+// --- PDP / pile data -------------------------------------------------
+bool openDataStack()
+{
+  if (gsmModel == GSM_A7670) {
+    // Active l’APN, puis NETOPEN gère CGATT/CGACT en interne
+    char apnCmd[64];
+    snprintf(apnCmd, sizeof(apnCmd),
+             "AT+CGDCONT=1,\"IP\",\"%s\",\"0.0.0.0\",0,0", APN);
+    if (!executeSimpleCommand(apnCmd, "OK", 500, 3)) return false;
+    return executeSimpleCommand("AT+NETOPEN", "+NETOPEN: 0", 60000, 3);
+  } else {                        // SIM7000
+    char apnCmd[64];
+    snprintf(apnCmd, sizeof(apnCmd),
+             "AT+CGDCONT=1,\"IP\",\"%s\"", APN);
+    if (!executeSimpleCommand(apnCmd, "OK", 500, 3)) return false;
+    if (!executeSimpleCommand("AT+CGATT=1", "OK", 1500, 3)) return false;
+    return executeSimpleCommand("AT+CGACT=1,1", "OK", 1500, 3);
+  }
+}
+
+bool closeDataStack()
+{
+  if (gsmModel == GSM_A7670)
+    return executeSimpleCommand("AT+NETCLOSE", "+NETCLOSE:", 30000, 2);
+  else
+    return executeSimpleCommand("AT+CIPSHUT", "SHUT OK", 5000, 2);
+}
+
+
+bool tcpOpen(const char* host, uint16_t port)
+{
+  char cmd[96];
+  if (gsmModel == GSM_A7670)
+    snprintf(cmd, sizeof(cmd), "AT+CIPOPEN=0,\"TCP\",\"%s\",%u", host, port);
+  else
+    snprintf(cmd, sizeof(cmd), "AT+CIPSTART=\"TCP\",\"%s\",%u", host, port);
+
+  return executeSimpleCommand(cmd,
+          gsmModel == GSM_A7670 ? "+CIPOPEN: 0,0" : "CONNECT OK",
+          30000, 2);
+}
+
+bool tcpSend(const char* payload, uint16_t len)
+{
+  char cmd[24];
+  if (gsmModel == GSM_A7670)
+    snprintf(cmd, sizeof(cmd), "AT+CIPSEND=0,%u", len);
+  else
+    snprintf(cmd, sizeof(cmd), "AT+CIPSEND=%u", len);
+
+  if (!executeSimpleCommand(cmd, ">", 3000, 1)) return false;
+
+  clearSerialBuffer();
+  moduleSerial.write((const uint8_t*)payload, len);
+  moduleSerial.write(0x1A);                    // Ctrl‑Z
+  readSerialResponse(10000);
+
+  return strstr(responseBuffer,
+                gsmModel == GSM_A7670 ? "+CIPSEND: 0," : "SEND OK");
+}
+
+bool tcpClose()
+{
+  const char* cmd     = (gsmModel == GSM_A7670) ? "AT+CIPCLOSE=0" : "AT+CIPCLOSE";
+  const char* expect  = (gsmModel == GSM_A7670) ? "+CIPCLOSE: 0"  : "CLOSE OK";
+
+  return executeSimpleCommand(cmd, expect, 10000UL, 2);
+}
+
+
+
 void readSerialResponse(unsigned long waitMillis) {
   unsigned long start = millis();
   memset(responseBuffer, 0, RESPONSE_BUFFER_SIZE);
@@ -127,6 +210,8 @@ void initializeModulePower() {
   digitalWrite(powerPin, HIGH);
   delay(5000);
   Serial.println(F("Module boot wait complete."));
+
+  detectModel();
 }
 
 bool initialCommunication() {
@@ -150,9 +235,7 @@ bool initialCommunication() {
 
 bool step1NetworkSettings() {
   Serial.println(F("\n=== STEP 1: Network Settings ==="));
-  if (!executeSimpleCommand("AT+CIPSHUT", "SHUT OK", 2000UL, 2)) {
-    Serial.println(F("WARNING: CIPSHUT failed. Continuing anyway..."));
-  }
+  closeDataStack();
   if (!executeSimpleCommand("AT+CFUN=0", "OK", 1000UL, 1)) {
     Serial.println(F("WARNING: CFUN=0 failed. Continuing..."));
   }
@@ -201,12 +284,7 @@ bool step2NetworkRegistration() {
 }
 
 bool step3PDPContext() {
-  Serial.println(F("\n=== STEP 3: PDP Context ==="));
-  char cmd[RESPONSE_BUFFER_SIZE];
-  snprintf(cmd, sizeof(cmd), "AT+CGDCONT=1,\"IP\",\"%s\"", APN);
-  if (!executeSimpleCommand(cmd, "OK", 500UL, 3)) return false;
-  if (!executeSimpleCommand("AT+CGATT=1", "OK", 500UL, 3)) return false;
-  return executeSimpleCommand("AT+CGACT=1,1", "OK", 500UL, 3);
+  return openDataStack();
 }
 
 bool step4EnableGNSS() {

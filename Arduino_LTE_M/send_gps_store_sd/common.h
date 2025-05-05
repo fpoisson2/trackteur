@@ -20,9 +20,28 @@
 #define GPS_TIMESTAMP_TRACCAR_BUF_SIZE 25
 #define SD_CS_PIN 8
 
+#define GPS_POLL_INTERVAL   10000UL   // 10 secondes entre lectures GPS
+#define RECONNECT_PERIOD    60000UL   // 60 secondes entre tentatives réseau
+
+
+
+bool initialCommunication();
+bool step1NetworkSettings();
+bool waitForSimReady();
+bool step2NetworkRegistration();
+bool step3PDPContext();
+bool step4EnableGNSS();
+
+// === État réseau ===
+enum class NetState { BOOTING, OFFLINE, ONLINE };
+extern NetState netState;
+
 // --- Variables globales partagées ---
 extern FATFS fs;
 extern const char* LOG_FILE;
+
+extern unsigned long lastGpsPoll;
+extern unsigned long lastReconnectAttempt;
 
 extern uint32_t lastSectorUsed;
 extern uint32_t sectorIndex;
@@ -55,5 +74,7 @@ extern bool setupSuccess;
 
 void initializeWatchdog();
 void initializeSerial();
+
+void serviceNetwork();
 
 #endif

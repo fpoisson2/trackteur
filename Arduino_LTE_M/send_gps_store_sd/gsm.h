@@ -3,6 +3,9 @@
 
 #include <Arduino.h>
 
+enum GsmModel : uint8_t { GSM_SIM7000, GSM_A7670 };
+extern GsmModel gsmModel;        // défini dans gsm.cpp
+
 bool executeSimpleCommand(const char* command, const char* expectedResponse,
                           unsigned long timeoutMillis, uint8_t retries);
 void readSerialResponse(unsigned long waitMillis);
@@ -18,5 +21,9 @@ bool step2NetworkRegistration();
 bool step3PDPContext();
 bool step4EnableGNSS();
 void initializeModulePower();
+
+bool tcpOpen (const char* host, uint16_t port);
+bool tcpSend (const char* payload, uint16_t len);
+bool tcpClose();
 
 #endif // GSM_H

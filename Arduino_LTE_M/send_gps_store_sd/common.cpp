@@ -18,6 +18,9 @@
 FATFS fs;
 const char* LOG_FILE = "GPS_LOG.CSV";
 
+unsigned long lastGpsPoll = 0;
+unsigned long lastReconnectAttempt = 0;
+
 uint32_t lastSectorUsed = 1;
 uint32_t sectorIndex = 0;
 uint8_t consecutiveNetFails = 0;
@@ -41,6 +44,7 @@ const unsigned long sendInterval = 10000UL;  // 10s entre envois
 char responseBuffer[RESPONSE_BUFFER_SIZE];
 uint8_t responseBufferPos = 0;
 
+NetState netState = NetState::BOOTING;
 float currentLat = 0.0f;
 float currentLon = 0.0f;
 char gpsTimestampTraccar[GPS_TIMESTAMP_TRACCAR_BUF_SIZE] = {0};
@@ -56,4 +60,50 @@ void initializeSerial() {
   Serial.begin(115200);
   while (!Serial) { ; }
   Serial.println(F("--- Arduino Initialized ---"));
+}
+
+// === Machine d’état réseau ===
+void serviceNetwork() {
+  switch (netState) {
+    case NetState::BOOTING:
+      Serial.println(F("[Net] Initialisation..."));
+      if (initialCommunication() &&
+          step1NetworkSettings() &&
+          waitForSimReady() &&
+          step2NetworkRegistration() &&
+          step3PDPContext() &&
+          step4EnableGNSS()) {
+        Serial.println(F("[Net] Connecté au réseau."));
+        netState = NetState::ONLINE;
+        consecutiveNetFails = 0;
+      } else {
+        Serial.println(F("[Net] Échec d'initialisation, passage OFFLINE."));
+        netState = NetState::OFFLINE;
+        lastReconnectAttempt = millis();
+      }
+      break;
+
+    case NetState::OFFLINE:
+      if (millis() - lastReconnectAttempt >= RECONNECT_PERIOD) {
+        Serial.println(F("[Net] Tentative de reconnexion..."));
+        if (initialCommunication() &&
+            step1NetworkSettings() &&
+            waitForSimReady() &&
+            step2NetworkRegistration() &&
+            step3PDPContext() &&
+            step4EnableGNSS()) {
+          Serial.println(F("[Net] Reconnexion réussie."));
+          netState = NetState::ONLINE;
+          consecutiveNetFails = 0;
+        } else {
+          Serial.println(F("[Net] Reconnexion échouée."));
+          lastReconnectAttempt = millis();
+        }
+      }
+      break;
+
+    case NetState::ONLINE:
+      // Pas de traitement ici, le statut sera mis à jour en cas d’erreurs ailleurs
+      break;
+  }
 }

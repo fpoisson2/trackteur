@@ -15,80 +15,45 @@
 #include "gsm.h"       // pour executeSimpleCommand, readSerialResponse, moduleSerial
 #include "traccar.h"
 
-// Envoie des données GPS au serveur Traccar
 bool sendGpsToTraccar(const char* host, uint16_t port, const char* deviceId,
-                      float lat, float lon, const char* timestampStr) {
-  bool connectSuccess = false, sendSuccess = false;
-  char httpRequestBuffer[HTTP_REQUEST_BUFFER_SIZE];
+                      float lat, float lon, const char* timestampStr)
+{
+  /* ---------- 1. Ouvrir la socket TCP ----------- */
+  Serial.println(F("Connecting to Traccar…"));
+  if (!tcpOpen(host, port)) {
+    Serial.println(F("❌ tcpOpen failed"));
+    return false;
+  }
+  Serial.println(F("✔ Socket ouverte"));
 
-  Serial.println(F("Connecting to Traccar..."));
-  moduleSerial.print(F("AT+CIPSTART=\"TCP\",\""));
-  moduleSerial.print(host);
-  moduleSerial.print(F("\","));
-  moduleSerial.println(port);
-  if (executeSimpleCommand(responseBuffer, "OK", 20000UL, 1)) {
-    if (strstr(responseBuffer, "CONNECT OK") || strstr(responseBuffer, "ALREADY CONNECT")) {
-      connectSuccess = true;
-      Serial.println(F("Connection établie."));
-    } else {
-      readSerialResponse(500UL);
-      if (strstr(responseBuffer, "CONNECT OK") || strstr(responseBuffer, "ALREADY CONNECT")) {
-        connectSuccess = true;
-        Serial.println(F("Connection établie (async)."));
-      } else {
-        Serial.println(F("Échec de connexion."));
-      }
-    }
-  } else {
-    Serial.println(F("CIPSTART command failed."));
+  /* ---------- 2. Construire la requête ---------- */
+  char latStr[16], lonStr[16];
+  dtostrf(lat, 0, 6, latStr);
+  dtostrf(lon, 0, 6, lonStr);
+
+  char httpReq[HTTP_REQUEST_BUFFER_SIZE];
+  snprintf(httpReq, sizeof(httpReq),
+           "GET /?id=%s&lat=%s&lon=%s&timestamp=%s HTTP/1.1\r\nHost: %s\r\n\r\n",
+           deviceId, latStr, lonStr, timestampStr, host);
+
+  uint16_t reqLen = strlen(httpReq);
+  if (reqLen >= sizeof(httpReq)) {
+    Serial.println(F("❌ HTTP request too long"));
+    tcpClose();
+    return false;
   }
 
-  if (connectSuccess) {
-    char latStr[15], lonStr[15];
-    dtostrf(lat, 4, 6, latStr);
-    dtostrf(lon, 4, 6, lonStr);
-    snprintf(httpRequestBuffer, HTTP_REQUEST_BUFFER_SIZE,
-             "GET /?id=%s&lat=%s&lon=%s&timestamp=%s HTTP/1.1\r\nHost: %s\r\n\r\n",
-             deviceId, latStr, lonStr, timestampStr, host);
-    int dataLength = strlen(httpRequestBuffer);
-    Serial.print(F("Sending CIPSEND (len "));
-    Serial.print(dataLength);
-    Serial.println(F(")..."));
-    if (dataLength >= HTTP_REQUEST_BUFFER_SIZE || dataLength >= 1460) {
-      Serial.println(F("ERROR: Request too long!"));
-      sendSuccess = false;
-    } else {
-      snprintf(responseBuffer, RESPONSE_BUFFER_SIZE, "AT+CIPSEND=%d", dataLength);
-      moduleSerial.println(responseBuffer);
-      readSerialResponse(500UL);  // Attend le ">"
-      if (strchr(responseBuffer, '>')) {
-        Serial.println(F("Got '>'. Sending HTTP..."));
-        moduleSerial.print(httpRequestBuffer);
-        readSerialResponse(10000UL);
-        if (strstr(responseBuffer, "SEND OK")) {
-          sendSuccess = true;
-          Serial.println(F("SEND OK."));
-          readSerialResponse(500UL);
-        } else {
-          sendSuccess = false;
-          Serial.println(F("SEND FAIL/TIMEOUT?"));
-        }
-      } else {
-        sendSuccess = false;
-        Serial.println(F("No '>' prompt."));
-      }
-    }
-  } else {
-    Serial.println(F("Skipping send (no connection)."));
+  /* ---------- 3. Envoyer la requête ------------- */
+  Serial.print(F("Sending ")); Serial.print(reqLen); Serial.println(F(" bytes…"));
+  if (!tcpSend(httpReq, reqLen)) {
+    Serial.println(F("❌ tcpSend failed"));
+    tcpClose();
+    return false;
   }
+  Serial.println(F("✔ Send OK"));
 
-  if (connectSuccess) {
-    Serial.println(F("Closing connection..."));
-    if (!executeSimpleCommand("AT+CIPCLOSE=0", "CLOSE OK", 500UL, 1))
-      Serial.println(F("CIPCLOSE failed?"));
-  } else {
-    executeSimpleCommand("AT+CIPSHUT", "SHUT OK", 5000UL, 1);
-  }
-  delay(1000);
-  return connectSuccess && sendSuccess;
+  /* ---------- 4. Fermer proprement -------------- */
+  tcpClose();
+  Serial.println(F("Socket fermée"));
+  return true;
 }
