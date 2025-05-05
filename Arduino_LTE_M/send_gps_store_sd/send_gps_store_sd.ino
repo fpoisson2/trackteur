@@ -188,6 +188,7 @@ void resendLastLog() {
   Serial.print(F(", ")); Serial.println(lon, 6);
 
   if (sendGpsToTraccar(TRACCAR_HOST, TRACCAR_PORT, DEVICE_ID, lat, lon, ts)) {
+    wdt_reset();
     Serial.println(F("    SEND OK! Marking as sent."));
     consecutiveNetFails = 0;
   
@@ -198,7 +199,9 @@ void resendLastLog() {
     PF.writeFile(buf, 512, &br);
     PF.writeFile(nullptr, 0, &br);
     lastSectorUsed--;
+    wdt_reset();
   } else {
+    wdt_reset();
     consecutiveNetFails++;
     Serial.print(F("    SEND FAIL (#"));
     Serial.print(consecutiveNetFails);
