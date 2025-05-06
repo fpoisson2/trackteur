@@ -11,37 +11,6 @@
  * Dépôt Git   : https://github.com/fpoisson2/trackteur
  * 
  * Dépendances :    if (getGpsData(currentLat, currentLon, gpsTimestampTraccar)) {
-      Serial.print(F("GPS OK: Lat=")); Serial.print(currentLat, 6);
-      Serial.print(F(" Lon="));        Serial.print(currentLon, 6);
-      Serial.print(F(" Time="));       Serial.println(gpsTimestampTraccar);
-
-      logRealPositionToSd(currentLat, currentLon, gpsTimestampTraccar);
-
-      if (netState == NetState::ONLINE) {
-        memset(responseBuffer, 0, sizeof(responseBuffer));
-        responseBufferPos = 0;
-
-        bool ok = sendGpsToTraccar(TRACCAR_HOST, TRACCAR_PORT, DEVICE_ID, currentLat, currentLon, gpsTimestampTraccar);
-        if (ok) {
-          Serial.println(F(">>> Send OK."));
-          consecutiveNetFails = 0;
-          resendLastLog();
-        } else {
-          Serial.print(F("Network fail #")); Serial.println(++consecutiveNetFails);
-          Serial.println(F(">>> Send FAIL."));
-          if (consecutiveNetFails >= NET_FAIL_THRESHOLD) {
-            Serial.println(F(">>> Trop d'échecs réseau, on redémarre le module GSM."));
-            resetGsmModule();
-            netState = NetState::OFFLINE;
-            lastReconnectAttempt = millis();
-            consecutiveNetFails = 0;
-          }
-        }
-      } else {
-        Serial.println(F("Pas de réseau, stockage uniquement."));
-      }
-
-    }
  *   - common.h         : Définitions globales, watchdog, constantes
  *   - sdlog.h/.cpp     : Gestion de la carte SD avec Petit FatFs
  *   - gsm.h/.cpp       : Communication série AT avec le module LTE

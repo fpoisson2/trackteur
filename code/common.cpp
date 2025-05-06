@@ -52,8 +52,11 @@ char gpsTimestampTraccar[GPS_TIMESTAMP_TRACCAR_BUF_SIZE] = {0};
 bool setupSuccess = false;
 
 
+bool sdAvailable = false;
+
 void initializeWatchdog() {
-  wdt_enable(WDTO_8S);
+  //wdt_enable(WDTO_8S);
+  wdt_disable();
 }
 
 void initializeSerial() {

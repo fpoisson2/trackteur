@@ -51,6 +51,8 @@ extern const uint8_t powerPin;
 extern const uint8_t swRxPin;
 extern const uint8_t swTxPin;
 
+extern bool sdAvailable;
+
 extern SoftwareSerial moduleSerial;
 
 extern const unsigned long moduleBaudRate;

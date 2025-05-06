@@ -73,6 +73,10 @@ uint32_t loadLogMetadata() {
 }
 
 void resendLastLog() {
+  if (!sdAvailable) {
+    Serial.println(F("SD non disponible. Ignoré."));
+    return;
+  }
   if (lastSectorUsed < 1) return;
   wdt_reset();
 
@@ -154,6 +158,10 @@ void resendLastLog() {
 
 
 void logRealPositionToSd(float lat, float lon, const char* ts) {
+  if (!sdAvailable) {
+    Serial.println(F("SD non disponible. Ignoré."));
+    return;
+  }
   char latStr[15], lonStr[15];
   dtostrf(lat, 4, 6, latStr);
   dtostrf(lon, 4, 6, lonStr);
@@ -226,10 +234,14 @@ void logRealPositionToSd(float lat, float lon, const char* ts) {
 void initializeSD() {
   pinMode(SD_CS_PIN, OUTPUT);
   SPI.begin();
-  if (PF.begin(&fs) != FR_OK) {
-    Serial.println(F("Failed to mount SD"));
+
+  FRESULT res = PF.begin(&fs);
+  if (res != FR_OK) {
+    Serial.println(F("Échec de montage de la carte SD."));
+    sdAvailable = false;
   } else {
-    Serial.println(F("SD mounted"));
+    Serial.println(F("Carte SD montée avec succès."));
+    sdAvailable = true;
   }
 }
 

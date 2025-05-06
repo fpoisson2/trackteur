@@ -54,6 +54,8 @@ bool openDataStack()
       Serial.println(F(" failed, retrying…"));
       delay(500);
     }
+
+    executeSimpleCommand("AT+CDNSCFG=\"8.8.8.8\",\"1.1.1.1\"","OK",1000,2);
   
     Serial.println(F("NETOPEN ultimately failed."));
     return false;
@@ -84,9 +86,14 @@ bool tcpOpen(const char* host, uint16_t port)
   else
     snprintf(cmd, sizeof(cmd), "AT+CIPSTART=\"TCP\",\"%s\",%u", host, port);
 
-  return executeSimpleCommand(cmd,
-          gsmModel == GSM_A7670 ? "+CIPOPEN: 0,0" : "CONNECT OK",
-          30000, 2);
+  bool ok = executeSimpleCommand(cmd,
+        gsmModel == GSM_A7670 ? "+CIPOPEN: 0,0" : "CONNECT OK",
+        35000,1);
+  if(!ok && gsmModel == GSM_A7670 && strstr(responseBuffer,"+CIPOPEN: 0,1")){
+      // tentative suivante autorisée
+      ok = false;
+  }
+  return ok;
 }
 
 bool tcpSend(const char* payload, uint16_t len)
