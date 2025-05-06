@@ -286,6 +286,7 @@ bool step1NetworkSettings() {
 bool waitForSimReady() {
   Serial.println(F("Waiting for SIM readiness..."));
   for (uint8_t i = 0; i < 10; i++) {
+    wdt_reset();
     if (executeSimpleCommand("AT+CPIN?", "+CPIN:", 1000UL, 1) && strstr(responseBuffer, "READY")) {
       Serial.println(F("SIM Ready."));
       return true;
@@ -299,6 +300,7 @@ bool waitForSimReady() {
 bool step2NetworkRegistration() {
   Serial.println(F("\n=== STEP 2: Network Registration ==="));
   for (uint8_t i = 0; i < 20; i++) {
+    wdt_reset();
     Serial.print(F("Reg check ")); Serial.print(i + 1); Serial.println(F("..."));
     executeSimpleCommand("AT+CSQ", "+CSQ", 500UL, 1);
     executeSimpleCommand("AT+COPS?", "+COPS", 3000UL, 1);
