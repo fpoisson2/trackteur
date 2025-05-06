@@ -160,18 +160,22 @@ void readSerialResponse(unsigned long waitMillis) {
   while (millis() - start < waitMillis) {
     wdt_reset();
       while (moduleSerial.available()) {
-        char c = moduleSerial.read();
+          char c = moduleSerial.read();
       
-        if (responseBufferPos < RESPONSE_BUFFER_SIZE - 1) {
-          responseBuffer[responseBufferPos++] = c;
-          responseBuffer[responseBufferPos]   = '\0';
-        } else {
-          // ⬇️  Ajoute ce bloc
-          Serial.println(F("⚠️ overflow, flushing"));
-          while (moduleSerial.available()) moduleSerial.read(); // vide le FIFO
-          break;                                                // on sort ➜ on ne corrompt pas la pile
-        }
+          /* ① ignore tout octet hors ASCII imprimable */
+          if ((uint8_t)c < 32 || (uint8_t)c > 126) continue;
+      
+          /* ② copie protégée */
+          if (responseBufferPos < RESPONSE_BUFFER_SIZE - 1) {
+              responseBuffer[responseBufferPos++] = c;
+              responseBuffer[responseBufferPos]   = '\0';
+          } else {
+              Serial.println(F("⚠️ overflow, flushing"));
+              while (moduleSerial.available()) moduleSerial.read();  // vide FIFO
+              break;
+          }
       }
+
     if (!moduleSerial.available()) delay(5);
   }
 
