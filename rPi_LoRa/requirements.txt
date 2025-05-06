@@ -1,8 +1,0 @@
-spidev
-RPi.GPIO
-pyserial
-pynmea2
-requests
-paramiko
-pandas
-matplotlib
