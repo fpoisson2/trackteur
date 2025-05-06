@@ -77,27 +77,17 @@ bool closeDataStack()
     return executeSimpleCommand("AT+CIPSHUT", "SHUT OK", 5000, 2);
 }
 
-
 bool tcpOpen(const char* host, uint16_t port)
 {
   char cmd[96];
-  snprintf(cmd, sizeof(cmd),
-           "AT+CIPOPEN=0,\"TCP\",\"%s\",%u", host, port);
+  if (gsmModel == GSM_A7670)
+    snprintf(cmd, sizeof(cmd), "AT+CIPOPEN=0,\"TCP\",\"%s\",%u", host, port);
+  else
+    snprintf(cmd, sizeof(cmd), "AT+CIPSTART=\"TCP\",\"%s\",%u", host, port);
 
-  clearSerialBuffer();              // vide le FIFO
-  moduleSerial.println(cmd);
-
-  unsigned long t0 = millis();
-  bool opened = false;
-  while (millis() - t0 < 15000UL) {
-    readSerialResponse(50);         // collecte par tranches courtes
-    if (strstr(responseBuffer, "+CIPOPEN: 0,0")) { opened = true;  break; }
-    if (strstr(responseBuffer, "+CIPOPEN: 0,11")) { // erreur DNS / socket
-        tcpClose();                                    // ferme proprement
-        return false;
-    }
-  }
-  return opened;
+  return executeSimpleCommand(cmd,
+          gsmModel == GSM_A7670 ? "+CIPOPEN: 0,0" : "CONNECT OK",
+          30000, 2);
 }
 
 
@@ -302,25 +292,16 @@ bool initialCommunication() {
 bool step1NetworkSettings() {
   Serial.println(F("\n=== STEP 1: Network Settings ==="));
   closeDataStack();
-  if (gsmModel == GSM_A7670) {
-    if (!executeSimpleCommand("AT+CFUN=0", "OK", 1000UL, 1)) {
-      Serial.println(F("WARNING: CFUN=0 failed. Continuing..."));
-    }
+  if (!executeSimpleCommand("AT+CFUN=0", "OK", 1000UL, 1)) {
+    Serial.println(F("WARNING: CFUN=0 failed. Continuing..."));
   }
-  else {
-    executeSimpleCommand("AT+NETCLOSE", "+NETCLOSE:", 5000, 2);
-  }
-
   bool ok = true;
   ok &= executeSimpleCommand("AT+CNMP=38", "OK", 500UL, 3);
-  if (gsmModel == GSM_SIM7000) {
-      ok &= executeSimpleCommand("AT+CMNB=1",  "OK", 500, 3);
-  }   // A7670E : pas de CMNB, on n’altère pas ‘ok’
-  
+  ok &= executeSimpleCommand("AT+CMNB=1", "OK", 500UL, 3);
   if (ok) {
-     Serial.println(F("Turning radio ON …"));
-     moduleSerial.println( gsmModel == GSM_A7670 ? "AT+CFUN=1" : "AT+CFUN=1,1");
-     delay(500);
+    Serial.println(F("Turning radio ON (CFUN=1,1)..."));
+    moduleSerial.println("AT+CFUN=1,1");
+    delay(500);
   }
   return ok;
 }
