@@ -19,7 +19,7 @@ GsmModel gsmModel = GSM_SIM7000;  // valeur par défaut
 
 static void detectModel()
 {
-  executeSimpleCommand("ATI", "OK", 1500, 2);       // réponse contient «SIM7000» ou «A7670»
+  executeSimpleCommand("ATI", "", 1500, 1);
   if (strstr(responseBuffer, "A7670"))  gsmModel = GSM_A7670;
   else if (strstr(responseBuffer, "SIM7000")) gsmModel = GSM_SIM7000;
 
@@ -71,22 +71,53 @@ bool tcpOpen(const char* host, uint16_t port)
 
 bool tcpSend(const char* payload, uint16_t len)
 {
-  char cmd[24];
+  char cmd[32];
   if (gsmModel == GSM_A7670)
     snprintf(cmd, sizeof(cmd), "AT+CIPSEND=0,%u", len);
   else
-    snprintf(cmd, sizeof(cmd), "AT+CIPSEND=%u", len);
+    snprintf(cmd, sizeof(cmd), "AT+CIPSEND=%u",  len);
 
-  if (!executeSimpleCommand(cmd, ">", 3000, 1)) return false;
+  // --- on envoie la commande sans utiliser sendAT() ---
+  clearSerialBuffer();
+  moduleSerial.println(cmd);
 
+  // attendre l'invite '>' jusqu'à 10 s
+  unsigned long t0 = millis();
+  bool gotPrompt = false;
+  while (millis() - t0 < 10000UL) {           // 10 s
+    wdt_reset();
+    readSerialResponse(50);                   // lit petits paquets
+    if (strchr(responseBuffer, '>')) {
+      gotPrompt = true;
+      break;
+    }
+  }
+  if (!gotPrompt) {
+    Serial.println(F("❌  CIPSEND: '>' prompt timeout"));
+    return false;
+  }
+  Serial.println(F("✔  Got '>' prompt, sending payload…"));
+
+  // --- envoi du payload + Ctrl‑Z ---
   clearSerialBuffer();
   moduleSerial.write((const uint8_t*)payload, len);
-  moduleSerial.write(0x1A);                    // Ctrl‑Z
-  readSerialResponse(10000);
+  moduleSerial.write(0x1A);                   // Ctrl‑Z
 
-  return strstr(responseBuffer,
-                gsmModel == GSM_A7670 ? "+CIPSEND: 0," : "SEND OK");
+  // attendre SEND OK ou +CIPSEND: 0
+  bool sendOK = false;
+  t0 = millis();
+  while (millis() - t0 < 10000UL) {
+    readSerialResponse(100);
+    if (strstr(responseBuffer, "SEND OK") ||
+        strstr(responseBuffer, "+CIPSEND: 0")) {
+      sendOK = true;
+      break;
+    }
+  }
+  Serial.println(sendOK ? F("✔  SEND OK") : F("❌  SEND failed/timeout"));
+  return sendOK;
 }
+
 
 bool tcpClose()
 {
@@ -223,10 +254,13 @@ bool initialCommunication() {
   Serial.println(F("Initial communication OK."));
   executeSimpleCommand("ATE0", "OK", 1000UL, 2);
   executeSimpleCommand("AT+CMEE=2", "OK", 1000UL, 2);
-  executeSimpleCommand("AT+CGNSURC=0", "OK", 1000UL, 2);
-  executeSimpleCommand("AT+CGNSTST=0", "OK", 1000UL, 2);
+  if (gsmModel == GSM_SIM7000) {
+    executeSimpleCommand("AT+CGNSURC=0", "OK", 1000UL, 2);
+    executeSimpleCommand("AT+CGNSTST=0", "OK", 1000UL, 2);   
+    executeSimpleCommand("AT+CLTS=0", "OK", 1000UL, 2); 
+     executeSimpleCommand("AT+CLTS=0", "OK", 1000UL, 2);
+  }
   executeSimpleCommand("AT+CTZU=0", "OK", 1000UL, 2);
-  executeSimpleCommand("AT+CLTS=0", "OK", 1000UL, 2);
   executeSimpleCommand("AT+CREG=0", "OK", 1000UL, 2);
   executeSimpleCommand("AT+CEREG=0", "OK", 1000UL, 2);
 
@@ -236,16 +270,25 @@ bool initialCommunication() {
 bool step1NetworkSettings() {
   Serial.println(F("\n=== STEP 1: Network Settings ==="));
   closeDataStack();
-  if (!executeSimpleCommand("AT+CFUN=0", "OK", 1000UL, 1)) {
-    Serial.println(F("WARNING: CFUN=0 failed. Continuing..."));
+  if (gsmModel == GSM_A7670) {
+    if (!executeSimpleCommand("AT+CFUN=0", "OK", 1000UL, 1)) {
+      Serial.println(F("WARNING: CFUN=0 failed. Continuing..."));
+    }
   }
+  else {
+    executeSimpleCommand("AT+NETCLOSE", "+NETCLOSE:", 5000, 2);
+  }
+
   bool ok = true;
   ok &= executeSimpleCommand("AT+CNMP=38", "OK", 500UL, 3);
-  ok &= executeSimpleCommand("AT+CMNB=1", "OK", 500UL, 3);
+  if (gsmModel == GSM_SIM7000) {
+      ok &= executeSimpleCommand("AT+CMNB=1",  "OK", 500, 3);
+  }   // A7670E : pas de CMNB, on n’altère pas ‘ok’
+  
   if (ok) {
-    Serial.println(F("Turning radio ON (CFUN=1,1)..."));
-    moduleSerial.println("AT+CFUN=1,1");
-    delay(500);
+     Serial.println(F("Turning radio ON …"));
+     moduleSerial.println( gsmModel == GSM_A7670 ? "AT+CFUN=1" : "AT+CFUN=1,1");
+     delay(500);
   }
   return ok;
 }
@@ -289,10 +332,20 @@ bool step3PDPContext() {
 
 bool step4EnableGNSS() {
   Serial.println(F("\n=== STEP 4: Enable GNSS ==="));
+
+  if (gsmModel == GSM_A7670) {
+    bool ok = true;
+    ok &= executeSimpleCommand("AT+CGNSSPWR=1", "OK", 1000, 3);
+    ok &= executeSimpleCommand("AT+CGNSSTST=1", "OK", 1000, 2);       // facultatif
+    return ok;
+  }
+
+  // SIM7000G
   if (!executeSimpleCommand("AT+CGNSPWR=1", "OK", 500UL, 3)) {
     Serial.println(F("ERROR: Failed to enable GNSS!"));
     return false;
   }
-  delay(1000); // Laisse le temps au GNSS de s'initialiser
+
+  delay(1000); // init GNSS
   return true;
 }

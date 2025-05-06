@@ -1,0 +1,14 @@
+site_name: Trackteur Arduino
+site_description: Documentation du projet Trackteur Arduino (GPS, GSM, SD-Logger)
+nav:
+  - Accueil: index.md
+  - Présentation: presentation.md
+  - Matériel: hardware.md
+  - Assemblage: assembly.md
+  - Logiciel: software.md
+  - Dépannage: troubleshooting.md
+  - Contribution: contributing.md
+theme:
+  name: readthedocs
+docs_dir: docs
+site_dir: site
