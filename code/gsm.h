@@ -8,6 +8,10 @@ extern GsmModel gsmModel;        // défini dans gsm.cpp
 
 bool executeSimpleCommand(const char* command, const char* expectedResponse,
                           unsigned long timeoutMillis, uint8_t retries);
+bool executeSimpleCommand(const __FlashStringHelper* command,
+                          const char* expectedResponse,
+                          unsigned long timeoutMillis, uint8_t retries);
+
 void readSerialResponse(unsigned long waitMillis);
 bool waitForInitialOK(uint8_t maxRetries);
 void resetGsmModule();

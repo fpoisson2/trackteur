@@ -29,6 +29,8 @@ const uint8_t powerPin = 2;
 const uint8_t swRxPin = 3;
 const uint8_t swTxPin = 4;
 
+char scratchBuf[96];
+
 SoftwareSerial moduleSerial(swRxPin, swTxPin);
 
 const unsigned long moduleBaudRate = 9600UL;

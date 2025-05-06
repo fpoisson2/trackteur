@@ -56,21 +56,29 @@ uint32_t loadLogMetadata() {
 
   UINT br;
   FRESULT res = PF.readFile(&meta, sizeof(meta), &br);
+
   if (res != FR_OK || br != sizeof(meta)) {
-    Serial.println(F("Lecture metadata échouée."));
+    Serial.println(F("Lecture metadata échouée. Réinitialise index à 1."));
     lastSectorUsed = 0;
-    return 1;
+    saveLogMetadata(1);
   }
 
   if (strncmp(meta.signature, "LOGDATA", 7) != 0) {
-    Serial.println(F("Signature invalide. Repart à zéro."));
+    Serial.println(F("Signature invalide. Réinitialise index à 1."));
     lastSectorUsed = 0;
-    return 1;
+    saveLogMetadata(1);
+  }
+
+  if (meta.index == 0 || meta.index > MAX_SECTORS) {
+    Serial.println(F("Index corrompu. Réinitialise index à 1."));
+    lastSectorUsed = 0;
+    saveLogMetadata(1);
   }
 
   lastSectorUsed = meta.index - 1;
   return meta.index;
 }
+
 
 void resendLastLog() {
   if (!sdAvailable) {

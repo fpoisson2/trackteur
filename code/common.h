@@ -23,7 +23,7 @@
 #define GPS_POLL_INTERVAL   10000UL   // 10 secondes entre lectures GPS
 #define RECONNECT_PERIOD    60000UL   // 60 secondes entre tentatives réseau
 
-
+extern char scratchBuf[96];  
 
 bool initialCommunication();
 bool step1NetworkSettings();
