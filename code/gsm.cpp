@@ -77,27 +77,62 @@ bool closeDataStack()
 
 bool tcpOpen(const char* host, uint16_t port)
 {
-  if (gsmModel == GSM_A7670)
-    snprintf_P(scratchBuf, sizeof(scratchBuf), PSTR("AT+CIPOPEN=0,\"TCP\",\"%s\",%u"), host, port);
-  else
-    snprintf_P(scratchBuf, sizeof(scratchBuf), PSTR("AT+CIPSTART=\"TCP\",\"%s\",%u"), host, port);
+  clearSerialBuffer();
 
-if (gsmModel == GSM_A7670) {
+  if (gsmModel == GSM_A7670) {
     snprintf_P(scratchBuf, sizeof(scratchBuf), PSTR("AT+CIPOPEN=0,\"TCP\",\"%s\",%u"), host, port);
-    clearSerialBuffer();
-    Serial.print(F("→ TCP open command: ")); Serial.println(scratchBuf);
+    Serial.print(F("→ TCP open command (A7670): ")); Serial.println(scratchBuf);
     moduleSerial.write((const uint8_t*)scratchBuf, strlen(scratchBuf));
     moduleSerial.write('\r');
-    delay(500); // Increase from 200ms to 500ms
+
+    delay(500); // stabilité
     if (waitForSerialResponsePattern("+CIPOPEN: 0,0", 30000UL)) {
-      Serial.println(F("✔ TCP connection successful"));
+      Serial.println(F("✔ TCP connection successful (A7670)"));
       return true;
     }
+    Serial.print(F("❌ TCP connection failed (A7670), response: ")); Serial.println(responseBuffer);
+    return false;
 
-    Serial.print(F("❌ TCP connection failed, response: ")); Serial.println(responseBuffer);
+   } else if (gsmModel == GSM_SIM7000) {
+    snprintf_P(scratchBuf, sizeof(scratchBuf), PSTR("AT+CIPSTART=\"TCP\",\"%s\",%u"), host, port);
+    Serial.print(F("→ TCP open command (SIM7000): ")); Serial.println(scratchBuf);
+    moduleSerial.write((const uint8_t*)scratchBuf, strlen(scratchBuf));
+    moduleSerial.write('\r');
+
+    delay(500);
+    
+    // Read initial response and check for immediate OK
+    readSerialResponse(5000UL);
+    
+    // Check for three possible success patterns:
+    // 1. "CONNECT OK" with space (ideal case)
+    // 2. "OKCONNECT OK" (as seen in your log)
+    // 3. "OK" followed by "CONNECT OK" in a separate response
+    if (strstr(responseBuffer, "CONNECT OK") || 
+        strstr(responseBuffer, "OKCONNECT OK") ||
+        strstr(responseBuffer, "OK")) {
+      
+      // If we just have OK, wait for the CONNECT OK to follow
+      if (!strstr(responseBuffer, "CONNECT") && strstr(responseBuffer, "OK")) {
+        Serial.println(F("Got OK, waiting for CONNECT OK..."));
+        if (!waitForSerialResponsePattern("CONNECT OK", 10000UL)) {
+          Serial.println(F("❌ CONNECT OK not received after initial OK"));
+          return false;
+        }
+      }
+      
+      Serial.println(F("✔ TCP connection successful (SIM7000)"));
+      return true;
+    }
+    
+    Serial.print(F("❌ TCP connection failed (SIM7000), response: ")); Serial.println(responseBuffer);
     return false;
   }
+
+  Serial.println(F("❌ Unknown modem type"));
+  return false;
 }
+
 
 bool waitForSerialResponsePattern(const char* pattern,
                                   unsigned long totalTimeout = 30000UL,
@@ -171,15 +206,27 @@ bool waitForAnyPattern(const char* pattern1, const char* pattern2,
   Serial.println(F("❌ Timeout waiting for expected response."));
   return false;
 }
-
-
-
 bool tcpClose()
 {
-  const char* cmd     = (gsmModel == GSM_A7670) ? "AT+CIPCLOSE=0" : "AT+CIPCLOSE";
-  const char* expect  = (gsmModel == GSM_A7670) ? "+CIPCLOSE: 0"  : "CLOSE OK";
-
-  return executeSimpleCommand(cmd, expect, 10000UL, 2);
+  // First try standard close
+  const char* cmd    = (gsmModel == GSM_A7670) ? "AT+CIPCLOSE=0" : "AT+CIPCLOSE";
+  const char* expect = (gsmModel == GSM_A7670) ? "+CIPCLOSE: 0"  : "CLOSE OK";
+  
+  clearSerialBuffer();
+  moduleSerial.println(cmd);
+  
+  bool ok = waitForSerialResponsePattern(expect, 10000UL);
+  
+  if (!ok) {
+    // If standard close fails, try to force-close everything
+    if (gsmModel == GSM_SIM7000) {
+      Serial.println(F("Standard close failed, attempting CIPSHUT"));
+      executeSimpleCommand("AT+CIPSHUT", "SHUT OK", 3000, 2);
+    }
+  }
+  
+  delay(2000);  // Longer delay to ensure connection fully terminates
+  return ok;
 }
 
 void readSerialResponse(unsigned long waitMillis) {
@@ -371,8 +418,12 @@ bool step1NetworkSettings() {
     Serial.println(F("WARNING: CFUN=0 failed. Continuing..."));
   }
 
+  snprintf_P(scratchBuf, sizeof(scratchBuf), PSTR("AT+CGDCONT=1,\"IP\",\"%s\""), APN);
+  if (!executeSimpleCommand(scratchBuf, "OK", 500UL, 3)) {
+    Serial.println(F("WARNING: Early APN config failed."));
+  }
   bool ok = true;
-  ok &= executeSimpleCommand("AT+CNMP=38", "OK", 500UL, 3);
+  ok &= executeSimpleCommand("AT+CNMP=2", "OK", 500UL, 3);
 
   // Ne faire CMNB=1 que si ce n’est pas un A7670E
   if (gsmModel != GSM_A7670) {
@@ -452,7 +503,7 @@ bool step4EnableGNSS() {
     // SIM7000G : GNSS via CGNSPWR et sortie via CGNSTST
     bool ok = true;
     ok &= executeSimpleCommand("AT+CGNSPWR=1", "OK", 500, 3);
-    ok &= executeSimpleCommand("AT+CGNSTST=1", "OK", 500, 2);  // sortie NMEA vers UART (facultatif)
+    ok &= executeSimpleCommand("AT+CGNSTST=0", "OK", 500, 2);  // sortie NMEA vers UART (facultatif)
     if (!ok) Serial.println(F("ERROR: Échec d'activation GNSS pour SIM7000G."));
     delay(1000); // délai pour init GNSS
     return ok;
