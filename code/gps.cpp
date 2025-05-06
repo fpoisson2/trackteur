@@ -26,7 +26,7 @@ if (gsmModel == GSM_A7670) {
   if (!p) { Serial.println(F("ERROR: No +CGPSINFO in response")); return false; }
 
   // --- découpe aux virgules ------------------------------------------------
-  char buf[64];
+  char buf[128];
   strncpy(buf, p + 11, sizeof(buf) - 1);   // saute "+CGPSINFO:"
   buf[sizeof(buf) - 1] = '\0';
   // enlève éventuel \r ou \n
