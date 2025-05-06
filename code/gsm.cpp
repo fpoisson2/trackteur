@@ -69,67 +69,42 @@ bool tcpOpen(const char* host, uint16_t port)
           30000, 2);
 }
 
-bool tcpSend(const char* payload, uint16_t len) {
+bool tcpSend(const char* payload, uint16_t len)
+{
   char cmd[32];
   if (gsmModel == GSM_A7670)
     snprintf(cmd, sizeof(cmd), "AT+CIPSEND=0,%u", len);
   else
     snprintf(cmd, sizeof(cmd), "AT+CIPSEND=%u",  len);
 
-  // 1) Flush any old data
-  while (moduleSerial.available()) { moduleSerial.read(); }
-  
-  // 2) Send the CIPSEND command
-  moduleSerial.println(cmd);
-  Serial.print(F("Send [CIPSEND]: ")); Serial.println(cmd);
+  // 1) Make sure the buffer is clean
+  clearSerialBuffer();
 
-  // 3) Wait up to 10s for the '>' prompt, resetting WDT
-  unsigned long t0 = millis();
-  bool gotPrompt = false;
-  while (millis() - t0 < 10000UL) {
-    wdt_reset();
-    if (moduleSerial.available()) {
-      char c = moduleSerial.read();
-      if (c == '>') {
-        gotPrompt = true;
-        break;
-      }
-    }
-  }
-  if (!gotPrompt) {
-    Serial.println(F("❌ CIPSEND: '>' prompt timeout"));
+  // 2) Send CIPSEND and wait (up to 10s) for the ">" prompt
+  if (!executeSimpleCommand(cmd, ">", 10000UL, 1)) {
+    Serial.println(F("❌ CIPSEND prompt timeout"));
     return false;
   }
   Serial.println(F("✔ Got '>' prompt"));
 
-  // 4) Send the payload + CTRL-Z
+  // 3) Send payload + Ctrl-Z
   moduleSerial.write((const uint8_t*)payload, len);
   moduleSerial.write(0x1A);
   Serial.print(F("▶️ Payload sent (")); Serial.print(len); Serial.println(F(" bytes)"));
 
-  // 5) Wait up to 10s for SEND OK or +CIPSEND: 0
-  t0 = millis();
-  bool sendOK = false;
-  String resp;
-  while (millis() - t0 < 10000UL) {
-    wdt_reset();
-    while (moduleSerial.available()) {
-      char c = moduleSerial.read();
-      resp += c;
-      // Once we see either marker, we can stop
-      if (resp.indexOf("SEND OK")  != -1 ||
-          resp.indexOf("+CIPSEND: 0") != -1) {
-        sendOK = true;
-        break;
-      }
-    }
-    if (sendOK) break;
-  }
+  // 4) Now read the response into responseBuffer (up to 10s)
+  readSerialResponse(10000UL);
 
-  Serial.println(sendOK
-    ? F("✔ SEND OK")
-    : F("❌ SEND failed/timeout"));
-  return sendOK;
+  // 5) Check for either standard or A7670E style success
+  if (strstr(responseBuffer, "SEND OK") ||
+      strstr(responseBuffer, "+CIPSEND: 0")) {
+    Serial.println(F("✔ SEND OK"));
+    return true;
+  } else {
+    Serial.println(F("❌ SEND failed — response:"));
+    Serial.println(responseBuffer);
+    return false;
+  }
 }
 
 
