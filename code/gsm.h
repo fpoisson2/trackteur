@@ -30,4 +30,13 @@ bool tcpOpen (const char* host, uint16_t port);
 bool tcpSend (const char* payload, uint16_t len);
 bool tcpClose();
 
+bool waitForSerialResponsePattern(const char* pattern,
+                                  unsigned long totalTimeout = 30000UL,
+                                  unsigned long pollInterval = 200UL);
+
+bool waitForAnyPattern(const char* pattern1, const char* pattern2,
+                       unsigned long totalTimeout = 10000UL,
+                       unsigned long pollInterval = 200UL);
+
+
 #endif // GSM_H

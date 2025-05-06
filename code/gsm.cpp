@@ -32,21 +32,27 @@ bool openDataStack()
 {
   if (gsmModel == GSM_A7670) {
     // A7670E : APN + NETOPEN
+    clearSerialBuffer();
     snprintf_P(scratchBuf, sizeof(scratchBuf), PSTR("AT+CGDCONT=1,\"IP\",\"%s\",\"0.0.0.0\",0,0"), APN);
-    if (!executeSimpleCommand(scratchBuf, "OK", 500, 3)) return false;
+    if (!executeSimpleCommand(scratchBuf, "OK", 1000, 3)) return false;
 
     // NETOPEN avec trois tentatives
-    for (uint8_t i = 0; i < 3; i++) {
+     for (uint8_t i = 0; i < 3; i++) {
+      Serial.print(F("NETOPEN attempt ")); Serial.println(i + 1);
       moduleSerial.println(F("AT+NETOPEN"));
-      readSerialResponse(60000UL);
-
-      if (strstr(responseBuffer, "+NETOPEN: 0") ||
-          strstr(responseBuffer, "+NETOPEN: 1") ||
-          strstr(responseBuffer, "already opened")) {
+      readSerialResponse(10000UL);
+    
+      // Si pas de "+NETOPEN:" dans la première réponse, on attend la suite
+      if (!strstr(responseBuffer, "+NETOPEN:")) {
+        readSerialResponse(10000UL);  // attend la suite potentielle
+      }
+    
+      if (strstr(responseBuffer, "+NETOPEN: 0") || strstr(responseBuffer, "already opened")) {
         Serial.println(F("NETOPEN OK"));
         return true;
       }
-      Serial.print(F("NETOPEN attempt ")); Serial.print(i + 1); Serial.println(F(" failed, retrying…"));
+    
+      Serial.println(F("NETOPEN failed, retrying..."));
       delay(500);
     }
 
@@ -64,9 +70,9 @@ bool openDataStack()
 bool closeDataStack()
 {
   if (gsmModel == GSM_A7670)
-    return executeSimpleCommand("AT+NETCLOSE", "+NETCLOSE:", 30000, 2);
+    return executeSimpleCommand("AT+NETCLOSE", "+NETCLOSE:", 3000, 2);
   else
-    return executeSimpleCommand("AT+CIPSHUT", "SHUT OK", 5000, 2);
+    return executeSimpleCommand("AT+CIPSHUT", "SHUT OK", 3000, 2);
 }
 
 bool tcpOpen(const char* host, uint16_t port)
@@ -76,45 +82,93 @@ bool tcpOpen(const char* host, uint16_t port)
   else
     snprintf_P(scratchBuf, sizeof(scratchBuf), PSTR("AT+CIPSTART=\"TCP\",\"%s\",%u"), host, port);
 
-  return executeSimpleCommand(scratchBuf,
-          gsmModel == GSM_A7670 ? "+CIPOPEN: 0,0" : "CONNECT OK",
-          30000UL, 2);
+if (gsmModel == GSM_A7670) {
+    snprintf_P(scratchBuf, sizeof(scratchBuf), PSTR("AT+CIPOPEN=0,\"TCP\",\"%s\",%u"), host, port);
+    clearSerialBuffer();
+    Serial.print(F("→ TCP open command: ")); Serial.println(scratchBuf);
+    moduleSerial.write((const uint8_t*)scratchBuf, strlen(scratchBuf));
+    moduleSerial.write('\r');
+    delay(500); // Increase from 200ms to 500ms
+    if (waitForSerialResponsePattern("+CIPOPEN: 0,0", 30000UL)) {
+      Serial.println(F("✔ TCP connection successful"));
+      return true;
+    }
+
+    Serial.print(F("❌ TCP connection failed, response: ")); Serial.println(responseBuffer);
+    return false;
+  }
+}
+
+bool waitForSerialResponsePattern(const char* pattern,
+                                  unsigned long totalTimeout = 30000UL,
+                                  unsigned long pollInterval = 200UL)
+{
+  unsigned long start = millis();
+  while (millis() - start < totalTimeout) {
+    readSerialResponse(pollInterval);
+    if (strstr(responseBuffer, pattern)) return true;
+    if (strstr(responseBuffer, "ERROR") || strstr(responseBuffer, "+CME ERROR")) {
+      Serial.println(F("❌ Error detected while waiting for pattern."));
+      return false;
+    }
+  }
+  Serial.println(F("❌ Timeout waiting for expected response."));
+  return false;
 }
 
 
 bool tcpSend(const char* payload, uint16_t len)
 {
-  /* 1) Prépare la commande CIPSEND dans scratchBuf */
+  // 1) Prépare la commande CIPSEND dans scratchBuf
   if (gsmModel == GSM_A7670)
     snprintf_P(scratchBuf, sizeof(scratchBuf), PSTR("AT+CIPSEND=0,%u"), len);
   else
-    snprintf_P(scratchBuf, sizeof(scratchBuf), PSTR("AT+CIPSEND=%u"),  len);
+    snprintf_P(scratchBuf, sizeof(scratchBuf), PSTR("AT+CIPSEND=%u"), len);
 
-  /* 2) Vide le FIFO avant dʼenvoyer */
+  // 2) Vide le FIFO avant dʼenvoyer
   clearSerialBuffer();
 
-  /* 3) Envoie CIPSEND et attend '>' */
+  // 3) Envoie CIPSEND et attend '>'
   if (!executeSimpleCommand(scratchBuf, ">", 10000UL, 1)) {
     Serial.println(F("❌ CIPSEND prompt timeout"));
     return false;
   }
   Serial.println(F("✔ Got '>' prompt"));
 
-  /* 4) Envoie la charge utile suivie de Ctrl‑Z */
+  // 4) Envoie la charge utile suivie de Ctrl‑Z (0x1A)
+  clearSerialBuffer();       // important avant d’envoyer les données
   moduleSerial.write((const uint8_t*)payload, len);
-  moduleSerial.write(0x1A);
+  delay(20);                 // donne un peu de temps pour évacuer
+  moduleSerial.write(0x1A);  // fin de transmission
+
   Serial.print(F("▶️ Payload sent (")); Serial.print(len); Serial.println(F(" bytes)"));
 
-  /* 5) Lecture de la réponse */
-  readSerialResponse(10000UL);
+if (waitForAnyPattern("SEND OK", "+CIPSEND:", 10000UL)) {
+  Serial.println(F("✔ SEND OK"));
+  return true;
+}
 
-  /* 6) Vérifie le succès */
-  if (strstr(responseBuffer, "SEND OK") || strstr(responseBuffer, "+CIPSEND: 0")) {
-    Serial.println(F("✔ SEND OK"));
-    return true;
-  }
+
   Serial.println(F("❌ SEND failed — response:"));
   Serial.println(responseBuffer);
+  return false;
+}
+
+bool waitForAnyPattern(const char* pattern1, const char* pattern2,
+                       unsigned long totalTimeout = 10000UL,
+                       unsigned long pollInterval = 200UL) {
+  unsigned long start = millis();
+  while (millis() - start < totalTimeout) {
+    readSerialResponse(pollInterval);
+    if (strstr(responseBuffer, pattern1) || strstr(responseBuffer, pattern2)) {
+      return true;
+    }
+    if (strstr(responseBuffer, "ERROR") || strstr(responseBuffer, "+CME ERROR")) {
+      Serial.println(F("❌ Error detected while waiting for pattern."));
+      return false;
+    }
+  }
+  Serial.println(F("❌ Timeout waiting for expected response."));
   return false;
 }
 
@@ -128,8 +182,6 @@ bool tcpClose()
   return executeSimpleCommand(cmd, expect, 10000UL, 2);
 }
 
-
-
 void readSerialResponse(unsigned long waitMillis) {
   unsigned long start = millis();
   memset(responseBuffer, 0, RESPONSE_BUFFER_SIZE);
@@ -138,23 +190,27 @@ void readSerialResponse(unsigned long waitMillis) {
 
   while (millis() - start < waitMillis) {
     wdt_reset();
-      while (moduleSerial.available()) {
-          char c = moduleSerial.read();
-      
-          /* ① ignore tout octet hors ASCII imprimable */
-          if ((uint8_t)c < 32 || (uint8_t)c > 126) continue;
-      
-          /* ② copie protégée */
-          if (responseBufferPos < RESPONSE_BUFFER_SIZE - 1) {
-              responseBuffer[responseBufferPos++] = c;
-              responseBuffer[responseBufferPos]   = '\0';
-          } else {
-              Serial.println(F("⚠️ overflow, flushing"));
-              while (moduleSerial.available()) moduleSerial.read();  // vide FIFO
-              break;
-          }
+    while (moduleSerial.available()) {
+      char c = moduleSerial.read();
+      if ((uint8_t)c < 32 || (uint8_t)c > 126) continue;
+      if (responseBufferPos < RESPONSE_BUFFER_SIZE - 1) {
+        responseBuffer[responseBufferPos++] = c;
+        responseBuffer[responseBufferPos] = '\0';
+        anythingReceived = true;
+      } else {
+        Serial.println(F("⚠️ overflow, flushing"));
+        while (moduleSerial.available()) moduleSerial.read();
+        break;
       }
-
+    }
+    // Remove early break for +CIPOPEN: to capture full response
+//    if (strstr(responseBuffer, "OK") ||
+//        strstr(responseBuffer, "ERROR") ||
+//        strstr(responseBuffer, "+NETOPEN:") ||
+//        strstr(responseBuffer, "+CME ERROR") ||
+//        strstr(responseBuffer, ">")) {
+//      break;
+//    }
     if (!moduleSerial.available()) delay(5);
   }
 
@@ -172,6 +228,7 @@ void readSerialResponse(unsigned long waitMillis) {
     Serial.println(F("Rcvd: [Empty/Discarded]"));
   }
 }
+
 
 bool executeSimpleCommand(const char* command,
                           const char* expectedResponse,
@@ -306,37 +363,56 @@ bool initialCommunication() {
 
   return true;
 }
-
 bool step1NetworkSettings() {
   Serial.println(F("\n=== STEP 1: Network Settings ==="));
   closeDataStack();
+
   if (!executeSimpleCommand("AT+CFUN=0", "OK", 1000UL, 1)) {
     Serial.println(F("WARNING: CFUN=0 failed. Continuing..."));
   }
+
   bool ok = true;
   ok &= executeSimpleCommand("AT+CNMP=38", "OK", 500UL, 3);
-  ok &= executeSimpleCommand("AT+CMNB=1", "OK", 500UL, 3);
+
+  // Ne faire CMNB=1 que si ce n’est pas un A7670E
+  if (gsmModel != GSM_A7670) {
+    ok &= executeSimpleCommand("AT+CMNB=1", "OK", 500UL, 3);
+  } else {
+    Serial.println(F(">> A7670E détecté : saut de AT+CMNB=1"));
+  }
+
   if (ok) {
     Serial.println(F("Turning radio ON (CFUN=1,1)..."));
     moduleSerial.println("AT+CFUN=1,1");
     delay(500);
   }
+
   return ok;
 }
 
 bool waitForSimReady() {
-  Serial.println(F("Waiting for SIM readiness..."));
-  for (uint8_t i = 0; i < 10; i++) {
-    wdt_reset();
-    if (executeSimpleCommand("AT+CPIN?", "+CPIN:", 1000UL, 1) && strstr(responseBuffer, "READY")) {
+  const uint8_t MAX_RETRIES = 10;
+  const unsigned long RETRY_DELAY_MS = 1500UL;
+
+  for (uint8_t attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    moduleSerial.println("AT+CPIN?");
+    readSerialResponse(1000UL);
+
+    if (strstr(responseBuffer, "+CPIN: READY")) {
       Serial.println(F("SIM Ready."));
       return true;
     }
-    delay(1000);
+
+    Serial.print(F("SIM not ready (try ")); Serial.print(attempt + 1); Serial.println(F(")"));
+    delay(RETRY_DELAY_MS);
   }
-  Serial.println(F("ERROR: SIM not READY after wait."));
+
+  Serial.println(F("SIM non prête après plusieurs tentatives."));
   return false;
 }
+
+
+
 
 bool step2NetworkRegistration() {
   Serial.println(F("\n=== STEP 2: Network Registration ==="));
@@ -362,23 +438,26 @@ bool step2NetworkRegistration() {
 bool step3PDPContext() {
   return openDataStack();
 }
-
 bool step4EnableGNSS() {
   Serial.println(F("\n=== STEP 4: Enable GNSS ==="));
 
   if (gsmModel == GSM_A7670) {
-    bool ok = true;
-    ok &= executeSimpleCommand("AT+CGNSSPWR=1", "OK", 1000, 3);
-    ok &= executeSimpleCommand("AT+CGNSSTST=1", "OK", 1000, 2);       // facultatif
+    // A7670E : activer GNSS avec AT+CGNSSPWR=1 seulement
+    bool ok = executeSimpleCommand("AT+CGNSSPWR=1", "OK", 1000, 3);
+    if (!ok) Serial.println(F("ERROR: Échec d'activation GNSS pour A7670E."));
     return ok;
   }
 
-  // SIM7000G
-  if (!executeSimpleCommand("AT+CGNSPWR=1", "OK", 500UL, 3)) {
-    Serial.println(F("ERROR: Failed to enable GNSS!"));
-    return false;
+  if (gsmModel == GSM_SIM7000) {
+    // SIM7000G : GNSS via CGNSPWR et sortie via CGNSTST
+    bool ok = true;
+    ok &= executeSimpleCommand("AT+CGNSPWR=1", "OK", 500, 3);
+    ok &= executeSimpleCommand("AT+CGNSTST=1", "OK", 500, 2);  // sortie NMEA vers UART (facultatif)
+    if (!ok) Serial.println(F("ERROR: Échec d'activation GNSS pour SIM7000G."));
+    delay(1000); // délai pour init GNSS
+    return ok;
   }
 
-  delay(1000); // init GNSS
-  return true;
+  Serial.println(F("Modèle inconnu : GNSS non activé."));
+  return false;
 }
