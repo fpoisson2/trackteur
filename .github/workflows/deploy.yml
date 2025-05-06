@@ -11,6 +11,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          # Ensure the action can push back to gh-pages branch
+          persist-credentials: true
+          fetch-depth: 0
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -21,6 +25,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mkdocs gh-deploy --force --clean \
-            --remote-branch gh-pages \
-            --repo https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          # Deploy MkDocs site; default remote is origin and default branch is gh-pages
+          mkdocs gh-deploy --clean --force
