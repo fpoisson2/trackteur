@@ -31,12 +31,32 @@ static void detectModel()
 bool openDataStack()
 {
   if (gsmModel == GSM_A7670) {
-    // Active l’APN, puis NETOPEN gère CGATT/CGACT en interne
+    // A7670E
     char apnCmd[64];
     snprintf(apnCmd, sizeof(apnCmd),
              "AT+CGDCONT=1,\"IP\",\"%s\",\"0.0.0.0\",0,0", APN);
     if (!executeSimpleCommand(apnCmd, "OK", 500, 3)) return false;
-    return executeSimpleCommand("AT+NETOPEN", "+NETOPEN: 0", 60000, 3);
+  
+    // Custom NETOPEN logic
+    for (uint8_t i = 0; i < 3; i++) {
+      moduleSerial.println("AT+NETOPEN");
+      readSerialResponse(60000UL);
+  
+      if (strstr(responseBuffer, "+NETOPEN: 0") ||
+          strstr(responseBuffer, "+NETOPEN: 1") ||
+          strstr(responseBuffer, "already opened")) {
+        Serial.println(F("NETOPEN OK"));
+        return true;
+      }
+  
+      Serial.print(F("NETOPEN attempt "));
+      Serial.print(i+1);
+      Serial.println(F(" failed, retrying…"));
+      delay(500);
+    }
+  
+    Serial.println(F("NETOPEN ultimately failed."));
+    return false;
   } else {                        // SIM7000
     char apnCmd[64];
     snprintf(apnCmd, sizeof(apnCmd),

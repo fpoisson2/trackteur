@@ -21,6 +21,11 @@ jobs:
           python-version: '3.x'
       - name: Install MkDocs
         run: pip install mkdocs
+      - name: Configure Git remote with token
+        # Embed GITHUB_TOKEN into origin URL so mkdocs gh-deploy can push
+        run: |
+          git remote set-url origin \
+            https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
       - name: Deploy to GitHub Pages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
