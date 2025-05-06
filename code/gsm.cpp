@@ -231,7 +231,11 @@ void resetGsmModule() {
 
 // Vide le buffer série
 void clearSerialBuffer() {
-  while (moduleSerial.available()) moduleSerial.read();
+  while (moduleSerial.available()) {
+    moduleSerial.read();
+    wdt_reset(); 
+  }
+  
 }
 
 
@@ -270,6 +274,7 @@ bool initialCommunication() {
     executeSimpleCommand("AT+CLTS=0", "OK", 1000UL, 2); 
      executeSimpleCommand("AT+CLTS=0", "OK", 1000UL, 2);
   }
+  executeSimpleCommand("AT+CGEREP=0,0", "OK", 1000UL, 2);
   executeSimpleCommand("AT+CTZU=0", "OK", 1000UL, 2);
   executeSimpleCommand("AT+CREG=0", "OK", 1000UL, 2);
   executeSimpleCommand("AT+CEREG=0", "OK", 1000UL, 2);

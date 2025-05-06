@@ -1,4 +1,7 @@
 name: Deploy MkDocs site to GitHub Pages
+permissions:
+  contents: write   # required to push to gh-pages
+  pages: write      # required for GitHub Pages deployment
 
 on:
   push:
