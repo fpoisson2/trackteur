@@ -81,20 +81,25 @@ bool closeDataStack()
 bool tcpOpen(const char* host, uint16_t port)
 {
   char cmd[96];
-  if (gsmModel == GSM_A7670)
-    snprintf(cmd, sizeof(cmd), "AT+CIPOPEN=0,\"TCP\",\"%s\",%u", host, port);
-  else
-    snprintf(cmd, sizeof(cmd), "AT+CIPSTART=\"TCP\",\"%s\",%u", host, port);
+  snprintf(cmd, sizeof(cmd),
+           "AT+CIPOPEN=0,\"TCP\",\"%s\",%u", host, port);
 
-  bool ok = executeSimpleCommand(cmd,
-        gsmModel == GSM_A7670 ? "+CIPOPEN: 0,0" : "CONNECT OK",
-        35000,1);
-  if(!ok && gsmModel == GSM_A7670 && strstr(responseBuffer,"+CIPOPEN: 0,1")){
-      // tentative suivante autorisée
-      ok = false;
+  clearSerialBuffer();              // vide le FIFO
+  moduleSerial.println(cmd);
+
+  unsigned long t0 = millis();
+  bool opened = false;
+  while (millis() - t0 < 15000UL) {
+    readSerialResponse(50);         // collecte par tranches courtes
+    if (strstr(responseBuffer, "+CIPOPEN: 0,0")) { opened = true;  break; }
+    if (strstr(responseBuffer, "+CIPOPEN: 0,11")) { // erreur DNS / socket
+        tcpClose();                                    // ferme proprement
+        return false;
+    }
   }
-  return ok;
+  return opened;
 }
+
 
 bool tcpSend(const char* payload, uint16_t len)
 {
@@ -154,18 +159,19 @@ void readSerialResponse(unsigned long waitMillis) {
 
   while (millis() - start < waitMillis) {
     wdt_reset();
-    while (moduleSerial.available()) {
-      anythingReceived = true;
-      if (responseBufferPos < RESPONSE_BUFFER_SIZE - 1) {
+      while (moduleSerial.available()) {
         char c = moduleSerial.read();
-        if (c != '\0') {
+      
+        if (responseBufferPos < RESPONSE_BUFFER_SIZE - 1) {
           responseBuffer[responseBufferPos++] = c;
-          responseBuffer[responseBufferPos] = '\0';
+          responseBuffer[responseBufferPos]   = '\0';
+        } else {
+          // ⬇️  Ajoute ce bloc
+          Serial.println(F("⚠️ overflow, flushing"));
+          while (moduleSerial.available()) moduleSerial.read(); // vide le FIFO
+          break;                                                // on sort ➜ on ne corrompt pas la pile
         }
-      } else {
-        moduleSerial.read(); // Jette le surplus
       }
-    }
     if (!moduleSerial.available()) delay(5);
   }
 
