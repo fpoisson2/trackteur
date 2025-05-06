@@ -21,14 +21,11 @@ jobs:
           python-version: '3.x'
       - name: Install MkDocs
         run: pip install mkdocs
-      - name: Configure Git remote with token
-        # Embed GITHUB_TOKEN into origin URL so mkdocs gh-deploy can push
-        run: |
-          git remote set-url origin \
-            https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+      - name: Build MkDocs site
+        run: mkdocs build --clean
       - name: Deploy to GitHub Pages
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Deploy MkDocs site; default remote is origin and default branch is gh-pages
-          mkdocs gh-deploy --clean --force
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+          publish_branch: gh-pages
