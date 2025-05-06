@@ -54,6 +54,92 @@ bool tcpSend(float lat, float lon);
 void netClose();
 bool checkSIM();
 
+bool getGps(float &lat, float &lon)
+{
+  flushRx();
+  modem.println("AT+CGPSINFO");
+
+  unsigned long t0 = millis();
+  while (millis() - t0 < 3000UL) {
+    if (modem.available()) break;
+  }
+
+  // Lis jusqu'à 256 caractères ou timeout
+  t0 = millis();
+  resPos = 0;
+  while (millis() - t0 < 1000UL && resPos < RES_BUF - 1) {
+    if (modem.available()) {
+      char c = modem.read();
+      if (c >= 32 && c <= 126) {  // ASCII printable
+        resBuf[resPos++] = c;
+        resBuf[resPos] = 0;
+      }
+    }
+  }
+
+  const char* p = strstr(resBuf, "+CGPSINFO:");
+  if (!p) {
+    Serial.println(F("ERROR: No +CGPSINFO in response"));
+    Serial.print(F("RECV: ")); Serial.println(resBuf);
+    return false;
+  }
+
+  char buf[128];
+  strncpy(buf, p + 11, sizeof(buf) - 1);
+  buf[sizeof(buf) - 1] = '\0';
+
+  char* eol = strpbrk(buf, "\r\n");
+  if (eol) *eol = '\0';
+
+  // Token parsing
+  char* tok = strtok(buf, ",");
+  if (!tok || strlen(tok) < 3) return false;
+  float latRaw = atof(tok);
+
+  tok = strtok(nullptr, ",");  if (!tok) return false;
+  char ns = *tok;
+
+  tok = strtok(nullptr, ",");  if (!tok || strlen(tok) < 3) return false;
+  float lonRaw = atof(tok);
+
+  tok = strtok(nullptr, ",");  if (!tok) return false;
+  char ew = *tok;
+
+  if (latRaw == 0.0 || lonRaw == 0.0) {
+    Serial.println(F("No fix yet"));
+    return false;
+  }
+
+  // DMM → DD
+  int degLat = (int)(latRaw / 100);
+  float minLat = latRaw - degLat * 100;
+  lat = degLat + minLat / 60.0f;
+
+  int degLon = (int)(lonRaw / 100);
+  float minLon = lonRaw - degLon * 100;
+  lon = degLon + minLon / 60.0f;
+
+  if (ns == 'S') lat = -lat;
+  if (ew == 'W') lon = -lon;
+
+  Serial.print(F("Parsed Lat: ")); Serial.print(lat, 6);
+  Serial.print(F(" Lon: ")); Serial.println(lon, 6);
+  return true;
+}
+
+
+bool step4EnableGNSS()
+{
+  Serial.println(F("Enabling GNSS ..."));
+  // Si module A7670E → AT+CGPS=1
+  if (!sendAT("AT+CGNSSPWR=1", "OK", 2000)) {
+    Serial.println(F("ERROR: A7670E GNSS start failed"));
+    return false;
+  }
+  return true;
+}
+
+
 /* ==================================================
    Arduino SETUP
    ==================================================*/
@@ -123,6 +209,11 @@ void setup()
     return;
   }
 
+if (!step4EnableGNSS()) {
+  Serial.println(F("GNSS init failed"));
+  return;
+}
+
   modemReady = true;
   lastSend = millis();
 }
@@ -138,7 +229,8 @@ void loop()
     bool success = false;
     for (uint8_t i = 0; i < MAX_RETRIES; i++) {
       if (tcpOpen()) {
-        if (tcpSend(dummyLat, dummyLon)) {
+        float lat, lon;
+        if (getGps(lat, lon) && tcpSend(lat, lon)) {
           Serial.println(F("Traccar packet sent ✔"));
           success = true;
           break;
