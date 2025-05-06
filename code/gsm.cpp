@@ -69,54 +69,69 @@ bool tcpOpen(const char* host, uint16_t port)
           30000, 2);
 }
 
-bool tcpSend(const char* payload, uint16_t len)
-{
+bool tcpSend(const char* payload, uint16_t len) {
   char cmd[32];
   if (gsmModel == GSM_A7670)
     snprintf(cmd, sizeof(cmd), "AT+CIPSEND=0,%u", len);
   else
     snprintf(cmd, sizeof(cmd), "AT+CIPSEND=%u",  len);
 
-  // --- on envoie la commande sans utiliser sendAT() ---
-  clearSerialBuffer();
+  // 1) Flush any old data
+  while (moduleSerial.available()) { moduleSerial.read(); }
+  
+  // 2) Send the CIPSEND command
   moduleSerial.println(cmd);
+  Serial.print(F("Send [CIPSEND]: ")); Serial.println(cmd);
 
-  // attendre l'invite '>' jusqu'à 10 s
+  // 3) Wait up to 10s for the '>' prompt, resetting WDT
   unsigned long t0 = millis();
   bool gotPrompt = false;
-  while (millis() - t0 < 10000UL) {           // 10 s
+  while (millis() - t0 < 10000UL) {
     wdt_reset();
-    readSerialResponse(50);                   // lit petits paquets
-    if (strchr(responseBuffer, '>')) {
-      gotPrompt = true;
-      break;
+    if (moduleSerial.available()) {
+      char c = moduleSerial.read();
+      if (c == '>') {
+        gotPrompt = true;
+        break;
+      }
     }
   }
   if (!gotPrompt) {
-    Serial.println(F("❌  CIPSEND: '>' prompt timeout"));
+    Serial.println(F("❌ CIPSEND: '>' prompt timeout"));
     return false;
   }
-  Serial.println(F("✔  Got '>' prompt, sending payload…"));
+  Serial.println(F("✔ Got '>' prompt"));
 
-  // --- envoi du payload + Ctrl‑Z ---
-  clearSerialBuffer();
+  // 4) Send the payload + CTRL-Z
   moduleSerial.write((const uint8_t*)payload, len);
-  moduleSerial.write(0x1A);                   // Ctrl‑Z
+  moduleSerial.write(0x1A);
+  Serial.print(F("▶️ Payload sent (")); Serial.print(len); Serial.println(F(" bytes)"));
 
-  // attendre SEND OK ou +CIPSEND: 0
-  bool sendOK = false;
+  // 5) Wait up to 10s for SEND OK or +CIPSEND: 0
   t0 = millis();
+  bool sendOK = false;
+  String resp;
   while (millis() - t0 < 10000UL) {
-    readSerialResponse(100);
-    if (strstr(responseBuffer, "SEND OK") ||
-        strstr(responseBuffer, "+CIPSEND: 0")) {
-      sendOK = true;
-      break;
+    wdt_reset();
+    while (moduleSerial.available()) {
+      char c = moduleSerial.read();
+      resp += c;
+      // Once we see either marker, we can stop
+      if (resp.indexOf("SEND OK")  != -1 ||
+          resp.indexOf("+CIPSEND: 0") != -1) {
+        sendOK = true;
+        break;
+      }
     }
+    if (sendOK) break;
   }
-  Serial.println(sendOK ? F("✔  SEND OK") : F("❌  SEND failed/timeout"));
+
+  Serial.println(sendOK
+    ? F("✔ SEND OK")
+    : F("❌ SEND failed/timeout"));
   return sendOK;
 }
+
 
 
 bool tcpClose()
