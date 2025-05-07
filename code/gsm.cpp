@@ -17,14 +17,31 @@
 
 GsmModel gsmModel = GSM_SIM7000;  // valeur par défaut
 
-static void detectModel()
+
+void detectModel()
 {
-  executeSimpleCommand("ATI", "", 1500, 1);
-  if (strstr(responseBuffer, "A7670"))  gsmModel = GSM_A7670;
-  else if (strstr(responseBuffer, "SIM7000")) gsmModel = GSM_SIM7000;
+  clearSerialBuffer();
+  moduleSerial.println("AT+CGMM");
+  readSerialResponse(2000UL);  // attends toute la réponse
+
+  Serial.print(F(">> CGMM raw: "));
+  Serial.println(responseBuffer);
+
+  if (strstr(responseBuffer, "A7670")) {
+    gsmModel = GSM_A7670;
+  } else if (strstr(responseBuffer, "SIM7070")) {
+    gsmModel = GSM_SIM7070;
+  } else if (strstr(responseBuffer, "SIM7000")) {
+    gsmModel = GSM_SIM7000;
+  }
 
   Serial.print(F(">> Modem detected: "));
-  Serial.println(gsmModel == GSM_A7670 ? F("A7670E") : F("SIM7000G"));
+  switch (gsmModel) {
+    case GSM_A7670:    Serial.println(F("A7670E"));    break;
+    case GSM_SIM7000:  Serial.println(F("SIM7000G"));  break;
+    case GSM_SIM7070:  Serial.println(F("SIM7070G"));  break;
+    default:           Serial.println(F("Unknown"));   break;
+  }
 }
 
 // --- PDP / pile data -------------------------------------------------
