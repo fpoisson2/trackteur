@@ -110,7 +110,7 @@ bool tcpOpen(const char* host, uint16_t port)
     Serial.print(F("❌ TCP connection failed (A7670), response: ")); Serial.println(responseBuffer);
     return false;
 
-   } else if (gsmModel == GSM_SIM7000) {
+   } else if (gsmModel == GSM_SIM7000 || gsmModel == GSM_SIM7070) {
     snprintf_P(scratchBuf, sizeof(scratchBuf), PSTR("AT+CIPSTART=\"TCP\",\"%s\",%u"), host, port);
     Serial.print(F("→ TCP open command (SIM7000): ")); Serial.println(scratchBuf);
     moduleSerial.write((const uint8_t*)scratchBuf, strlen(scratchBuf));
