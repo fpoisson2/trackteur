@@ -55,7 +55,9 @@ if (getGpsData(currentLat, currentLon, gpsTimestampTraccar)) {
   DBG(F("GPS OK: Lat=")); DBG2(currentLat, 6);
   DBG(F(" Lon="));        DBG2(currentLon, 6);
   DBG(F(" Time="));       DBGLN(gpsTimestampTraccar);
-  disableGNSS();
+  if (gsmModel == GSM_SIM7070) {
+    disableGNSS();
+  }
 
   // Mise à jour de l'état du réseau (connexion, reconnexion si besoin)
   if (netState == NetState::ONLINE) {
