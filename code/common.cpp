@@ -15,6 +15,14 @@
 
 #include "common.h"
 
+//const char* APN = "onomondo";
+const char* APN = "em";
+//const char* APN = "hologram";
+
+const char* TRACCAR_HOST = "trackteur.ve2fpd.com";
+const uint16_t TRACCAR_PORT = 5055;
+const char* DEVICE_ID = "212910";
+
 FATFS fs;
 const char* LOG_FILE = "GPS_LOG.CSV";
 
@@ -32,12 +40,6 @@ const uint8_t swTxPin = 4;
 SoftwareSerial moduleSerial(swRxPin, swTxPin);
 
 const unsigned long moduleBaudRate = 9600UL;
-const char* APN = "onomondo";
-//const char* APN = "em";
-
-const char* TRACCAR_HOST = "trackteur.ve2fpd.com";
-const uint16_t TRACCAR_PORT = 5055;
-const char* DEVICE_ID = "212910";
 
 unsigned long lastSendTime = 0;
 const unsigned long sendInterval = 10000UL;  // 10s entre envois

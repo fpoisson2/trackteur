@@ -420,8 +420,7 @@ void clearSerialBuffer() {
 
 
 void initializeModulePower() {
-  pinMode(powerPin, OUTPUT);
-  digitalWrite(powerPin, LOW);
+  
   DBGLN(F("Module power pin configured (D2)."));
   moduleSerial.begin(moduleBaudRate);
   DBG(F("Software Serial initialized on Pins RX:"));
@@ -432,8 +431,13 @@ void initializeModulePower() {
   DBG(moduleBaudRate);
   DBGLN(F(" baud."));
   DBGLN(F("Turning module ON..."));
+  pinMode(powerPin, OUTPUT);
+  digitalWrite(powerPin, LOW);
+  delay(1200);
   digitalWrite(powerPin, HIGH);
-  //delay(5000);
+  delay(300);
+  digitalWrite(powerPin, LOW);
+  delay(5000);
   DBGLN(F("Module boot wait complete."));
 
   detectModel();
