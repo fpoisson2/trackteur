@@ -31,50 +31,53 @@ void setup() {
 
   initializeSD();
   sectorIndex = loadLogMetadata();
-  Serial.print(F("Resuming at sector ")); Serial.println(sectorIndex);
+  DBG(F("Resuming at sector ")); DBGLN(sectorIndex);
 
   initializeModulePower(); // met sous tension le module LTE
 
   netState = NetState::BOOTING;
   lastSendTime = millis();
   lastGpsPoll = millis();
-
-  Serial.println(F("=== SETUP TERMINÉ ==="));
+  initialAT();
+  serviceNetwork();
+  step4EnableGNSS();
+  DBGLN(F("=== SETUP TERMINÉ ==="));
 }
 
 void loop() {
   wdt_reset();
 
-  // Mise à jour de l'état du réseau (connexion, reconnexion si besoin)
   serviceNetwork();
 
   // Lecture GPS périodique
   if (millis() - lastGpsPoll >= GPS_POLL_INTERVAL) {
 if (getGpsData(currentLat, currentLon, gpsTimestampTraccar)) {
-  Serial.print(F("GPS OK: Lat=")); Serial.print(currentLat, 6);
-  Serial.print(F(" Lon="));        Serial.print(currentLon, 6);
-  Serial.print(F(" Time="));       Serial.println(gpsTimestampTraccar);
+  DBG(F("GPS OK: Lat=")); DBG2(currentLat, 6);
+  DBG(F(" Lon="));        DBG2(currentLon, 6);
+  DBG(F(" Time="));       DBGLN(gpsTimestampTraccar);
+  disableGNSS();
 
+  // Mise à jour de l'état du réseau (connexion, reconnexion si besoin)
   if (netState == NetState::ONLINE) {
     memset(responseBuffer, 0, sizeof(responseBuffer));
     responseBufferPos = 0;
 
     bool ok = sendGpsToTraccar(TRACCAR_HOST, TRACCAR_PORT, DEVICE_ID, currentLat, currentLon, gpsTimestampTraccar);
     if (ok) {
-      Serial.println(F(">>> Send OK."));
+      DBGLN(F(">>> Send OK."));
       consecutiveNetFails = 0;
 
       // vidange des anciennes données seulement
       resendLastLog();
     } else {
-      Serial.print(F("Network fail #")); Serial.println(++consecutiveNetFails);
-      Serial.println(F(">>> Send FAIL."));
+      DBG(F("Network fail #")); DBGLN(++consecutiveNetFails);
+      DBGLN(F(">>> Send FAIL."));
       
       // Log uniquement si l'envoi a échoué
       logRealPositionToSd(currentLat, currentLon, gpsTimestampTraccar);
 
       if (consecutiveNetFails >= NET_FAIL_THRESHOLD) {
-        Serial.println(F(">>> Trop d'échecs réseau, on redémarre le module GSM."));
+        DBGLN(F(">>> Trop d'échecs réseau, on redémarre le module GSM."));
         resetGsmModule();
         netState = NetState::OFFLINE;
         lastReconnectAttempt = millis();
@@ -83,12 +86,13 @@ if (getGpsData(currentLat, currentLon, gpsTimestampTraccar)) {
     }
 
   } else {
-    Serial.println(F("Pas de réseau, stockage uniquement."));
+    DBGLN(F("Pas de réseau, stockage uniquement."));
     logRealPositionToSd(currentLat, currentLon, gpsTimestampTraccar);
   }
+  step4EnableGNSS();
 }
  else {
-      Serial.println(F(">>> Aucun fix GPS."));
+      DBGLN(F(">>> Aucun fix GPS."));
     }
 
     lastGpsPoll = millis();

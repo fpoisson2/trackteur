@@ -24,7 +24,9 @@ bool waitForSimReady();
 bool step2NetworkRegistration();
 bool step3PDPContext();
 bool step4EnableGNSS();
+bool disableGNSS();
 void initializeModulePower();
+bool initialAT();
 
 bool tcpOpen (const char* host, uint16_t port);
 bool tcpSend (const char* payload, uint16_t len);

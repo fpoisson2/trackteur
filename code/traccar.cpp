@@ -19,12 +19,12 @@ bool sendGpsToTraccar(const char* host, uint16_t port, const char* deviceId,
                       float lat, float lon, const char* timestampStr)
 {
   /* ---------- 1. Ouvrir la socket TCP ----------- */
-  Serial.println(F("Connecting to Traccar…"));
+  DBGLN(F("Connecting to Traccar…"));
   if (!tcpOpen(host, port)) {
-    Serial.println(F("❌ tcpOpen failed"));
+    DBGLN(F("❌ tcpOpen failed"));
     return false;
   }
-  Serial.println(F("✔ Socket ouverte"));
+  DBGLN(F("✔ Socket ouverte"));
 
   /* ---------- 2. Construire la requête ---------- */
   char latStr[16], lonStr[16];
@@ -38,22 +38,22 @@ bool sendGpsToTraccar(const char* host, uint16_t port, const char* deviceId,
 
   uint16_t reqLen = strlen(httpReq);
   if (reqLen >= sizeof(httpReq)) {
-    Serial.println(F("❌ HTTP request too long"));
+    DBGLN(F("❌ HTTP request too long"));
     tcpClose();
     return false;
   }
 
   /* ---------- 3. Envoyer la requête ------------- */
-  Serial.print(F("Sending ")); Serial.print(reqLen); Serial.println(F(" bytes…"));
+  DBG(F("Sending ")); DBG(reqLen); DBGLN(F(" bytes…"));
   if (!tcpSend(httpReq, reqLen)) {
-    Serial.println(F("❌ tcpSend failed"));
+    DBGLN(F("❌ tcpSend failed"));
     tcpClose();
     return false;
   }
-  Serial.println(F("✔ Send OK"));
+  DBGLN(F("✔ Send OK"));
 
   /* ---------- 4. Fermer proprement -------------- */
   tcpClose();
-  Serial.println(F("Socket fermée"));
+  DBGLN(F("Socket fermée"));
   return true;
 }

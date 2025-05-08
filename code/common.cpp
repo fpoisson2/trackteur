@@ -29,13 +29,11 @@ const uint8_t powerPin = 2;
 const uint8_t swRxPin = 3;
 const uint8_t swTxPin = 4;
 
-char scratchBuf[96];
-
 SoftwareSerial moduleSerial(swRxPin, swTxPin);
 
 const unsigned long moduleBaudRate = 9600UL;
-//const char* APN = "onomondo";
-const char* APN = "em";
+const char* APN = "onomondo";
+//const char* APN = "em";
 
 const char* TRACCAR_HOST = "trackteur.ve2fpd.com";
 const uint16_t TRACCAR_PORT = 5055;
@@ -77,8 +75,7 @@ void serviceNetwork() {
           step1NetworkSettings() &&
           waitForSimReady() &&
           step2NetworkRegistration() &&
-          step3PDPContext() &&
-          step4EnableGNSS()) {
+          step3PDPContext()) {
         Serial.println(F("[Net] Connecté au réseau."));
         netState = NetState::ONLINE;
         consecutiveNetFails = 0;
@@ -96,8 +93,7 @@ void serviceNetwork() {
             step1NetworkSettings() &&
             waitForSimReady() &&
             step2NetworkRegistration() &&
-            step3PDPContext() &&
-            step4EnableGNSS()) {
+            step3PDPContext()) {
           Serial.println(F("[Net] Reconnexion réussie."));
           netState = NetState::ONLINE;
           consecutiveNetFails = 0;

@@ -23,7 +23,7 @@ void saveLogMetadata(uint32_t currentIndex) {
   wdt_reset(); 
   FRESULT res = PF.open(LOG_FILE);
   if (res != FR_OK) {
-    Serial.println(F("PF.open (metadata) failed"));
+    DBGLN(F("PF.open (metadata) failed"));
     return;
   }
   PF.seek(0);  // secteur 0 réservé
@@ -37,12 +37,12 @@ void saveLogMetadata(uint32_t currentIndex) {
   wdt_reset(); 
   res = PF.writeFile(&meta, sizeof(meta), &bw);
   if (res != FR_OK || bw != sizeof(meta)) {
-    Serial.println(F("Échec écriture metadata."));
+    DBGLN(F("Échec écriture metadata."));
     return;
   }
 
   PF.writeFile(nullptr, 0, &bw); // flush
-  Serial.println(F("Metadata mise à jour."));
+  DBGLN(F("Metadata mise à jour."));
 }
 
 uint32_t loadLogMetadata() {
@@ -58,19 +58,19 @@ uint32_t loadLogMetadata() {
   FRESULT res = PF.readFile(&meta, sizeof(meta), &br);
 
   if (res != FR_OK || br != sizeof(meta)) {
-    Serial.println(F("Lecture metadata échouée. Réinitialise index à 1."));
+    DBGLN(F("Lecture metadata échouée. Réinitialise index à 1."));
     lastSectorUsed = 0;
     saveLogMetadata(1);
   }
 
   if (strncmp(meta.signature, "LOGDATA", 7) != 0) {
-    Serial.println(F("Signature invalide. Réinitialise index à 1."));
+    DBGLN(F("Signature invalide. Réinitialise index à 1."));
     lastSectorUsed = 0;
     saveLogMetadata(1);
   }
 
   if (meta.index == 0 || meta.index > MAX_SECTORS) {
-    Serial.println(F("Index corrompu. Réinitialise index à 1."));
+    DBGLN(F("Index corrompu. Réinitialise index à 1."));
     lastSectorUsed = 0;
     saveLogMetadata(1);
   }
@@ -82,7 +82,7 @@ uint32_t loadLogMetadata() {
 
 void resendLastLog() {
   if (!sdAvailable) {
-    Serial.println(F("SD non disponible. Ignoré."));
+    DBGLN(F("SD non disponible. Ignoré."));
     return;
   }
   if (lastSectorUsed < 1) return;
@@ -91,8 +91,8 @@ void resendLastLog() {
   uint32_t s = lastSectorUsed;
   // Ouvre le fichier de log
   if (PF.open(LOG_FILE) != FR_OK) {
-    Serial.print(F("Impossible d'ouvrir pour renvoi secteur "));
-    Serial.println(s);
+    DBG(F("Impossible d'ouvrir pour renvoi secteur "));
+    DBGLN(s);
     return;
   }
 
@@ -104,7 +104,7 @@ void resendLastLog() {
   UINT br;
   FRESULT res = PF.readFile(buf, sizeof(buf) - 1, &br);
   if (res != FR_OK || br < 10) {
-    Serial.print(F("Secteur ")); Serial.print(s); Serial.println(F(" vide ou erreur."));
+    DBG(F("Secteur ")); DBG(s); DBGLN(F(" vide ou erreur."));
     lastSectorUsed--;
     saveLogMetadata(lastSectorUsed + 1);
     return;
@@ -112,12 +112,12 @@ void resendLastLog() {
   buf[br] = '\0';
 
   // Affiche le contenu à renvoyer
-  Serial.print(F("→ Renvoi secteur ")); Serial.print(s);
-  Serial.print(F(" : «")); Serial.print(buf); Serial.println(F("»"));
+  DBG(F("→ Renvoi secteur ")); DBG(s);
+  DBG(F(" : «")); DBG(buf); DBGLN(F("»"));
 
   // Si déjà marqué envoyé, décrémente et quitte
   if (buf[0] == '#') {
-    Serial.println(F("    Déjà envoyé."));
+    DBGLN(F("    Déjà envoyé."));
     lastSectorUsed--;
     saveLogMetadata(lastSectorUsed);
     return;
@@ -141,7 +141,7 @@ void resendLastLog() {
   wdt_reset();
   // Tente l'envoi réseau
   if (sendGpsToTraccar(TRACCAR_HOST, TRACCAR_PORT, DEVICE_ID, lat, lon, ts)) {
-    Serial.println(F("    Renvoi OK."));
+    DBGLN(F("    Renvoi OK."));
     consecutiveNetFails = 0;
 
     // Marque le secteur comme envoyé en réécrivant juste '#'
@@ -155,7 +155,7 @@ void resendLastLog() {
   } else {
     // Échec : incremente compteur et éventuellement reset du module
     consecutiveNetFails++;
-    Serial.print(F("    Échec renvoi (#")); Serial.print(consecutiveNetFails); Serial.println(F(")"));
+    DBG(F("    Échec renvoi (#")); DBG(consecutiveNetFails); DBGLN(F(")"));
     if (consecutiveNetFails >= NET_FAIL_THRESHOLD) {
       resetGsmModule();
       consecutiveNetFails = 0;
@@ -167,7 +167,7 @@ void resendLastLog() {
 
 void logRealPositionToSd(float lat, float lon, const char* ts) {
   if (!sdAvailable) {
-    Serial.println(F("SD non disponible. Ignoré."));
+    DBGLN(F("SD non disponible. Ignoré."));
     return;
   }
   char latStr[15], lonStr[15];
@@ -188,7 +188,7 @@ void logRealPositionToSd(float lat, float lon, const char* ts) {
   }
 
   if (!isReusable && sectorIndex <= lastSectorUsed) {
-    Serial.println(F("Secteur non réutilisable, log ignoré."));
+    DBGLN(F("Secteur non réutilisable, log ignoré."));
     return;
   }
 
@@ -199,7 +199,7 @@ void logRealPositionToSd(float lat, float lon, const char* ts) {
   UINT bw;
   res = PF.writeFile(line, len, &bw);
   if (res != FR_OK || bw != len) {
-    Serial.println(F("Erreur écriture ligne."));
+    DBGLN(F("Erreur écriture ligne."));
     return;
   }
 
@@ -208,7 +208,7 @@ void logRealPositionToSd(float lat, float lon, const char* ts) {
     uint16_t chunk = (512 - i < 16) ? (512 - i) : 16;
     res = PF.writeFile(zeros, chunk, &bw);
     if (res != FR_OK || bw != chunk) {
-      Serial.println(F("Erreur padding zéro."));
+      DBGLN(F("Erreur padding zéro."));
       return;
     }
   }
@@ -225,8 +225,8 @@ void logRealPositionToSd(float lat, float lon, const char* ts) {
     res = PF.readFile(buf, len, &br);
     if (res != FR_OK) return;
 
-    Serial.print(F("Secteur ")); Serial.print(s); Serial.print(F(" : "));
-    Serial.write((uint8_t*)buf, br); Serial.println();
+    DBG(F("Secteur ")); DBG(s); DBG(F(" : "));
+    Serial.write((uint8_t*)buf, br); DBGLN();
   }
 
   if (sectorIndex > lastSectorUsed) {
@@ -245,18 +245,10 @@ void initializeSD() {
 
   FRESULT res = PF.begin(&fs);
   if (res != FR_OK) {
-    Serial.println(F("Échec de montage de la carte SD."));
+    DBGLN(F("Échec de montage de la carte SD."));
     sdAvailable = false;
   } else {
-    Serial.println(F("Carte SD montée avec succès."));
+    DBGLN(F("Carte SD montée avec succès."));
     sdAvailable = true;
-  }
-}
-
-
-void flushStartupLogs() {
-  for (uint8_t i = 0; i < 2 && lastSectorUsed > 0; i++) {
-    resendLastLog();
-    wdt_reset();
   }
 }

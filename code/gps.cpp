@@ -18,12 +18,12 @@
 bool getGpsData(float &lat, float &lon, char* timestampOutput) {
   // --- A7670E : section inchangée ------------------------------------------
   if (gsmModel == GSM_A7670) {
-    Serial.println(F("Requesting GNSS info (AT+CGPSINFO)..."));
+    DBGLN(F("Requesting GNSS info (AT+CGPSINFO)..."));
     moduleSerial.println("AT+CGPSINFO");
     readSerialResponse(3000UL);
 
     char* p = strstr(responseBuffer, "+CGPSINFO:");
-    if (!p) { Serial.println(F("ERROR: No +CGPSINFO in response")); return false; }
+    if (!p) { DBGLN(F("ERROR: No +CGPSINFO in response")); return false; }
 
     // Découpe aux virgules
     char bufA[128];
@@ -54,8 +54,8 @@ bool getGpsData(float &lat, float &lon, char* timestampOutput) {
     if (ns == 'S' || ns == 's') lat = -lat;
     if (ew == 'W' || ew == 'w') lon = -lon;
 
-    Serial.print(F("Parsed Lat: ")); Serial.print(lat, 6);
-    Serial.print(F(" Lon: ")); Serial.println(lon, 6);
+    DBG(F("Parsed Lat: ")); DBG2(lat, 6);
+    DBG(F(" Lon: ")); DBGLN2(lon, 6);
 
     snprintf(timestampOutput, GPS_TIMESTAMP_TRACCAR_BUF_SIZE,
              "20%.2s-%.2s-%.2s%%20%.2s:%.2s:%.2s",
@@ -64,86 +64,93 @@ bool getGpsData(float &lat, float &lon, char* timestampOutput) {
     return true;
   }
 
-  // --- SIM7000G : section corrigée -----------------------------------------
-  Serial.println(F("Requesting GNSS info (AT+CGNSINF)..."));
-  moduleSerial.println("AT+CGNSINF");
-  readSerialResponse(3000UL);
+DBGLN(F("Requesting GNSS info (AT+CGNSINF)..."));
+moduleSerial.println("AT+CGNSINF");
+readSerialResponse(3000UL);
 
-  char* resp = strstr(responseBuffer, "+CGNSINF:");
-  if (!resp) {
-    Serial.println(F("ERROR: No '+CGNSINF:' in response."));
-    return false;
-  }
+char* resp = strstr(responseBuffer, "+CGNSINF:");
+if (!resp) {
+  DBGLN(F("ERROR: No '+CGNSINF:' in response."));
+  return false;
+}
 
-  char* data = resp + 10;  // saute "+CGNSINF: "
-  uint8_t run = 0, fix = 0;
-  if (sscanf(data, "%hhu,%hhu", &run, &fix) != 2) {
-    Serial.println(F("ERROR: Failed parsing GNSS run/fix status."));
-    return false;
-  }
-  if (run != 1 || fix != 1) {
-    Serial.println(F("No valid fix."));
-    return false;
-  }
+char* data = resp + 10;  // saute "+CGNSINF: "
+char* token;
+uint8_t run = 0;
+uint8_t fix = 0;
 
-  // Saute deux champs (run, fix) pour atteindre le timestamp
-  char* p2 = data;
-  for (int i = 0; i < 2; ++i) {
-    p2 = strchr(p2, ',');
-    if (!p2) return false;
-    ++p2;
-  }
+// Get Run Status (field 0)
+token = strtok(data, ",");
+if (token != nullptr && strlen(token) > 0) {
+  run = atoi(token);
+} else {
+  DBGLN(F("ERROR: Failed parsing run status."));
+  return false;
+}
 
-  // Extraction de la timestamp brute
-  char rawTime[20] = {0};
-  char* comma = strchr(p2, ',');
-  if (!comma) return false;
-  size_t len = comma - p2;
-  if (len >= sizeof(rawTime)) len = sizeof(rawTime) - 1;
-  strncpy(rawTime, p2, len);
-  rawTime[len] = '\0';
+// Get Fix Status (field 1)
+token = strtok(nullptr, ",");
+if (token != nullptr && strlen(token) > 0) {
+  fix = atoi(token);
+} else {
+   DBGLN(F("ERROR: Failed parsing fix status."));
+   return false;
+}
 
-  // Suppression des millisecondes
-  char* dot = strchr(rawTime, '.');
-  if (dot) *dot = '\0';
+// Check for valid fix (run=1 and fix=1)
+if (run != 1 || fix != 1) {
+  DBGLN(F("No valid fix (run: ")); DBG(run); DBG(F(", fix: ")); DBG(fix); DBGLN(F(")."));
+  return false;
+}
 
-  // Parsing du timestamp
-  int year, month, day, hour, minute, second;
-  if (sscanf(rawTime, "%4d%2d%2d%2d%2d%2d",
-             &year, &month, &day, &hour, &minute, &second) != 6) {
-    Serial.println(F("ERROR: Failed parsing timestamp."));
-    return false;
-  }
+// Get Timestamp (field 2)
+token = strtok(nullptr, ",");
+if (token == nullptr) {
+  DBGLN(F("ERROR: Failed getting timestamp token."));
+  return false;
+}
+char rawTime[20]; // Increased size slightly for safety
+strncpy(rawTime, token, sizeof(rawTime) - 1);
+rawTime[sizeof(rawTime) - 1] = '\0';
 
-  // Extraction latitude
-  char* q = comma + 1;
-  char bufG[16] = {0};
-  comma = strchr(q, ',');
-  if (!comma) return false;
-  len = comma - q;
-  if (len >= sizeof(bufG)) len = sizeof(bufG) - 1;
-  strncpy(bufG, q, len);
-  bufG[len] = '\0';
-  float latitude = atof(bufG);
+// Suppression des millisecondes
+char* dot = strchr(rawTime, '.');
+if (dot) *dot = '\0';
 
-  // Extraction longitude
-  char* r = comma + 1;
-  comma = strchr(r, ',');
-  if (!comma) return false;
-  len = comma - r;
-  if (len >= sizeof(bufG)) len = sizeof(bufG) - 1;
-  strncpy(bufG, r, len);
-  bufG[len] = '\0';
-  float longitude = atof(bufG);
+// Parsing du timestamp
+int year, month, day, hour, minute, second;
+if (sscanf(rawTime, "%4d%2d%2d%2d%2d%2d",
+           &year, &month, &day, &hour, &minute, &second) != 6) {
+  DBGLN(F("ERROR: Failed parsing timestamp format."));
+  return false;
+}
 
-  lat = latitude;
-  lon = longitude;
-  Serial.print(F("Parsed Lat: ")); Serial.print(lat, 6);
-  Serial.print(F(" Lon: ")); Serial.println(lon, 6);
+// Get Latitude (field 3)
+token = strtok(nullptr, ",");
+if (token == nullptr) {
+   DBGLN(F("ERROR: Failed getting latitude token."));
+   return false;
+}
+float latitude = atof(token);
 
-  // Formatage Traccar
-  snprintf(timestampOutput, GPS_TIMESTAMP_TRACCAR_BUF_SIZE,
-           "%04d-%02d-%02d%%20%02d:%02d:%02d",
-           year, month, day, hour, minute, second);
-  return true;
+// Get Longitude (field 4)
+token = strtok(nullptr, ",");
+if (token == nullptr) {
+   DBGLN(F("ERROR: Failed getting longitude token."));
+   return false;
+}
+float longitude = atof(token);
+
+// Assign parsed values to output parameters
+lat = latitude;
+lon = longitude;
+DBG(F("Parsed Lat: ")); DBG2(lat, 6);
+DBG(F(" Lon: ")); DBGLN2(lon, 6);
+
+// Formatage Traccar
+snprintf(timestampOutput, GPS_TIMESTAMP_TRACCAR_BUF_SIZE,
+         "%04d-%02d-%02d%%20%02d:%02d:%02d",
+         year, month, day, hour, minute, second);
+
+return true; // Success!
 }

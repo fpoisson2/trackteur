@@ -14,6 +14,4 @@ bool sendGpsToTraccar(const char* host, uint16_t port, const char* deviceId,
 void resetGsmModule();
 void initializeSD();
 
-void flushStartupLogs();
-
 #endif

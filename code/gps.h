@@ -5,4 +5,5 @@
 
 bool getGpsData(float &lat, float &lon, char* timestampOutput);
 
+
 #endif
