@@ -24,25 +24,6 @@
 #include "gps.h"
 #include "traccar.h"
 
-
-// --- Niveau de journalisation (logging) ---
-// 0 = Aucun journal (désactive les logs pour économiser de la mémoire et du temps d'exécution)
-// 1 = Informations générales (messages importants comme les connexions, erreurs majeures)
-// 2 = Débogage détaillé (affiche tous les messages utiles au développement et à la mise au point)
-#define LOG_LEVEL 2
-
-// --- Configuration de l'APN (Access Point Name) ---
-// L'APN est nécessaire pour que le module LTE se connecte à Internet via le réseau mobile.
-// Choisissez l’APN selon la carte SIM utilisée.
-const char* APN = "onomondo";  // Choix de l'APN selon le fournisseur SIM : "onomondo", "em" (Emnify), ou "hologram" (Hologram.io). Modifier la valeur ici selon l'opérateur utilisé.
-
-// --- Paramètres de connexion au serveur Traccar ---
-// Traccar est un serveur de suivi GPS auquel les coordonnées sont envoyées via une requête HTTP.
-const char* TRACCAR_HOST = "trackteur.ve2fpd.com";  // Nom de domaine ou adresse IP du serveur Traccar
-const uint16_t TRACCAR_PORT = 5055;                 // Port utilisé pour envoyer les données (par défaut 5055 pour HTTP)
-const char* DEVICE_ID = "212910";                   // Identifiant unique de l'appareil dans Traccar (utilisé pour le reconnaître dans l’interface)
-
-
 void setup() {
   initializeWatchdog();
   initializeSerial();
