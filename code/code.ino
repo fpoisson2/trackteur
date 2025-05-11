@@ -33,10 +33,8 @@
 
 // --- Configuration de l'APN (Access Point Name) ---
 // L'APN est nécessaire pour que le module LTE se connecte à Internet via le réseau mobile.
-// Choisissez l’APN selon la carte SIM utilisée. Ne laissez qu’un seul actif à la fois :
-const char* APN = "onomondo";      // APN pour la carte SIM de l'opérateur Onomondo
-// const char* APN = "em";         // Exemple d’APN pour Emnify (à décommenter si utilisé)
-// const char* APN = "hologram";   // Exemple d’APN pour Hologram.io
+// Choisissez l’APN selon la carte SIM utilisée.
+const char* APN = "onomondo";  // Choix de l'APN selon le fournisseur SIM : "onomondo", "em" (Emnify), ou "hologram" (Hologram.io). Modifier la valeur ici selon l'opérateur utilisé.
 
 // --- Paramètres de connexion au serveur Traccar ---
 // Traccar est un serveur de suivi GPS auquel les coordonnées sont envoyées via une requête HTTP.
