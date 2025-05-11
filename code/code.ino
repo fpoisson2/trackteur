@@ -41,7 +41,7 @@ void setup() {
   initialAT();
   serviceNetwork();
   step4EnableGNSS();
-  DBGLN(F("=== SETUP TERMINÉ ==="));
+  INFOLN(F("Setup terminé"));
 }
 
 void loop() {

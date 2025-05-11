@@ -50,7 +50,7 @@ bool sendGpsToTraccar(const char* host, uint16_t port, const char* deviceId,
     tcpClose();
     return false;
   }
-  DBGLN(F("✔ Send OK"));
+  INFOLN(F("Envoi au servuer traccar OK"));
 
   /* ---------- 4. Fermer proprement -------------- */
   tcpClose();

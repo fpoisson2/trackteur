@@ -54,8 +54,8 @@ bool getGpsData(float &lat, float &lon, char* timestampOutput) {
     if (ns == 'S' || ns == 's') lat = -lat;
     if (ew == 'W' || ew == 'w') lon = -lon;
 
-    DBG(F("Parsed Lat: ")); DBG2(lat, 6);
-    DBG(F(" Lon: ")); DBGLN2(lon, 6);
+    INFO(F("Parsed Lat: ")); INFO2(lat, 6);
+    INFO(F(" Lon: ")); INFOLN2(lon, 6);
 
     snprintf(timestampOutput, GPS_TIMESTAMP_TRACCAR_BUF_SIZE,
              "20%.2s-%.2s-%.2s%%20%.2s:%.2s:%.2s",
@@ -99,7 +99,7 @@ if (token != nullptr && strlen(token) > 0) {
 
 // Check for valid fix (run=1 and fix=1)
 if (run != 1 || fix != 1) {
-  DBGLN(F("No valid fix (run: ")); DBG(run); DBG(F(", fix: ")); DBG(fix); DBGLN(F(")."));
+  INFO(F("Aucun fix GPS (run: ")); INFO(run); INFO(F(", fix: ")); INFO(fix); INFOLN(F(")."));
   return false;
 }
 
@@ -144,8 +144,8 @@ float longitude = atof(token);
 // Assign parsed values to output parameters
 lat = latitude;
 lon = longitude;
-DBG(F("Parsed Lat: ")); DBG2(lat, 6);
-DBG(F(" Lon: ")); DBGLN2(lon, 6);
+INFO(F("Parsed Lat: ")); INFO2(lat, 6);
+INFO(F(" Lon: ")); INFOLN2(lon, 6);
 
 // Formatage Traccar
 snprintf(timestampOutput, GPS_TIMESTAMP_TRACCAR_BUF_SIZE,

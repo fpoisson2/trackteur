@@ -15,8 +15,8 @@
 
 #include "common.h"
 
-//const char* APN = "onomondo";
-const char* APN = "em";
+const char* APN = "onomondo";
+//const char* APN = "em";
 //const char* APN = "hologram";
 
 const char* TRACCAR_HOST = "trackteur.ve2fpd.com";
@@ -58,31 +58,30 @@ bool setupSuccess = false;
 bool sdAvailable = false;
 
 void initializeWatchdog() {
-  //wdt_enable(WDTO_8S);
-  wdt_disable();
+  wdt_enable(WDTO_8S);
 }
 
 void initializeSerial() {
   Serial.begin(115200);
   while (!Serial) { ; }
-  Serial.println(F("--- Arduino Initialized ---"));
+  INFOLN(F("Arduino initialisé"));
 }
 
 // === Machine d’état réseau ===
 void serviceNetwork() {
   switch (netState) {
     case NetState::BOOTING:
-      Serial.println(F("[Net] Initialisation..."));
+     INFOLN(F("Initialisation"));
       if (initialCommunication() &&
           step1NetworkSettings() &&
           waitForSimReady() &&
           step2NetworkRegistration() &&
           step3PDPContext()) {
-        Serial.println(F("[Net] Connecté au réseau."));
+        INFOLN(F("Connecté au réseau."));
         netState = NetState::ONLINE;
         consecutiveNetFails = 0;
       } else {
-        Serial.println(F("[Net] Échec d'initialisation, passage OFFLINE."));
+        INFOLN(F("Échec d'initialisation, passage OFFLINE."));
         netState = NetState::OFFLINE;
         lastReconnectAttempt = millis();
       }
@@ -90,17 +89,17 @@ void serviceNetwork() {
 
     case NetState::OFFLINE:
       if (millis() - lastReconnectAttempt >= RECONNECT_PERIOD) {
-        Serial.println(F("[Net] Tentative de reconnexion..."));
+        INFOLN(F("Tentative de reconnexion..."));
         if (initialCommunication() &&
             step1NetworkSettings() &&
             waitForSimReady() &&
             step2NetworkRegistration() &&
             step3PDPContext()) {
-          Serial.println(F("[Net] Reconnexion réussie."));
+          INFOLN(F("Reconnexion réussie."));
           netState = NetState::ONLINE;
           consecutiveNetFails = 0;
         } else {
-          Serial.println(F("[Net] Reconnexion échouée."));
+          INFOLN(F("Reconnexion échouée."));
           lastReconnectAttempt = millis();
         }
       }
