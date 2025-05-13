@@ -18,7 +18,8 @@
  *   - traccar.h/.cpp   : Format et envoi vers Traccar via TCP
  * ======================================================================= */
 
-
+#include "config.h"
+#include "logging.h"
 #include "common.h"
 #include "sdlog.h"
 #include "gsm.h"
@@ -41,7 +42,7 @@ void setup() {
   initialAT();
   serviceNetwork();
   step4EnableGNSS();
-  DBGLN(F("=== SETUP TERMINÉ ==="));
+  INFOLN(F("Setup terminé"));
 }
 
 void loop() {
@@ -81,6 +82,7 @@ if (getGpsData(currentLat, currentLon, gpsTimestampTraccar)) {
       if (consecutiveNetFails >= NET_FAIL_THRESHOLD) {
         DBGLN(F(">>> Trop d'échecs réseau, on redémarre le module GSM."));
         resetGsmModule();
+        step4EnableGNSS();
         netState = NetState::OFFLINE;
         lastReconnectAttempt = millis();
         consecutiveNetFails = 0;

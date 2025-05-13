@@ -11,7 +11,8 @@
  * Matériel    : SIM7000G + Arduino Nano (ATmega328P)
  * ======================================================================= */
 
-
+#include "config.h"
+#include "logging.h"
 #include "common.h"
 #include "gsm.h"
 
@@ -35,12 +36,12 @@ void detectModel()
     gsmModel = GSM_SIM7000;
   }
 
-  DBG(F(">> Modem detected: "));
+  INFO(F("Modem détecté: "));
   switch (gsmModel) {
-    case GSM_A7670:    DBGLN(F("A7670E"));    break;
-    case GSM_SIM7000:  DBGLN(F("SIM7000G"));  break;
-    case GSM_SIM7070:  DBGLN(F("SIM7070G"));  break;
-    default:           DBGLN(F("Unknown"));   break;
+    case GSM_A7670:    INFOLN(F("A7670E"));    break;
+    case GSM_SIM7000:  INFOLN(F("SIM7000G"));  break;
+    case GSM_SIM7070:  INFOLN(F("SIM7070G"));  break;
+    default:           INFOLN(F("Unknown"));   break;
   }
 }
 
@@ -83,11 +84,21 @@ bool openDataStack()
     return executeSimpleCommand("AT+CNACT=0,1", "ACTIVE", 8000, 2);
   }
   if (gsmModel == GSM_SIM7000) {
-    snprintf_P(responseBuffer, sizeof(responseBuffer), PSTR("AT+CGDCONT=1,\"IP\",\"%s\""), APN);
-    if (!executeSimpleCommand(responseBuffer, "OK", 500, 3)) return false;
-    if (!executeSimpleCommand(F("AT+CGATT=1"), "OK", 1500, 3))      return false;
-    return executeSimpleCommand(F("AT+CGACT=1,1"), "OK", 1500, 3);
+    bool ok = true;
+  
+    ok &= executeSimpleCommand("AT+CIPSHUT", "SHUT OK", 3000, 2);
+    ok &= executeSimpleCommand("AT+CIPMUX=0", "OK", 1000, 2);
+    ok &= executeSimpleCommand("AT+CIPRXGET=1", "OK", 1000, 2);
+  
+    snprintf_P(responseBuffer, sizeof(responseBuffer), PSTR("AT+CSTT=\"%s\",\"\",\"\""), APN);
+    ok &= executeSimpleCommand(responseBuffer, "OK", 1000, 2);
+  
+    ok &= executeSimpleCommand("AT+CIICR", "OK", 5000, 2);
+    ok &= executeSimpleCommand("AT+CIFSR", ".", 3000, 2);  // On vérifie simplement qu’une IP est renvoyée
+  
+    return ok;
   }
+
 }
 
 bool closeDataStack()
@@ -120,7 +131,7 @@ bool tcpOpen(const char* host, uint16_t port)
 
     delay(500); // stabilité
     if (waitForSerialResponsePattern("+CIPOPEN: 0,0", 30000UL)) {
-      DBGLN(F("✔ TCP connection successful (A7670)"));
+      INFOLN(F("✔ TCP connection successful (A7670)"));
       return true;
     }
     DBG(F("❌ TCP connection failed (A7670), response: ")); DBGLN(responseBuffer);
@@ -154,11 +165,8 @@ bool tcpOpen(const char* host, uint16_t port)
       
       DBGLN(F("✔ TCP connection successful (SIM7000)"));
       return true;
-    }
-    
-    DBG(F("❌ TCP connection failed (SIM7000), response: ")); DBGLN(responseBuffer);
-    return false;
   }
+   }
   else if (gsmModel == GSM_SIM7070) {
   
     // 3) Vider le buffer
@@ -177,7 +185,7 @@ bool tcpOpen(const char* host, uint16_t port)
 
     executeSimpleCommand("AT+CASTATE?", "", 1000UL, 1);
   
-    DBGLN(F("✔ TCP connection successful (SIM7070)"));
+    INFOLN(F("✔ TCP connection successful (SIM7070)"));
     return true;
   }
 
@@ -220,13 +228,25 @@ bool tcpSend(const char* payload, uint16_t len)
 
   // 2) attendre le caractère '>'
   unsigned long t0 = millis();
-  while (millis() - t0 < 5000UL) {
-    if (moduleSerial.find(">")) break;        // <- stoppe dès qu'on voit '>'
+  bool promptFound = false;
+
+  while (millis() - t0 < 8000UL) {
+    readSerialResponse(200);  // lecture incrémentale
+    if (strstr(responseBuffer, ">")) {
+      promptFound = true;
+      break;
+    }
+    if (strstr(responseBuffer, "ERROR")) {
+      DBGLN(F("❌ '>' prompt failed with ERROR."));
+      return false;
+    }
   }
-  if (millis() - t0 >= 5000UL) {
+
+  if (!promptFound) {
     DBGLN(F("❌ prompt '>' timeout"));
     return false;
   }
+
 
   // 3) envoyer le payload tout de suite
   moduleSerial.write((const uint8_t*)payload, len);
@@ -404,8 +424,8 @@ void resetGsmModule() {
     DBGLN(F("  ERROR: module still unresponsive after reset"));
   } else {
     DBGLN(F("  GSM module is back online"));
-    executeSimpleCommand("ATE0", "OK", 1000, 2);
-    executeSimpleCommand("AT+CMEE=2", "OK", 1000, 2);
+    executeSimpleCommand(F("ATE0"), "OK", 1000, 2);
+    executeSimpleCommand(F("AT+CMEE=2"), "OK", 1000, 2);
   }
 }
 
@@ -420,8 +440,7 @@ void clearSerialBuffer() {
 
 
 void initializeModulePower() {
-  pinMode(powerPin, OUTPUT);
-  digitalWrite(powerPin, LOW);
+  
   DBGLN(F("Module power pin configured (D2)."));
   moduleSerial.begin(moduleBaudRate);
   DBG(F("Software Serial initialized on Pins RX:"));
@@ -432,8 +451,13 @@ void initializeModulePower() {
   DBG(moduleBaudRate);
   DBGLN(F(" baud."));
   DBGLN(F("Turning module ON..."));
+  pinMode(powerPin, OUTPUT);
+  digitalWrite(powerPin, LOW);
+  delay(1200);
   digitalWrite(powerPin, HIGH);
-  //delay(5000);
+  delay(300);
+  digitalWrite(powerPin, LOW);
+  delay(5000);
   DBGLN(F("Module boot wait complete."));
 
   detectModel();
@@ -448,15 +472,25 @@ bool initialAT() {
 }
 
 bool initialCommunication() {
-
   DBGLN(F("Initial communication OK."));
-  executeSimpleCommand("ATE0", "OK", 1000UL, 2);
-  executeSimpleCommand("AT+CMEE=2", "OK", 1000UL, 2);
+  executeSimpleCommand(F("ATE0"), "OK", 1000UL, 2);
+  executeSimpleCommand(F("AT+CMEE=2"), "OK", 1000UL, 2);
+
+  // Config spécifique SIM7000
   if (gsmModel == GSM_SIM7000) {
-    executeSimpleCommand("AT+CGNSURC=0", "OK", 1000UL, 2);
-    executeSimpleCommand("AT+CGNSTST=0", "OK", 1000UL, 2);   
-    executeSimpleCommand("AT+CLTS=0", "OK", 1000UL, 2); 
+    executeSimpleCommand(F("AT+CGNSURC=0"), "OK", 1000UL, 2);
+    executeSimpleCommand(F("AT+CGNSTST=0"), "OK", 1000UL, 2);   
+    executeSimpleCommand(F("AT+CLTS=0"), "OK", 1000UL, 2); 
+    // Activation bandes LTE et GSM
+    executeSimpleCommand(F("AT+CBANDCFG=\"CAT-M\",1,2,3,4,5,8,12,13,18,19,20,26,28,39"), "OK", 2000UL, 2);
   }
+
+  // Config spécifique SIM7070G
+  else if (gsmModel == GSM_SIM7070) {
+    // Selon firmware : parfois CBANDCFG fonctionne, parfois non
+    executeSimpleCommand("AT+CBANDCFG=\"CAT-M\",1,2,3,4,5,8,12,13,18,19,20,25,26,28,66,71,85", "OK", 2000UL, 2);
+  }
+
   executeSimpleCommand("AT+CGEREP=0,0", "OK", 1000UL, 2);
   executeSimpleCommand("AT+CTZU=0", "OK", 1000UL, 2);
   executeSimpleCommand("AT+CREG=0", "OK", 1000UL, 2);
@@ -464,8 +498,10 @@ bool initialCommunication() {
 
   return true;
 }
+
+
 bool step1NetworkSettings() {
-  DBGLN(F("\n=== STEP 1: Network Settings ==="));
+  INFOLN(F("Configuration du réseau"));
   closeDataStack();
 
   //if (!executeSimpleCommand("AT+CFUN=0", "OK", 1000UL, 1)) {
@@ -477,13 +513,13 @@ bool step1NetworkSettings() {
     DBGLN(F("WARNING: Early APN config failed."));
   }
   bool ok = true;
-  ok &= executeSimpleCommand("AT+CNMP=2", "OK", 500UL, 3);
+  ok &= executeSimpleCommand("AT+CNMP=38", "OK", 500UL, 3);
 
   // Ne faire CMNB=1 que si ce n’est pas un A7670E
   if (gsmModel != GSM_A7670) {
     ok &= executeSimpleCommand("AT+CMNB=1", "OK", 500UL, 3);
   } else {
-    DBGLN(F(">> A7670E détecté : saut de AT+CMNB=1"));
+    DBGLN(F(">> A7670E détecté : saut de AT+CMNB=2"));
   }
 
   if (ok) {
@@ -504,7 +540,7 @@ bool waitForSimReady() {
     readSerialResponse(1000UL);
 
     if (strstr(responseBuffer, "+CPIN: READY")) {
-      DBGLN(F("SIM Ready."));
+      INFOLN(F("SIM prête"));
       return true;
     }
 
@@ -512,7 +548,7 @@ bool waitForSimReady() {
     delay(RETRY_DELAY_MS);
   }
 
-  DBGLN(F("SIM non prête après plusieurs tentatives."));
+  INFOLN(F("SIM non prête après plusieurs tentatives."));
   return false;
 }
 
@@ -550,7 +586,7 @@ bool step4EnableGNSS() {
   if (gsmModel == GSM_A7670) {
     // A7670E : activer GNSS avec AT+CGNSSPWR=1 seulement
     bool ok = executeSimpleCommand("AT+CGNSSPWR=1", "OK", 1000, 3);
-    if (!ok) DBGLN(F("ERROR: Échec d'activation GNSS pour A7670E."));
+    if (!ok) INFOLN(F("ERROR: Échec d'activation GNSS pour A7670E."));
     return ok;
   }
 
@@ -558,12 +594,12 @@ bool step4EnableGNSS() {
     // SIM7000G : GNSS via CGNSPWR et sortie via CGNSTST
     bool ok = true;
     ok &= executeSimpleCommand("AT+CGNSPWR=1", "OK", 500, 3);
-    if (!ok) DBGLN(F("ERROR: Échec d'activation GNSS pour SIM7000G."));
+    if (!ok) INFOLN(F("ERROR: Échec d'activation GNSS pour SIM7000G."));
     delay(1000); // délai pour init GNSS
     return ok;
   }
 
-  DBGLN(F("Modèle inconnu : GNSS non activé."));
+  INFOLN(F("Modèle inconnu : GNSS non activé."));
   return false;
 }
 
@@ -573,14 +609,14 @@ bool disableGNSS() {
   if (gsmModel == GSM_A7670) {
     // A7670E : désactiver GNSS avec AT+CGNSSPWR=0
     bool ok = executeSimpleCommand("AT+CGNSSPWR=0", "OK", 1000, 3);
-    if (!ok) DBGLN(F("ERROR: Échec de désactivation GNSS pour A7670E."));
+    if (!ok) INFOLN(F("ERROR: Échec de désactivation GNSS pour A7670E."));
     return ok;
   }
 
   if (gsmModel == GSM_SIM7000 || gsmModel == GSM_SIM7070) {
     // SIM7000G / SIM7070G : désactivation via CGNSPWR=0
     bool ok = executeSimpleCommand("AT+CGNSPWR=0", "OK", 500, 3);
-    if (!ok) DBGLN(F("ERROR: Échec de désactivation GNSS pour SIM7xxx."));
+    if (!ok) INFOLN(F("ERROR: Échec de désactivation GNSS pour SIM7xxx."));
     delay(500);  // laisse le temps au module
     return ok;
   }

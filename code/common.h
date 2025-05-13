@@ -15,27 +15,12 @@
 #define NET_FAIL_THRESHOLD 5
 #define HISTORY 3
 #define MAX_SECTORS 1000UL
-#define HTTP_REQUEST_BUFFER_SIZE 200
+#define HTTP_REQUEST_BUFFER_SIZE 256
 #define RESPONSE_BUFFER_SIZE 128
 #define GPS_TIMESTAMP_TRACCAR_BUF_SIZE 25
 #define SD_CS_PIN 8
 
-#define GPS_POLL_INTERVAL   10000UL   // 10 secondes entre lectures GPS
 #define RECONNECT_PERIOD    60000UL   // 60 secondes entre tentatives réseau
-
-#define DEBUG  // ← commente cette ligne pour désactiver les logs
-
-#ifdef DEBUG
-  #define DBG(x) Serial.print(x)
-  #define DBGLN(x) Serial.println(x)
-  #define DBG2(x, y) Serial.print(x, y)
-  #define DBGLN2(x, y) Serial.println(x, y)
-#else
-  #define DBG(x)
-  #define DBGLN(x)
-  #define DBG2(x, y)
-  #define DBGLN2(x, y)
-#endif
 
 extern char responseBuffer[RESPONSE_BUFFER_SIZE];
 
@@ -70,14 +55,8 @@ extern bool sdAvailable;
 extern SoftwareSerial moduleSerial;
 
 extern const unsigned long moduleBaudRate;
-extern const char* APN;
-
-extern const char* TRACCAR_HOST;
-extern const uint16_t TRACCAR_PORT;
-extern const char* DEVICE_ID;
 
 extern unsigned long lastSendTime;
-extern const unsigned long sendInterval;
 
 
 extern uint8_t responseBufferPos;

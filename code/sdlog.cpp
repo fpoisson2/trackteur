@@ -16,7 +16,8 @@
  * Matériel    : Arduino Nano (ATmega328P) + SIM7000G + carte SD
  * ======================================================================= */
 
-
+#include "config.h"
+#include "logging.h"
 #include "sdlog.h"
 
 void saveLogMetadata(uint32_t currentIndex) {
@@ -245,10 +246,10 @@ void initializeSD() {
 
   FRESULT res = PF.begin(&fs);
   if (res != FR_OK) {
-    DBGLN(F("Échec de montage de la carte SD."));
+    INFOLN(F("Échec de montage de la carte SD."));
     sdAvailable = false;
   } else {
-    DBGLN(F("Carte SD montée avec succès."));
+    INFOLN(F("Carte SD montée avec succès."));
     sdAvailable = true;
   }
 }

@@ -11,6 +11,8 @@
  * Matériel    : Arduino Nano (ATmega328P) + SIM7000G
  * ======================================================================= */
 
+#include "config.h"
+#include "logging.h"
 #include "common.h"
 #include "gsm.h"       // pour executeSimpleCommand, readSerialResponse, moduleSerial
 #include "traccar.h"
@@ -50,7 +52,7 @@ bool sendGpsToTraccar(const char* host, uint16_t port, const char* deviceId,
     tcpClose();
     return false;
   }
-  DBGLN(F("✔ Send OK"));
+  INFOLN(F("Envoi au servuer traccar OK"));
 
   /* ---------- 4. Fermer proprement -------------- */
   tcpClose();
