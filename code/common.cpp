@@ -15,8 +15,8 @@
 
 #include "common.h"
 
-const char* APN = "onomondo";
-//const char* APN = "em";
+//const char* APN = "onomondo";
+const char* APN = "em";
 //const char* APN = "hologram";
 
 const char* TRACCAR_HOST = "trackteur.ve2fpd.com";

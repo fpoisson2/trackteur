@@ -80,6 +80,7 @@ if (getGpsData(currentLat, currentLon, gpsTimestampTraccar)) {
       if (consecutiveNetFails >= NET_FAIL_THRESHOLD) {
         DBGLN(F(">>> Trop d'échecs réseau, on redémarre le module GSM."));
         resetGsmModule();
+        step4EnableGNSS();
         netState = NetState::OFFLINE;
         lastReconnectAttempt = millis();
         consecutiveNetFails = 0;

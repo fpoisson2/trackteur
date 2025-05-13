@@ -462,7 +462,7 @@ bool initialCommunication() {
     executeSimpleCommand(F("AT+CGNSTST=0"), "OK", 1000UL, 2);   
     executeSimpleCommand(F("AT+CLTS=0"), "OK", 1000UL, 2); 
     // Activation bandes LTE et GSM
-    executeSimpleCommand(F("AT+CBANDCFG=\"CAT-M\",1,2,3,4,5,8,12,13,14,17,18,19,20,25,26,27,28,66,85"), "OK", 2000UL, 2);
+    executeSimpleCommand(F("AT+CBANDCFG=\"CAT-M\",1,2,3,4,5,8,12,13,18,19,20,26,28,39"), "OK", 2000UL, 2);
   }
 
   // Config spécifique SIM7070G
