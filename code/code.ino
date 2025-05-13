@@ -18,6 +18,8 @@
  *   - traccar.h/.cpp   : Format et envoi vers Traccar via TCP
  * ======================================================================= */
 
+#include "config.h"
+#include "logging.h"
 #include "common.h"
 #include "sdlog.h"
 #include "gsm.h"

@@ -14,14 +14,8 @@
  * ======================================================================= */
 
 #include "common.h"
-
-//const char* APN = "onomondo";
-const char* APN = "em";
-//const char* APN = "hologram";
-
-const char* TRACCAR_HOST = "trackteur.ve2fpd.com";
-const uint16_t TRACCAR_PORT = 5055;
-const char* DEVICE_ID = "212910";
+#include "config.h"
+#include "logging.h"
 
 FATFS fs;
 const char* LOG_FILE = "GPS_LOG.CSV";
@@ -42,7 +36,6 @@ SoftwareSerial moduleSerial(swRxPin, swTxPin);
 const unsigned long moduleBaudRate = 9600UL;
 
 unsigned long lastSendTime = 0;
-const unsigned long sendInterval = 10000UL;  // 10s entre envois
 
 char responseBuffer[RESPONSE_BUFFER_SIZE];
 uint8_t responseBufferPos = 0;

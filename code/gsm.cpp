@@ -11,7 +11,8 @@
  * Matériel    : SIM7000G + Arduino Nano (ATmega328P)
  * ======================================================================= */
 
-
+#include "config.h"
+#include "logging.h"
 #include "common.h"
 #include "gsm.h"
 

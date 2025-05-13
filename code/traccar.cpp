@@ -11,6 +11,8 @@
  * Matériel    : Arduino Nano (ATmega328P) + SIM7000G
  * ======================================================================= */
 
+#include "config.h"
+#include "logging.h"
 #include "common.h"
 #include "gsm.h"       // pour executeSimpleCommand, readSerialResponse, moduleSerial
 #include "traccar.h"

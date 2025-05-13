@@ -16,7 +16,8 @@
  * Matériel    : Arduino Nano (ATmega328P) + SIM7000G + carte SD
  * ======================================================================= */
 
-
+#include "config.h"
+#include "logging.h"
 #include "sdlog.h"
 
 void saveLogMetadata(uint32_t currentIndex) {

@@ -10,6 +10,7 @@
  * Matériel    : SIM7000G (GNSS intégré) + Arduino Nano
  * ======================================================================= */
 
+#include "logging.h"
 #include "common.h"
 #include "gps.h"
 #include "gsm.h"  // pour readSerialResponse()
