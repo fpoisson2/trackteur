@@ -83,11 +83,21 @@ bool openDataStack()
     return executeSimpleCommand("AT+CNACT=0,1", "ACTIVE", 8000, 2);
   }
   if (gsmModel == GSM_SIM7000) {
-    snprintf_P(responseBuffer, sizeof(responseBuffer), PSTR("AT+CGDCONT=1,\"IP\",\"%s\""), APN);
-    if (!executeSimpleCommand(responseBuffer, "OK", 500, 3)) return false;
-    if (!executeSimpleCommand(F("AT+CGATT=1"), "OK", 1500, 3))      return false;
-    return executeSimpleCommand(F("AT+CGACT=1,1"), "OK", 1500, 3);
+    bool ok = true;
+  
+    ok &= executeSimpleCommand("AT+CIPSHUT", "SHUT OK", 3000, 2);
+    ok &= executeSimpleCommand("AT+CIPMUX=0", "OK", 1000, 2);
+    ok &= executeSimpleCommand("AT+CIPRXGET=1", "OK", 1000, 2);
+  
+    snprintf_P(responseBuffer, sizeof(responseBuffer), PSTR("AT+CSTT=\"%s\",\"\",\"\""), APN);
+    ok &= executeSimpleCommand(responseBuffer, "OK", 1000, 2);
+  
+    ok &= executeSimpleCommand("AT+CIICR", "OK", 5000, 2);
+    ok &= executeSimpleCommand("AT+CIFSR", ".", 3000, 2);  // On vérifie simplement qu’une IP est renvoyée
+  
+    return ok;
   }
+
 }
 
 bool closeDataStack()
@@ -152,13 +162,10 @@ bool tcpOpen(const char* host, uint16_t port)
         }
       }
       
-      INFOLN(F("✔ TCP connection successful (SIM7000)"));
+      DBGLN(F("✔ TCP connection successful (SIM7000)"));
       return true;
-    }
-    
-    DBG(F("❌ TCP connection failed (SIM7000), response: ")); DBGLN(responseBuffer);
-    return false;
   }
+   }
   else if (gsmModel == GSM_SIM7070) {
   
     // 3) Vider le buffer
@@ -220,13 +227,25 @@ bool tcpSend(const char* payload, uint16_t len)
 
   // 2) attendre le caractère '>'
   unsigned long t0 = millis();
-  while (millis() - t0 < 5000UL) {
-    if (moduleSerial.find(">")) break;        // <- stoppe dès qu'on voit '>'
+  bool promptFound = false;
+
+  while (millis() - t0 < 8000UL) {
+    readSerialResponse(200);  // lecture incrémentale
+    if (strstr(responseBuffer, ">")) {
+      promptFound = true;
+      break;
+    }
+    if (strstr(responseBuffer, "ERROR")) {
+      DBGLN(F("❌ '>' prompt failed with ERROR."));
+      return false;
+    }
   }
-  if (millis() - t0 >= 5000UL) {
+
+  if (!promptFound) {
     DBGLN(F("❌ prompt '>' timeout"));
     return false;
   }
+
 
   // 3) envoyer le payload tout de suite
   moduleSerial.write((const uint8_t*)payload, len);
@@ -493,13 +512,13 @@ bool step1NetworkSettings() {
     DBGLN(F("WARNING: Early APN config failed."));
   }
   bool ok = true;
-  ok &= executeSimpleCommand("AT+CNMP=2", "OK", 500UL, 3);
+  ok &= executeSimpleCommand("AT+CNMP=38", "OK", 500UL, 3);
 
   // Ne faire CMNB=1 que si ce n’est pas un A7670E
   if (gsmModel != GSM_A7670) {
     ok &= executeSimpleCommand("AT+CMNB=1", "OK", 500UL, 3);
   } else {
-    DBGLN(F(">> A7670E détecté : saut de AT+CMNB=1"));
+    DBGLN(F(">> A7670E détecté : saut de AT+CMNB=2"));
   }
 
   if (ok) {
