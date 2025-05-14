@@ -59,19 +59,16 @@ uint32_t loadLogMetadata() {
   FRESULT res = PF.readFile(&meta, sizeof(meta), &br);
 
   if (res != FR_OK || br != sizeof(meta)) {
-    DBGLN(F("Lecture metadata échouée. Réinitialise index à 1."));
     lastSectorUsed = 0;
     saveLogMetadata(1);
   }
 
   if (strncmp(meta.signature, "LOGDATA", 7) != 0) {
-    DBGLN(F("Signature invalide. Réinitialise index à 1."));
     lastSectorUsed = 0;
     saveLogMetadata(1);
   }
 
   if (meta.index == 0 || meta.index > MAX_SECTORS) {
-    DBGLN(F("Index corrompu. Réinitialise index à 1."));
     lastSectorUsed = 0;
     saveLogMetadata(1);
   }

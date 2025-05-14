@@ -3,7 +3,7 @@
 // --- Intervalle entre les lectures GPS (en millisecondes) ---
 // Ce délai détermine la fréquence à laquelle le GPS est interrogé.
 // Exemple : 60000UL signifie une lecture toutes les 60 secondes.
-const unsigned long GPS_POLL_INTERVAL = 60000UL;  // 60 secondes
+const unsigned long GPS_POLL_INTERVAL = 10000UL;  // 60 secondes
 
 // --- Paramètres de connexion au réseau mobile et au serveur Traccar ---
 
@@ -11,7 +11,7 @@ const unsigned long GPS_POLL_INTERVAL = 60000UL;  // 60 secondes
 // - "em" pour Emnify
 // - "onomondo" pour Onomondo
 // - "hologram" pour Hologram.io
-const char* APN = "onomondo";
+const char* APN = "em";
 
 // Adresse du serveur Traccar où envoyer les données GPS.
 // Peut être un nom de domaine ou une adresse IP.
