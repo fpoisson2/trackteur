@@ -22,11 +22,8 @@ GsmModel gsmModel = GSM_SIM7000;  // valeur par défaut
 void detectModel()
 {
   clearSerialBuffer();
-  moduleSerial.println("AT+CGMM");
+  moduleSerial.println(F("AT+CGMM"));
   readSerialResponse(2000UL);  // attends toute la réponse
-
-  DBG(F(">> CGMM raw: "));
-  DBGLN(responseBuffer);
 
   if (strstr(responseBuffer, "A7670")) {
     gsmModel = GSM_A7670;
@@ -54,9 +51,9 @@ bool openDataStack()
     snprintf_P(responseBuffer, sizeof(responseBuffer), PSTR("AT+CGDCONT=1,\"IP\",\"%s\",\"0.0.0.0\",0,0"), APN);
     if (!executeSimpleCommand(responseBuffer, "OK", 1000, 3)) return false;
 
+
     // NETOPEN avec trois tentatives
      for (uint8_t i = 0; i < 3; i++) {
-      DBG(F("NETOPEN attempt ")); DBGLN(i + 1);
       moduleSerial.println(F("AT+NETOPEN"));
       readSerialResponse(10000UL);
     
@@ -66,16 +63,11 @@ bool openDataStack()
       }
     
       if (strstr(responseBuffer, "+NETOPEN: 0") || strstr(responseBuffer, "already opened")) {
-        DBGLN(F("NETOPEN OK"));
+        executeSimpleCommand("AT+CIPRXGET=1", "OK", 1000, 2);
         return true;
       }
-    
-      DBGLN(F("NETOPEN failed, retrying..."));
       delay(500);
     }
-
-    executeSimpleCommand(F("AT+CDNSCFG=\"8.8.8.8\",\"1.1.1.1\""), "OK", 1000, 2);
-    DBGLN(F("NETOPEN ultimately failed."));
     return false;
   }
   if (gsmModel == GSM_SIM7070) {
@@ -125,7 +117,7 @@ bool tcpOpen(const char* host, uint16_t port)
 
   if (gsmModel == GSM_A7670) {
     snprintf_P(responseBuffer, sizeof(responseBuffer), PSTR("AT+CIPOPEN=0,\"TCP\",\"%s\",%u"), host, port);
-    DBG(F("→ TCP open command (A7670): ")); DBGLN(responseBuffer);
+
     moduleSerial.write((const uint8_t*)responseBuffer, strlen(responseBuffer));
     moduleSerial.write('\r');
 
@@ -134,12 +126,10 @@ bool tcpOpen(const char* host, uint16_t port)
       INFOLN(F("✔ TCP connection successful (A7670)"));
       return true;
     }
-    DBG(F("❌ TCP connection failed (A7670), response: ")); DBGLN(responseBuffer);
     return false;
 
    } else if (gsmModel == GSM_SIM7000) {
     snprintf_P(responseBuffer, sizeof(responseBuffer), PSTR("AT+CIPSTART=\"TCP\",\"%s\",%u"), host, port);
-    DBG(F("→ TCP open command (SIM7000): ")); DBGLN(responseBuffer);
     moduleSerial.write((const uint8_t*)responseBuffer, strlen(responseBuffer));
     moduleSerial.write('\r');
 
@@ -156,14 +146,10 @@ bool tcpOpen(const char* host, uint16_t port)
       
       // If we just have OK, wait for the CONNECT OK to follow
       if (!strstr(responseBuffer, "CONNECT") && strstr(responseBuffer, "OK")) {
-        DBGLN(F("Got OK, waiting for CONNECT OK..."));
         if (!waitForSerialResponsePattern("CONNECT OK", 10000UL)) {
-          DBGLN(F("❌ CONNECT OK not received after initial OK"));
           return false;
         }
       }
-      
-      DBGLN(F("✔ TCP connection successful (SIM7000)"));
       return true;
   }
    }
@@ -176,20 +162,16 @@ bool tcpOpen(const char* host, uint16_t port)
     snprintf_P(responseBuffer, sizeof(responseBuffer),
                PSTR("AT+CAOPEN=0,0,\"TCP\",\"%s\",%u"),
                host, port);
-    DBG(F("→ CAOPEN: ")); DBGLN(responseBuffer);
   
     if (!executeSimpleCommand(responseBuffer, "+CAOPEN: 0,0", 15000UL, 1)) {
-      DBGLN(F("❌ CAOPEN failed"));
       return false;
     }
 
     executeSimpleCommand("AT+CASTATE?", "", 1000UL, 1);
   
-    INFOLN(F("✔ TCP connection successful (SIM7070)"));
+    INFOLN(F("TCP connection successful"));
     return true;
   }
-
-  DBGLN(F("❌ Unknown modem type"));
   return false;
 }
 
@@ -224,25 +206,15 @@ bool tcpSend(const char* payload, uint16_t len)
   }
 
   moduleSerial.println(responseBuffer);        //  <-- ligne manquante
-  DBGLN(responseBuffer);
+  //DBGLN(responseBuffer);
 
   // 2) attendre le caractère '>'
   unsigned long t0 = millis();
-  bool promptFound = false;
-
-  while (millis() - t0 < 8000UL) {
-    readSerialResponse(200);  // lecture incrémentale
-    if (strstr(responseBuffer, ">")) {
-      promptFound = true;
-      break;
-    }
-    if (strstr(responseBuffer, "ERROR")) {
-      DBGLN(F("❌ '>' prompt failed with ERROR."));
-      return false;
-    }
+  while (millis() - t0 < 5000UL) {
+    if (moduleSerial.find(">")) break;        // <- stoppe dès qu'on voit '>'
   }
 
-  if (!promptFound) {
+  if (millis() - t0 >= 5000UL) {
     DBGLN(F("❌ prompt '>' timeout"));
     return false;
   }
@@ -316,7 +288,6 @@ void readSerialResponse(unsigned long waitMillis) {
     wdt_reset();
     while (moduleSerial.available()) {
       char c = moduleSerial.read();
-      DBG(c);
       if ((uint8_t)c < 1 || c == 127) continue;
       if (responseBufferPos < RESPONSE_BUFFER_SIZE - 1) {
         responseBuffer[responseBufferPos++] = c;
@@ -353,20 +324,17 @@ bool executeSimpleCommand(const char* command,
                           unsigned long timeoutMillis, uint8_t retries) {
   for (uint8_t i = 0; i < retries; i++) {
     wdt_reset();
-    DBG(F("Send [")); DBG(i + 1); DBG(F("]: "));
-    DBGLN(command);
+    DBG(F("Send: ")); DBGLN(command);
 
     moduleSerial.println(command);
     readSerialResponse(timeoutMillis);
+    DBG(F("AT< "));
+    DBG(responseBuffer);
     if (strstr(responseBuffer, expectedResponse)) {
-      DBGLN(F(">> OK Resp."));
       return true;
     }
-    if (strstr(responseBuffer, "ERROR")) DBGLN(F(">> ERROR Resp."));
-    DBGLN(F(">> No/Wrong Resp."));
     if (i < retries - 1) delay(500);
   }
-  DBGLN(F(">> Failed after retries."));
   return false;
 }
 
@@ -377,22 +345,19 @@ bool executeSimpleCommand(const __FlashStringHelper* commandFlash,
   for (uint8_t i = 0; i < retries; i++) {
     wdt_reset();
     DBG(F("Send [")); DBG(i + 1); DBG(F("]: "));
-    DBGLN(commandFlash);
 
     // Envoie ligne AT en Flash
     moduleSerial.print(commandFlash);
     moduleSerial.print("\r");
 
     readSerialResponse(timeoutMillis);
+    DBG(F("AT< "));
+    DBG(responseBuffer);
     if (strstr(responseBuffer, expectedResponse)) {
-      DBGLN(F(">> OK Resp."));
       return true;
     }
-    if (strstr(responseBuffer, "ERROR")) DBGLN(F(">> ERROR Resp."));
-    DBGLN(F(">> No/Wrong Resp."));
     if (i < retries - 1) delay(500);
   }
-  DBGLN(F(">> Failed after retries."));
   return false;
 }
 
@@ -413,7 +378,6 @@ bool waitForInitialOK(uint8_t maxRetries) {
 }
 
 void resetGsmModule() {
-  DBGLN(F("*** Power-cycling GSM module ***"));
   digitalWrite(powerPin, LOW);
   delay(2000);
   while (moduleSerial.available()) moduleSerial.read(); // clear serial buffer
@@ -440,17 +404,7 @@ void clearSerialBuffer() {
 
 
 void initializeModulePower() {
-  
-  DBGLN(F("Module power pin configured (D2)."));
   moduleSerial.begin(moduleBaudRate);
-  DBG(F("Software Serial initialized on Pins RX:"));
-  DBG(swRxPin);
-  DBG(F(", TX:"));
-  DBG(swTxPin);
-  DBG(F(" at "));
-  DBG(moduleBaudRate);
-  DBGLN(F(" baud."));
-  DBGLN(F("Turning module ON..."));
   pinMode(powerPin, OUTPUT);
   digitalWrite(powerPin, LOW);
   delay(1200);
@@ -458,7 +412,6 @@ void initializeModulePower() {
   delay(300);
   digitalWrite(powerPin, LOW);
   delay(5000);
-  DBGLN(F("Module boot wait complete."));
 
   detectModel();
 }
@@ -472,7 +425,6 @@ bool initialAT() {
 }
 
 bool initialCommunication() {
-  DBGLN(F("Initial communication OK."));
   executeSimpleCommand(F("ATE0"), "OK", 1000UL, 2);
   executeSimpleCommand(F("AT+CMEE=2"), "OK", 1000UL, 2);
 
@@ -518,13 +470,11 @@ bool step1NetworkSettings() {
   // Ne faire CMNB=1 que si ce n’est pas un A7670E
   if (gsmModel != GSM_A7670) {
     ok &= executeSimpleCommand("AT+CMNB=1", "OK", 500UL, 3);
-  } else {
-    DBGLN(F(">> A7670E détecté : saut de AT+CMNB=2"));
   }
 
   if (ok) {
-    DBGLN(F("Turning radio ON (CFUN=1,1)..."));
-    moduleSerial.println("AT+CFUN=1,1");
+    DBGLN(F("Turning radio ON..."));
+    moduleSerial.println(F("AT+CFUN=1,1"));
     delay(500);
   }
 
@@ -536,7 +486,7 @@ bool waitForSimReady() {
   const unsigned long RETRY_DELAY_MS = 1500UL;
 
   for (uint8_t attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    moduleSerial.println("AT+CPIN?");
+    moduleSerial.println(F("AT+CPIN?"));
     readSerialResponse(1000UL);
 
     if (strstr(responseBuffer, "+CPIN: READY")) {
@@ -544,7 +494,7 @@ bool waitForSimReady() {
       return true;
     }
 
-    DBG(F("SIM not ready (try ")); DBG(attempt + 1); DBGLN(F(")"));
+    DBG(F("SIM pas prete")); DBG(attempt + 1); DBGLN(F(")"));
     delay(RETRY_DELAY_MS);
   }
 
@@ -572,7 +522,7 @@ bool step2NetworkRegistration() {
     }
     delay(2000);
   }
-  DBGLN(F("ERROR: Failed network registration."));
+  DBGLN(F("ERREUR: enregistrement au reseau."));
   return false;
 }
 
