@@ -51,7 +51,7 @@ bool setupSuccess = false;
 bool sdAvailable = false;
 
 void initializeWatchdog() {
-  //wdt_enable(WDTO_8S);
+  wdt_enable(WDTO_8S);
 }
 
 void initializeSerial() {
@@ -81,6 +81,7 @@ void serviceNetwork() {
       break;
 
     case NetState::OFFLINE:
+      while(true);
       if (millis() - lastReconnectAttempt >= RECONNECT_PERIOD) {
         INFOLN(F("Tentative de reconnexion..."));
         if (initialCommunication() &&
