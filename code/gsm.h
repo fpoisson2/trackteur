@@ -27,6 +27,7 @@ bool step4EnableGNSS();
 bool disableGNSS();
 void initializeModulePower();
 bool initialAT();
+void PowerOff();
 
 bool tcpOpen (const char* host, uint16_t port);
 bool tcpSend (const char* payload, uint16_t len);
