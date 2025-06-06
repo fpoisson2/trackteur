@@ -19,6 +19,7 @@
 #include "config.h"
 #include "logging.h"
 #include "sdlog.h"
+#include "gsm.h"
 
 void saveLogMetadata(uint32_t currentIndex) {
   wdt_reset(); 
@@ -110,8 +111,8 @@ void resendLastLog() {
   buf[br] = '\0';
 
   // Affiche le contenu à renvoyer
-  DBG(F("→ Renvoi secteur ")); DBG(s);
-  DBG(F(" : «")); DBG(buf); DBGLN(F("»"));
+  INFO(F("→ Renvoi secteur ")); DBG(s);
+  INFO(F(" : «")); DBG(buf); DBGLN(F("»"));
 
   // Si déjà marqué envoyé, décrémente et quitte
   if (buf[0] == '#') {
@@ -153,9 +154,10 @@ void resendLastLog() {
   } else {
     // Échec : incremente compteur et éventuellement reset du module
     consecutiveNetFails++;
-    DBG(F("    Échec renvoi (#")); DBG(consecutiveNetFails); DBGLN(F(")"));
+    INFO(F("    Échec renvoi (#")); DBG(consecutiveNetFails); DBGLN(F(")"));
     if (consecutiveNetFails >= NET_FAIL_THRESHOLD) {
-      resetGsmModule();
+      PowerOff();
+      while(true);
       consecutiveNetFails = 0;
     }
   }
@@ -223,7 +225,7 @@ void logRealPositionToSd(float lat, float lon, const char* ts) {
     res = PF.readFile(buf, len, &br);
     if (res != FR_OK) return;
 
-    DBG(F("Secteur ")); DBG(s); DBG(F(" : "));
+    INFO(F("Secteur ")); INFO(s); INFO(F(" : "));
     Serial.write((uint8_t*)buf, br); DBGLN();
   }
 

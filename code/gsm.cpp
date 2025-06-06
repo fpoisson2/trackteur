@@ -465,11 +465,15 @@ bool step1NetworkSettings() {
     DBGLN(F("WARNING: Early APN config failed."));
   }
   bool ok = true;
-  ok &= executeSimpleCommand("AT+CNMP=38", "OK", 500UL, 3);
+
 
   // Ne faire CMNB=1 que si ce n’est pas un A7670E
   if (gsmModel != GSM_A7670) {
+    ok &= executeSimpleCommand("AT+CNMP=13", "OK", 500UL, 3);
     ok &= executeSimpleCommand("AT+CMNB=1", "OK", 500UL, 3);
+  }
+  else {
+      ok &= executeSimpleCommand("AT+CNMP=2", "OK", 500UL, 3);
   }
 
   if (ok) {
@@ -573,4 +577,9 @@ bool disableGNSS() {
 
   DBGLN(F("Modèle inconnu : GNSS non désactivé."));
   return false;
+}
+
+void PowerOff() {
+          executeSimpleCommand(F("AT+CPOF"), "OK", 5000, 2);
+        executeSimpleCommand(F("AT+CPOWD=1"), "OK", 5000, 2);
 }

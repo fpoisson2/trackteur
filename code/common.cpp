@@ -16,6 +16,7 @@
 #include "common.h"
 #include "config.h"
 #include "logging.h"
+#include "gsm.h"
 
 FATFS fs;
 const char* LOG_FILE = "GPS_LOG.CSV";
@@ -81,26 +82,22 @@ void serviceNetwork() {
       break;
 
     case NetState::OFFLINE:
+      PowerOff();
       while(true);
-      if (millis() - lastReconnectAttempt >= RECONNECT_PERIOD) {
-        INFOLN(F("Tentative de reconnexion..."));
-        if (initialCommunication() &&
-            step1NetworkSettings() &&
-            waitForSimReady() &&
-            step2NetworkRegistration() &&
-            step3PDPContext()) {
-          INFOLN(F("Reconnexion réussie."));
-          netState = NetState::ONLINE;
-          consecutiveNetFails = 0;
-        } else {
-          INFOLN(F("Reconnexion échouée."));
-          lastReconnectAttempt = millis();
-        }
-      }
       break;
 
     case NetState::ONLINE:
       // Pas de traitement ici, le statut sera mis à jour en cas d’erreurs ailleurs
       break;
+  }
+}
+
+
+const char* toStr(NetState state) {
+  switch (state) {
+    case NetState::BOOTING:    return "BOOTING";
+    case NetState::OFFLINE:    return "OFFLINE";
+    case NetState::ONLINE:     return "ONLINE";
+    default:                   return "UNKNOWN";
   }
 }

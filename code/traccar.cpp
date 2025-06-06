@@ -38,6 +38,8 @@ bool sendGpsToTraccar(const char* host, uint16_t port, const char* deviceId,
            "GET /?id=%s&lat=%s&lon=%s&timestamp=%s HTTP/1.1\r\nHost: %s\r\n\r\n",
            deviceId, latStr, lonStr, timestampStr, host);
 
+  INFOLN(httpReq);
+
   uint16_t reqLen = strlen(httpReq);
   if (reqLen >= sizeof(httpReq)) {
     DBGLN(F("❌ HTTP request too long"));

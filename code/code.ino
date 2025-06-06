@@ -26,6 +26,8 @@
 #include "gps.h"
 #include "traccar.h"
 
+
+
 void setup() {
   initializeWatchdog();
   initializeSerial();
@@ -56,9 +58,12 @@ if (getGpsData(currentLat, currentLon, gpsTimestampTraccar)) {
   DBG(F("GPS OK: Lat=")); DBG2(currentLat, 6);
   DBG(F(" Lon="));        DBG2(currentLon, 6);
   DBG(F(" Time="));       DBGLN(gpsTimestampTraccar);
+  consecutiveGpsFails = 0;
   if (gsmModel == GSM_SIM7070) {
     disableGNSS();
   }
+
+  Serial.println(toStr(netState));
 
   // Mise à jour de l'état du réseau (connexion, reconnexion si besoin)
   if (netState == NetState::ONLINE) {
@@ -73,7 +78,8 @@ if (getGpsData(currentLat, currentLon, gpsTimestampTraccar)) {
       // vidange des anciennes données seulement
       resendLastLog();
     } else {
-      DBG(F("Network fail #")); DBGLN(++consecutiveNetFails);
+      INFO(F("Network fail #")); 
+      INFOLN(++consecutiveNetFails);
       DBGLN(F(">>> Send FAIL."));
       
       // Log uniquement si l'envoi a échoué
@@ -81,7 +87,6 @@ if (getGpsData(currentLat, currentLon, gpsTimestampTraccar)) {
 
       if (consecutiveNetFails >= NET_FAIL_THRESHOLD) {
         DBGLN(F(">>> Trop d'échecs réseau, on redémarre le module GSM."));
-        while(true);
         netState = NetState::OFFLINE;
         lastReconnectAttempt = millis();
         consecutiveNetFails = 0;
@@ -95,7 +100,12 @@ if (getGpsData(currentLat, currentLon, gpsTimestampTraccar)) {
   step4EnableGNSS();
 }
  else {
+      consecutiveGpsFails++;
       DBGLN(F(">>> Aucun fix GPS."));
+      if(consecutiveGpsFails > GPS_FAIL_THRESHOLD) {
+        PowerOff();
+        while(true);
+      }
     }
 
     lastGpsPoll = millis();

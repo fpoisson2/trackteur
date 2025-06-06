@@ -31,6 +31,11 @@ bool step2NetworkRegistration();
 bool step3PDPContext();
 bool step4EnableGNSS();
 
+
+// --- Surveillance perte de fix GNSS -----------------------------
+static uint8_t consecutiveGpsFails = 0;          // compteur d’échecs
+const uint8_t GPS_FAIL_THRESHOLD  = 10;          // déclenche à 10 échecs
+
 // === État réseau ===
 enum class NetState { BOOTING, OFFLINE, ONLINE };
 extern NetState netState;
@@ -71,5 +76,8 @@ void initializeWatchdog();
 void initializeSerial();
 
 void serviceNetwork();
+
+const char* toStr(NetState state);
+
 
 #endif
