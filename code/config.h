@@ -8,7 +8,7 @@
 // 0 : Aucun log (production silencieuse)
 // 1 : Info (messages importants seulement)
 // 2 : Debug (détails complets, utile pour le développement et le dépannage)
-#define LOG_LEVEL 1
+#define LOG_LEVEL 2
 
 // --- Configuration système ---
 // Intervalle entre chaque lecture GPS, exprimé en millisecondes.

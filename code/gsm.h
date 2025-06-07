@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 enum GsmModel : uint8_t { GSM_SIM7000, GSM_A7670, GSM_SIM7070 };
-extern GsmModel gsmModel;        // défini dans gsm.cpp
+extern GsmModel gsmModel;
 
 bool executeSimpleCommand(const char* command, const char* expectedResponse,
                           unsigned long timeoutMillis, uint8_t retries);
