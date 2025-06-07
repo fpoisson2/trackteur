@@ -78,90 +78,80 @@ uint32_t loadLogMetadata() {
   return meta.index;
 }
 
-
 void resendLastLog() {
   if (!sdAvailable) {
     DBGLN(F("SD non disponible. Ignoré."));
     return;
   }
-  if (lastSectorUsed < 1) return;
+
   wdt_reset();
 
-  uint32_t s = lastSectorUsed;
-  // Ouvre le fichier de log
-  if (PF.open(LOG_FILE) != FR_OK) {
-    DBG(F("Impossible d'ouvrir pour renvoi secteur "));
-    DBGLN(s);
+  // Balayage à l'envers pour trouver le dernier secteur marqué '!'
+  uint32_t found = 0;
+  for (int32_t s = lastSectorUsed; s >= 1; s--) {
+    if (PF.open(LOG_FILE) != FR_OK) continue;
+    PF.seek(s * 512UL);
+    char mark;
+    UINT br;
+    if (PF.readFile(&mark, 1, &br) == FR_OK && br == 1 && mark == '!') {
+      found = s;
+      break;
+    }
+  }
+
+  if (found == 0) {
+    DBGLN(F("Aucun secteur à renvoyer (!)."));
     return;
   }
 
-  // Positionne au début du secteur
-  PF.seek(s * 512UL);
+  uint32_t s = found;
 
-  // Lit la ligne (max 127 bytes + '\0')
+  // Lit la ligne complète
+  PF.seek(s * 512UL);
   char buf[128];
   UINT br;
-  FRESULT res = PF.readFile(buf, sizeof(buf) - 1, &br);
-  if (res != FR_OK || br < 10) {
-    DBG(F("Secteur ")); DBG(s); DBGLN(F(" vide ou erreur."));
-    lastSectorUsed--;
-    saveLogMetadata(lastSectorUsed + 1);
+  if (PF.readFile(buf, sizeof(buf) - 1, &br) != FR_OK || br < 10) {
+    DBG(F("Secteur ")); DBG(s); DBGLN(F(" vide ou invalide."));
     return;
   }
   buf[br] = '\0';
 
-  // Affiche le contenu à renvoyer
-  INFO(F("→ Renvoi secteur ")); DBG(s);
-  INFO(F(" : «")); DBG(buf); DBGLN(F("»"));
+  INFO(F("→ Renvoi secteur ")); DBG(s); INFO(F(" : «")); DBG(buf); DBGLN(F("»"));
 
-  // Si déjà marqué envoyé, décrémente et quitte
-  if (buf[0] == '#') {
-    DBGLN(F("    Déjà envoyé."));
-    lastSectorUsed--;
-    saveLogMetadata(lastSectorUsed);
-    return;
-  }
-
-  // Extrait timestamp, lat, lon
+  // Parse et envoie
   char* p = buf;
   if (*p == '!' || *p == '#') p++;
-  char ts[32];
-  float lat, lon;
-  char* tok = strtok(p, ",");
-  if (!tok) { lastSectorUsed--; return; }
+  char ts[32]; float lat, lon;
+  char* tok = strtok(p, ","); if (!tok) return;
   strncpy(ts, tok, sizeof(ts)); ts[sizeof(ts)-1] = '\0';
-  tok = strtok(nullptr, ",");
-  if (!tok) { lastSectorUsed--; return; }
+  tok = strtok(nullptr, ","); if (!tok) return;
   lat = atof(tok);
-  tok = strtok(nullptr, ",");
-  if (!tok) { lastSectorUsed--; return; }
+  tok = strtok(nullptr, ","); if (!tok) return;
   lon = atof(tok);
 
   wdt_reset();
-  // Tente l'envoi réseau
+
   if (sendGpsToTraccar(TRACCAR_HOST, TRACCAR_PORT, DEVICE_ID, lat, lon, ts)) {
     DBGLN(F("    Renvoi OK."));
-    consecutiveNetFails = 0;
 
-    // Marque le secteur comme envoyé en réécrivant juste '#'
     PF.seek(s * 512UL);
     char mark = '#';
     PF.writeFile(&mark, 1, &br);
-    PF.writeFile(nullptr, 0, &br);  // flush
+    PF.writeFile(nullptr, 0, &br);
 
-    lastSectorUsed--;
+    sectorIndex = s;   
+
+    lastSectorUsed = max(lastSectorUsed, s);  // conserve le plus haut atteint
     saveLogMetadata(lastSectorUsed + 1);
+    consecutiveNetFails = 0;
   } else {
-    // Échec : incremente compteur et éventuellement reset du module
-    consecutiveNetFails++;
-    INFO(F("    Échec renvoi (#")); DBG(consecutiveNetFails); DBGLN(F(")"));
+    INFO(F("    Échec renvoi (#")); DBG(++consecutiveNetFails); DBGLN(F(")"));
     if (consecutiveNetFails >= NET_FAIL_THRESHOLD) {
-      PowerOff();
-      while(true);
-      consecutiveNetFails = 0;
+      PowerOff(); while (true);
     }
   }
 }
+
 
 
 
@@ -178,6 +168,9 @@ void logRealPositionToSd(float lat, float lon, const char* ts) {
   uint16_t len = snprintf(line, sizeof(line), "!%s,%s,%s\n", ts, latStr, lonStr);
 
   bool isReusable = false;
+  uint32_t startSector = sectorIndex;
+  
+  // Vérifie d'abord si le secteur actuel est réutilisable
   if (PF.open(LOG_FILE) == FR_OK) {
     PF.seek(sectorIndex * 512UL);
     char firstByte;
@@ -186,11 +179,29 @@ void logRealPositionToSd(float lat, float lon, const char* ts) {
       isReusable = true;
     }
   }
-
+  
+  // Si non réutilisable, cherche un secteur `#` dans la plage valide
+  if (!isReusable) {
+    DBGLN(F("Secteur non réutilisable, recherche..."));
+    for (uint32_t s = 1; s <= lastSectorUsed; s++) {
+      PF.seek(s * 512UL);
+      char mark;
+      UINT br;
+      if (PF.readFile(&mark, 1, &br) == FR_OK && br == 1 && mark == '#') {
+        sectorIndex = s;
+        isReusable = true;
+        DBGLN(F("Secteur recyclable trouvé à "));
+        DBGLN(sectorIndex);
+        break;
+      }
+    }
+  }
+  
   if (!isReusable && sectorIndex <= lastSectorUsed) {
-    DBGLN(F("Secteur non réutilisable, log ignoré."));
+    DBGLN(F("Aucun secteur recyclable disponible. Log ignoré."));
     return;
   }
+
 
   FRESULT res = PF.open(LOG_FILE);
   if (res != FR_OK) return;
@@ -229,13 +240,15 @@ void logRealPositionToSd(float lat, float lon, const char* ts) {
     Serial.write((uint8_t*)buf, br); DBGLN();
   }
 
-  if (sectorIndex > lastSectorUsed) {
-    lastSectorUsed = sectorIndex;
-    saveLogMetadata(lastSectorUsed);
-  }
+  /*--- mise à jour de l’index et de la méta-donnée ---*/
+  lastSectorUsed = max(lastSectorUsed, sectorIndex);   // ne jamais diminuer
 
-  sectorIndex++;
-  if (sectorIndex > MAX_SECTORS) sectorIndex = 1;
+  uint32_t nextSector = sectorIndex + 1;               // secteur où l’on écrira
+  if (nextSector > MAX_SECTORS) nextSector = 1;        // rotation circulaire
+
+  saveLogMetadata(nextSector);                         // toujours sauver le pointeur
+  sectorIndex = nextSector;                            // et l’utiliser immédiatement
+
 }
 
 

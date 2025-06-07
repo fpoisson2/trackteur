@@ -16,32 +16,6 @@
 #include "common.h"
 #include "gsm.h"
 
-GsmModel gsmModel = GSM_SIM7000;  // valeur par défaut
-
-
-void detectModel()
-{
-  clearSerialBuffer();
-  moduleSerial.println(F("AT+CGMM"));
-  readSerialResponse(2000UL);  // attends toute la réponse
-
-  if (strstr(responseBuffer, "A7670")) {
-    gsmModel = GSM_A7670;
-  } else if (strstr(responseBuffer, "SIM7070")) {
-    gsmModel = GSM_SIM7070;
-  } else if (strstr(responseBuffer, "SIM7000")) {
-    gsmModel = GSM_SIM7000;
-  }
-
-  INFO(F("Modem détecté: "));
-  switch (gsmModel) {
-    case GSM_A7670:    INFOLN(F("A7670E"));    break;
-    case GSM_SIM7000:  INFOLN(F("SIM7000G"));  break;
-    case GSM_SIM7070:  INFOLN(F("SIM7070G"));  break;
-    default:           INFOLN(F("Unknown"));   break;
-  }
-}
-
 // --- PDP / pile data -------------------------------------------------
 bool openDataStack()
 {
@@ -102,7 +76,8 @@ bool closeDataStack()
     // On essaie de fermer la socket (si elle existe)
     executeSimpleCommand("AT+CACLOSE=0", "OK", 2000, 1);  // Ignorer l'échec
     // On tente de désactiver la session PDP même si elle n’est pas active
-    executeSimpleCommand("AT+CNACT=0,0", "OK", 3000, 1);   // Idem : ignorer erreur
+    //executeSimpleCommand("AT+CNACT=0,0", "OK", 3000, 1);   // Idem : ignorer erreur
+    delay(500); 
     return true;  // On considère que c'est "fermé" même si aucune session n'était active
   }
   else {
@@ -210,11 +185,11 @@ bool tcpSend(const char* payload, uint16_t len)
 
   // 2) attendre le caractère '>'
   unsigned long t0 = millis();
-  while (millis() - t0 < 5000UL) {
+  while (millis() - t0 < 30000UL) {
     if (moduleSerial.find(">")) break;        // <- stoppe dès qu'on voit '>'
   }
 
-  if (millis() - t0 >= 5000UL) {
+  if (millis() - t0 >= 30000UL) {
     DBGLN(F("❌ prompt '>' timeout"));
     return false;
   }
@@ -252,29 +227,29 @@ bool waitForAnyPattern(const char* pattern1, const char* pattern2,
   DBGLN(F("❌ Timeout waiting for expected response."));
   return false;
 }
-bool tcpClose()
-{
-  // First try standard close
-  const char* cmd    = (gsmModel == GSM_A7670) ? "AT+CIPCLOSE=0" : "AT+CIPCLOSE";
-  const char* expect = (gsmModel == GSM_A7670) ? "+CIPCLOSE: 0"  : "CLOSE OK";
-  
-  clearSerialBuffer();
-  moduleSerial.println(cmd);
-  
-  bool ok = waitForSerialResponsePattern(expect, 10000UL);
-  
-  if (!ok) {
-    // If standard close fails, try to force-close everything
-    if (gsmModel == GSM_SIM7000) {
+bool tcpClose() {
+  bool ok = false;
+
+  if (gsmModel == GSM_A7670) {
+    const char* cmd    = (gsmModel == GSM_A7670) ? "AT+CIPCLOSE=0" : "AT+CIPCLOSE";
+    const char* expect = (gsmModel == GSM_A7670) ? "+CIPCLOSE: 0"  : "CLOSE OK";
+
+    clearSerialBuffer();
+    moduleSerial.println(cmd);
+    ok = waitForSerialResponsePattern(expect, 10000UL);
+
+    if (!ok && gsmModel == GSM_SIM7000) {
       DBGLN(F("Standard close failed, attempting CIPSHUT"));
-      executeSimpleCommand("AT+CIPSHUT", "SHUT OK", 3000, 2);
-    }
-    else if (gsmModel == GSM_SIM7070) {
-      return executeSimpleCommand("AT+CACLOSE=0", "OK", 2000, 2);
+      ok = executeSimpleCommand("AT+CIPSHUT", "SHUT OK", 3000, 2);
     }
   }
-  
-  delay(2000);  // Longer delay to ensure connection fully terminates
+  else if (gsmModel == GSM_SIM7070) {
+    // On saute toute tentative CIPCLOSE, non supportée
+    ok = executeSimpleCommand("AT+CACLOSE=0", "OK", 2000, 2);
+    delay(500); 
+  }
+
+  delay(1500);  // Suffisant pour garantir la fermeture sans bloquer trop
   return ok;
 }
 
@@ -412,8 +387,6 @@ void initializeModulePower() {
   delay(300);
   digitalWrite(powerPin, LOW);
   delay(5000);
-
-  detectModel();
 }
 
 bool initialAT() {
@@ -470,7 +443,7 @@ bool step1NetworkSettings() {
   // Ne faire CMNB=1 que si ce n’est pas un A7670E
   if (gsmModel != GSM_A7670) {
     ok &= executeSimpleCommand("AT+CNMP=13", "OK", 500UL, 3);
-    ok &= executeSimpleCommand("AT+CMNB=1", "OK", 500UL, 3);
+    //ok &= executeSimpleCommand("AT+CMNB=0", "OK", 500UL, 3);
   }
   else {
       ok &= executeSimpleCommand("AT+CNMP=2", "OK", 500UL, 3);
@@ -538,6 +511,8 @@ bool step4EnableGNSS() {
   DBGLN(F("\n=== Enable GNSS ==="));
 
   if (gsmModel == GSM_A7670) {
+    executeSimpleCommand("AT+CGNSSPWR=0", "OK", 1000, 3);
+    delay(500);
     // A7670E : activer GNSS avec AT+CGNSSPWR=1 seulement
     bool ok = executeSimpleCommand("AT+CGNSSPWR=1", "OK", 1000, 3);
     if (!ok) INFOLN(F("ERROR: Échec d'activation GNSS pour A7670E."));
@@ -545,10 +520,20 @@ bool step4EnableGNSS() {
   }
 
   if (gsmModel == GSM_SIM7000 || gsmModel == GSM_SIM7070)  {
+    executeSimpleCommand("AT+CGNSPWR=0", "OK", 1000, 3);
     // SIM7000G : GNSS via CGNSPWR et sortie via CGNSTST
     bool ok = true;
     ok &= executeSimpleCommand("AT+CGNSPWR=1", "OK", 500, 3);
-    if (!ok) INFOLN(F("ERROR: Échec d'activation GNSS pour SIM7000G."));
+    if (!ok) {
+      DBGLN(F("⚠ CGNSPWR=1 échoué. Tentative de récupération..."));
+      closeDataStack();
+      delay(1500);
+      ok = executeSimpleCommand("AT+CGNSPWR=1", "OK", 500, 3);
+      if (!ok) {
+        DBGLN(F("❌ GNSS toujours bloqué. Module à redémarrer."));
+        PowerOff(); while(true);  // ou marque l'état OFF et attends dans loop()
+      }
+    }
     delay(1000); // délai pour init GNSS
     return ok;
   }
