@@ -1,53 +1,44 @@
 /**
- * @file      Traccar_GPS_stable_sleep.ino (verbose init + report intelligent)
+ * @file      Traccar_GPS_stable_sleep.ino (verbose init + report intelligent + sleep robuste)
  * @author    Lewis He (adapted by Francis)
  * @brief     Uploads GPS position to Traccar with robust acquisition, detailed modem init,
  *            reporting every 30s when moving, every 15 min if stopped, and battery reading.
  */
 
-// ─────────────── Options de trace
 #define DEBUG_SKETCH              // commente pour prod
-// #define DUMP_AT_COMMANDS        // affiche tous les AT envoyés
+// #define DUMP_AT_COMMANDS
 
-// ─────────────── Includes
 #include <Arduino.h>
 #include "utilities.h"
 #include <TinyGsmClient.h>
 #include <TinyGPS++.h>
-#include "esp_sleep.h"
 
 // ─────────────── Constantes
 #define TINY_GSM_RX_BUFFER 1024
 #define NETWORK_APN        "hologram"
-#define GPS_TIMEOUT_SEC    90ul      // timeout acquisition GPS
-#define MODEM_RETRY_AT     5         // essais AT avant PWRKEY
+#define GPS_TIMEOUT_SEC    90ul
+#define MODEM_RETRY_AT     5
 
 static const char *TRACKCAR_URL = "https://serveur1a.trackteur.cc";
 static const char *DEVICE_ID    = "212910";
 static const char *POST_FMT     =
   "deviceid=%s&lat=%.7f&lon=%.7f&timestamp=%s&altitude=%.2f&speed=%.2f&bearing=%.2f&hdop=%.2f&batt=%u";
 
-// Pins
 #ifndef SerialGPS
 #define SerialGPS Serial2
 #endif
 #define GPS_TX_PIN 21
 #define GPS_RX_PIN 22
-#ifndef MODEM_DTR_PIN
-#define MODEM_DTR_PIN 25
-#endif
 #ifndef BOARD_LED_PIN
 #define BOARD_LED_PIN 2
 #endif
 
-// Log macro
 #if defined(DEBUG_SKETCH)
   #define LOG(x)  do{ Serial.println(x);}while(0)
 #else
   #define LOG(x)
 #endif
 
-// Globals
 #ifdef DUMP_AT_COMMANDS
   #include <StreamDebugger.h>
   StreamDebugger debugger(SerialAT, Serial);
@@ -59,13 +50,13 @@ static const char *POST_FMT     =
 TinyGPSPlus gps;
 GPSInfo     lastFix = {0};
 
-// Timers pour la logique intelligente
 unsigned long lastMovingReport = 0;
 unsigned long lastStillReport = 0;
-const uint32_t MOVING_REPORT_RATE_MS = 30ul * 1000;         // 30 s en mouvement
-const uint32_t STILL_CHECK_RATE_MS   = 60ul * 1000;         // check chaque 1 min si immobile
-const uint32_t STILL_REPORT_RATE_MS  = 15ul * 60ul * 1000;  // rapport toutes les 15 min si immobile
+const uint32_t MOVING_REPORT_RATE_MS = 30ul * 1000;
+const uint32_t STILL_CHECK_RATE_MS   = 60ul * 1000;
+const uint32_t STILL_REPORT_RATE_MS  = 15ul * 60ul * 1000;
 bool wasMoving = false;
+bool everReportedStill = false;
 
 // Mesure batterie
 #ifdef BOARD_BAT_ADC_PIN
@@ -85,7 +76,7 @@ uint32_t getBatteryVoltage()
     data.pop_back();
     int sum = std::accumulate(data.begin(), data.end(), 0);
     double average = static_cast<double>(sum) / data.size();
-    return  average * 2; // x2 car pont diviseur
+    return  average * 2;
 }
 
 uint8_t voltageToPercent(uint32_t mv)
@@ -96,7 +87,6 @@ uint8_t voltageToPercent(uint32_t mv)
 }
 #endif
 
-// Helpers
 String isoTime(const GPSInfo &g)
 {
   char buf[30];
@@ -159,20 +149,58 @@ bool waitGpsFix(GPSInfo &out)
   return false;
 }
 
-void enterSleep(uint32_t ms)
+void light_sleep_delay(uint32_t ms)
 {
-  digitalWrite(BOARD_LED_PIN, LOW);
-  pinMode(MODEM_DTR_PIN, OUTPUT); digitalWrite(MODEM_DTR_PIN, HIGH);
-  modem.sleepEnable(true);
+#ifdef DEBUG_SKETCH
+    delay(ms);
+#else
+    esp_sleep_enable_timer_wakeup(ms * 1000);
+    esp_light_sleep_start();
+#endif
+}
 
-  LOG("→ ESP light-sleep …");
-  esp_sleep_enable_timer_wakeup((uint64_t)ms * 1000ULL);
-  esp_light_sleep_start();
+void sleep_modem_esp(uint32_t ms)
+{
+    Serial.printf("Enter modem sleep mode,Will wake up in %u seconds\n", ms / 1000);
 
-  digitalWrite(MODEM_DTR_PIN, LOW);
-  modem.sleepEnable(false);
-  digitalWrite(BOARD_LED_PIN, HIGH);
-  delay(500);
+#ifdef BOARD_LED_PIN
+    digitalWrite(BOARD_LED_PIN, LOW);
+#endif
+    // Pull up DTR to put the modem into sleep
+    pinMode(MODEM_DTR_PIN, OUTPUT);
+    digitalWrite(MODEM_DTR_PIN, HIGH);
+
+    if (!modem.sleepEnable(true)) {
+        Serial.println("modem sleep failed!");
+    } else {
+        Serial.println("Modem enter sleep modem successes!");
+    }
+
+    // debug
+#if 0
+    Serial.println("Check modem response .");
+    while (modem.testAT()) {
+        Serial.print("."); delay(500);
+    }
+    Serial.println("Modem is not response ,modem has sleep !");
+
+    Serial.flush();
+
+    delay(100);
+#endif
+
+    light_sleep_delay(ms);
+
+    // Pull down DTR to wake up MODEM
+    pinMode(MODEM_DTR_PIN, OUTPUT);
+    digitalWrite(MODEM_DTR_PIN, LOW);
+
+#ifdef BOARD_LED_PIN
+    digitalWrite(BOARD_LED_PIN, HIGH);
+#endif
+
+    // Wait modem wakeup
+    light_sleep_delay(500);
 }
 
 // Setup
@@ -247,24 +275,22 @@ void setup()
 // Loop principal
 void loop()
 {
-  static bool everReportedStill = false;
   unsigned long now = millis();
+  digitalWrite(BOARD_LED_PIN, HIGH);   // Petit heartbeat LED
 
-  // 1. Fix GPS
+  // Fix GPS
   GPSInfo g = {0};
   bool gotFix = waitGpsFix(g);
 
   if (!gotFix) {
     LOG("No GPS fix, sleep.");
-    enterSleep(10000);
+    sleep_modem_esp(10000);
     return;
   }
 
-  // 2. Mouvement ?
   bool isMoving = (g.speed >= 1.0);
 
   if (isMoving) {
-    // Rapport toutes les 30s
     if (!wasMoving || (now - lastMovingReport > MOVING_REPORT_RATE_MS)) {
       if (httpsPost(g)) {
         lastFix = g;
@@ -277,9 +303,8 @@ void loop()
         delay(3000);
       }
     }
-    enterSleep(MOVING_REPORT_RATE_MS);
+    sleep_modem_esp(MOVING_REPORT_RATE_MS);
   } else {
-    // Rapport toutes les 15 min, check chaque 1 min
     if (!everReportedStill || (now - lastStillReport > STILL_REPORT_RATE_MS)) {
       if (httpsPost(g)) {
         lastFix = g;
@@ -294,7 +319,7 @@ void loop()
       LOG("Still: no report (wait next 15min), sleep 1min.");
     }
     wasMoving = false;
-    enterSleep(STILL_CHECK_RATE_MS);
+    sleep_modem_esp(STILL_CHECK_RATE_MS);
   }
 }
 
