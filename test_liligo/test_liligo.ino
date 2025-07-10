@@ -51,6 +51,13 @@ TinyGsm modem(SerialAT);
 
 TinyGPSPlus gps;
 
+double last_sent_lat = 0.0;
+double last_sent_lng = 0.0;
+bool has_last_fix = false;
+const double MOVEMENT_THRESHOLD_METERS = 10.0;
+const double HDOP_THRESHOLD = 2.5;
+
+
 // It depends on the operator whether to set up an APN. If some operators do not set up an APN,
 // they will be rejected when registering for the network. You need to ask the local operator for the specific APN.
 // APNs from other operators are welcome to submit PRs for filling.
@@ -528,45 +535,66 @@ void loop()
 {
     GPSInfo info;
 
-#ifdef EXT_LED_PIN
-    digitalWrite(EXT_LED_PIN, HIGH);
-#endif
+    #ifdef EXT_LED_PIN
+        digitalWrite(EXT_LED_PIN, HIGH);
+    #endif
 
-    // Check if the modem is responsive, otherwise reboot
-    bool isPowerOn = modem.testAT(3000);
-    if (!isPowerOn) {
+    // Vérifier que le modem répond toujours
+    if (!modem.testAT(3000)) {
         Serial.println("Power Off , restart device");
         Serial.flush(); delay(100);
         esp_restart();
     }
 
+    bool gotFix = loopGPS(info);
 
+    #ifdef EXT_LED_PIN
+        digitalWrite(EXT_LED_PIN, LOW);
+    #endif
 
-    bool rlst = loopGPS(info);
-
-
-#ifdef EXT_LED_PIN
-    digitalWrite(EXT_LED_PIN, LOW);
-#endif
-
-    if (!rlst) {
-        // If positioning is not successful, set ESP to enter light sleep mode to save power consumption
+    if (!gotFix) {
         modem_enter_sleep(REPORT_LOCATION_RATE_SECOND * 1000);
+        return;
+    }
+
+    // Vérifie la qualité du fix
+    if (info.HDOP > HDOP_THRESHOLD || info.HDOP == 0) {
+        Serial.printf("HDOP mauvais (%.2f), position NON envoyée\n", info.HDOP);
+        modem_enter_sleep(REPORT_LOCATION_RATE_SECOND * 1000);
+        return;
+    }
+
+    // Vérifie la distance depuis la dernière position envoyée
+    bool shouldSend = false;
+    if (!has_last_fix) {
+        shouldSend = true;  // Premier envoi
     } else {
-        rlst = post_location(info);
-        if (rlst) {
-            // If the positioning is successful and the location is sent successfully,
-            // the ESP and modem are set to sleep mode. The sleep mode consumes about 2~3mA
-            // For power consumption records, please see README
-            modem_enter_sleep(REPORT_LOCATION_RATE_SECOND * 1000);
-        } else {
-            // If the positioning is successful, if the sending of the position fails,
-            // set the ESP to sleep mode and wait for the next sending
-            modem_enter_sleep(REPORT_LOCATION_RATE_SECOND * 1000);
-            //light_sleep_delay(REPORT_LOCATION_RATE_SECOND * 1000);
+        double dist = TinyGPSPlus::distanceBetween(
+            info.latitude, info.longitude,
+            last_sent_lat, last_sent_lng
+        );
+        Serial.printf("Distance depuis dernier envoi : %.2f m\n", dist);
+        if (dist >= MOVEMENT_THRESHOLD_METERS) {
+            shouldSend = true;
         }
     }
+
+    if (shouldSend) {
+        if (post_location(info)) {
+            last_sent_lat = info.latitude;
+            last_sent_lng = info.longitude;
+            has_last_fix = true;
+            Serial.println("Position envoyée.");
+        } else {
+            Serial.println("Erreur d’envoi de la position !");
+        }
+    } else {
+        Serial.println("Pas assez de mouvement, position NON envoyée.");
+    }
+
+    modem_enter_sleep(REPORT_LOCATION_RATE_SECOND * 1000);
 }
+
 
 #ifndef TINY_GSM_FORK_LIBRARY
 #error "No correct definition detected, Please copy all the [lib directories](https://github.com/Xinyuan-LilyGO/LilyGO-T-A76XX/tree/main/lib) to the arduino libraries directory , See README"
