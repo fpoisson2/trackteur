@@ -55,7 +55,7 @@ double last_sent_lat = 0.0;
 double last_sent_lng = 0.0;
 bool has_last_fix = false;
 const double MOVEMENT_THRESHOLD_METERS = 10.0;
-const double HDOP_THRESHOLD = 2.5;
+const double HDOP_THRESHOLD = 3;
 
 
 // It depends on the operator whether to set up an APN. If some operators do not set up an APN,
