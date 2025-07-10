@@ -54,7 +54,7 @@ TinyGPSPlus gps;
 // It depends on the operator whether to set up an APN. If some operators do not set up an APN,
 // they will be rejected when registering for the network. You need to ask the local operator for the specific APN.
 // APNs from other operators are welcome to submit PRs for filling.
-#define NETWORK_APN     "hologram"             //CHN-CT: China Telecom
+#define NETWORK_APN     "hologram"          
 
 String modemName = "UNKOWN";
 const char *client_id = "212910";
@@ -68,6 +68,9 @@ void light_sleep_delay(uint32_t ms)
 #else
     esp_sleep_enable_timer_wakeup(ms * 1000);
     esp_light_sleep_start();
+    esp_sleep_wakeup_cause_t wakeup_reason;
+wakeup_reason = esp_sleep_get_wakeup_cause();
+Serial.printf("Wakeup reason: %d\n", wakeup_reason);
 #endif
 }
 
@@ -147,86 +150,95 @@ bool post_location(GPSInfo &info)
     return true;
 }
 
-
 bool loopGPS(GPSInfo &info)
 {
-    const unsigned long GPS_TIMEOUT_MS = 90 * 1000;
-    const unsigned long PPS_READ_WINDOW_MS = 5000;
+    bool hasValidFix = false;
 
-    unsigned long gpsStartTime = millis();
-
+    // Configurer GPIO pour le réveil sur PPS (niveau HAUT)
     esp_sleep_enable_ext0_wakeup((gpio_num_t)BOARD_GPS_PPS_PIN, 1);
 
-    while ((millis() - gpsStartTime) < GPS_TIMEOUT_MS) {
+    while (!hasValidFix) {
         Serial.println("En attente d'un signal PPS (fix GPS)...");
 
-        esp_light_sleep_start();  // attend PPS
+        // Entrer en sommeil jusqu'à détection d'un front montant sur PPS
+        esp_light_sleep_start();
+ esp_sleep_wakeup_cause_t wakeup_reason;
+wakeup_reason = esp_sleep_get_wakeup_cause();
+Serial.printf("Wakeup reason: %d\n", wakeup_reason);
 
         Serial.println("Réveillé par PPS, lecture NMEA...");
 
-        unsigned long ppsWindowStart = millis();
+        unsigned long start = millis();
+        bool gotRMC = false;
 
-        while ((millis() - ppsWindowStart) < PPS_READ_WINDOW_MS) {
+        while (millis() - start < 5000) {  // ← allongé à 5 secondes
             while (SerialGPS.available()) {
                 int c = SerialGPS.read();
-                gps.encode(c); // ne log pas chaque caractère sauf pour debug
 
-                // Vérifie si un fix complet et cohérent est disponible
-                if (gps.location.isUpdated() &&
-                    gps.location.isValid() &&
-                    gps.time.isValid() &&
-                    gps.time.isUpdated() &&
-                    gps.date.isValid() &&
-                    gps.date.isUpdated() &&
-                    gps.time.age() < 2000 &&
-                    gps.date.year() > 2020)
-                {
-                    // Remplit la structure GPSInfo
-                    info.latitude = gps.location.lat();
-                    info.longitude = gps.location.lng();
-                    info.speed = gps.speed.kmph();
-                    info.altitude = gps.altitude.meters();
-                    info.course = gps.course.deg();
-                    info.isFix = true;
+                if (gps.encode(c)) {
+                    if (gps.time.isUpdated()) {
+                        gotRMC = true;
+                    }
 
-                    info.year = gps.date.year();
-                    info.month = gps.date.month();
-                    info.day = gps.date.day();
+                    if (gps.location.isUpdated() &&
+                        gps.location.isValid() &&
+                        gotRMC &&
+                        gps.time.isValid() &&
+                        gps.time.isUpdated() &&
+                        gps.time.age() < 2000)  // ← max 2s d'âge
+                    {
+                        // Remplir la structure GPSInfo
+                        info.latitude = gps.location.lat();
+                        info.longitude = gps.location.lng();
+                        info.speed = gps.speed.kmph();
+                        info.altitude = gps.altitude.meters();
+                        info.course = gps.course.deg();
+                        info.isFix = true;
 
-                    info.hour = gps.time.hour();
-                    info.minute = gps.time.minute();
-                    info.second = gps.time.second();
+                        if (gps.date.isValid()) {
+                            info.year = gps.date.year();
+                            info.month = gps.date.month();
+                            info.day = gps.date.day();
+                        }
 
-                    info.gps_satellite_num = gps.satellites.value();
-                    info.beidou_satellite_num = 0;
-                    info.glonass_satellite_num = 0;
-                    info.galileo_satellite_num = 0;
+                        if (gps.time.isValid()) {
+                            info.hour = gps.time.hour();
+                            info.minute = gps.time.minute();
+                            info.second = gps.time.second();
+                        }
 
-                    info.HDOP = gps.hdop.hdop();
-                    info.PDOP = 0;
-                    info.VDOP = 0;
+                        info.gps_satellite_num = gps.satellites.value();
+                        info.beidou_satellite_num = 0;
+                        info.glonass_satellite_num = 0;
+                        info.galileo_satellite_num = 0;
 
-                    // Log
-                    Serial.println("===== GPS FIX ACQUIS =====");
-                    Serial.printf("Lat: %.6f, Lng: %.6f, Alt: %.2f m\n", info.latitude, info.longitude, info.altitude);
-                    Serial.printf("Speed: %.2f km/h, HDOP: %.2f\n", info.speed, info.HDOP);
-                    Serial.printf("Satellites: %d, Timestamp: %04d-%02d-%02dT%02d:%02d:%02dZ\n",
-                                  info.gps_satellite_num,
-                                  info.year, info.month, info.day,
-                                  info.hour, info.minute, info.second);
+                        info.HDOP = gps.hdop.hdop();
+                        info.PDOP = 0;
+                        info.VDOP = 0;
 
-                    return true; // succès
+                        // Affichage
+                        Serial.println("===== GPS FIX ACQUIS =====");
+                        Serial.printf("Lat: %.6f, Lng: %.6f, Alt: %.2f m\n", info.latitude, info.longitude, info.altitude);
+                        Serial.printf("Speed: %.2f km/h, HDOP: %.2f\n", info.speed, info.HDOP);
+                        Serial.printf("Satellites: %d, Time: %02d:%02d:%02d\n",
+                                      info.gps_satellite_num, info.hour, info.minute, info.second);
+
+                        hasValidFix = true;
+                        break;
+                    }
                 }
             }
+
+            if (hasValidFix) break;
         }
 
-        Serial.println("PPS détecté mais pas de fix GPS complet (date/heure/position). Nouvelle tentative...");
+        if (!hasValidFix) {
+            Serial.println("PPS détecté mais pas de fix GPS valide ou heure non mise à jour. Nouvelle tentative...");
+        }
     }
 
-    Serial.println("⏱️ Timeout GNSS atteint, abandon tentative.");
-    return false; // échec
+    return true;
 }
-
 
 
 
@@ -238,14 +250,14 @@ void gps_sleep(bool enable)
         SerialGPS.println("$PMTK161,0*28"); // Commande de sommeil
         delay(100);
         // Optionnel: couper l'alimentation si vous avez un pin de contrôle
-        //pinMode(BOARD_GPS_WAKEUP_PIN, OUTPUT);
-        //digitalWrite(BOARD_GPS_WAKEUP_PIN, LOW);
+        pinMode(BOARD_GPS_WAKEUP_PIN, OUTPUT);
+        digitalWrite(BOARD_GPS_WAKEUP_PIN, LOW);
     } else {
         Serial.println("Waking up Quectel A76K GPS...");
         // Restaurer l'alimentation GPS
-        //pinMode(BOARD_GPS_WAKEUP_PIN, OUTPUT);
-        //digitalWrite(BOARD_GPS_WAKEUP_PIN, HIGH);
-        //delay(500); // Attendre que le A76K se réveille complètement
+        pinMode(BOARD_GPS_WAKEUP_PIN, OUTPUT);
+        digitalWrite(BOARD_GPS_WAKEUP_PIN, HIGH);
+        delay(500); // Attendre que le A76K se réveille complètement
         
         // Envoyer une commande de réveil
         SerialGPS.println("$PMTK010,001*2E"); // Commande de réveil
@@ -256,35 +268,77 @@ void gps_sleep(bool enable)
         delay(100);
     }
 }
-void modem_sleep() {
-    Serial.println("🔕 Mise en veille du modem...");
-    gps_sleep(true);  // ton module GPS externe
 
-    modem.sendAT("+CSCLK=1");
-    modem.waitResponse(1000);
+void modem_enter_sleep(uint32_t ms)
+{
+    Serial.printf("Enter modem and GPS sleep mode, Will wake up in %u seconds\n", ms / 1000);
 
+    // 1. Mettre le GPS en sommeil
+    gps_sleep(true);
+    delay(100);
+
+    // 2. Éteindre la LED (si utilisée)
+    #ifdef BOARD_LED_PIN
+        digitalWrite(BOARD_LED_PIN, LOW);
+        pinMode(BOARD_LED_PIN, INPUT); // Ultra low power, évite fuite
+    #endif
+
+    // 3. (Optionnel) Désactiver la carte SD
+    // sd.end(); // Décommente si tu utilises une lib SD qui supporte end()
+
+    // 4. Désactiver les interfaces série pour économiser de l'énergie
+    Serial.end();
+    SerialGPS.end();
+    delay(10);
+
+    // 5. Fermer PDP context et endormir le modem
+    modem.sendAT("+CIPSHUT");
+    modem.waitResponse();
+
+    if (!modem.sleepEnable(true)) {
+        // Facultatif : réactiver Serial si tu veux voir le log d'erreur
+        // Serial.begin(115200);
+        // Serial.println("modem sleep failed!");
+    } else {
+        // Si tu veux voir ce log malgré Serial.end() tu dois faire Serial.begin temporaire
+        // Serial.begin(115200);
+        // Serial.println("Modem sleep mode enabled (CSCLK=1)");
+    }
+
+    // 6. DTR HIGH = sommeil profond modem
     pinMode(MODEM_DTR_PIN, OUTPUT);
     digitalWrite(MODEM_DTR_PIN, HIGH);
 
-    // Garder DTR à HIGH pendant deep sleep
-    gpio_hold_en((gpio_num_t)MODEM_DTR_PIN);
-    gpio_deep_sleep_hold_en();
+    delay(50); // Laisse le modem prendre en compte DTR
 
-    delay(500);
-}
+    // 7. (Optionnel) Mettre les autres GPIO inutiles en INPUT_PULLDOWN ici
 
+    // 8. Entrer en light sleep
+    light_sleep_delay(ms);
 
-void modem_wake()
-{
-    Serial.println("🔔 Réveil du modem...");
+    // --- AU RÉVEIL ---
 
-    // Met DTR à LOW pour réveiller le modem
+    // 9. DTR LOW = réveil modem
     pinMode(MODEM_DTR_PIN, OUTPUT);
     digitalWrite(MODEM_DTR_PIN, LOW);
 
-    delay(500);  // attendre que le modem se réveille complètement
+    // 10. Réveiller le GPS
+    gps_sleep(false);
 
-    Serial.println("✅ Modem réveillé (DTR LOW).");
+    // 11. Réactiver les Serial
+    Serial.begin(115200);
+    SerialGPS.begin(9600, SERIAL_8N1, BOARD_GPS_RX_PIN, BOARD_GPS_TX_PIN);
+
+    // 12. (Optionnel) Réactiver la SD
+    // sd.begin(...);
+
+    // 13. Réactiver la LED
+    #ifdef BOARD_LED_PIN
+        pinMode(BOARD_LED_PIN, OUTPUT);
+        digitalWrite(BOARD_LED_PIN, HIGH);
+    #endif
+
+    light_sleep_delay(500);
 }
 
 
@@ -474,6 +528,10 @@ void loop()
 {
     GPSInfo info;
 
+#ifdef EXT_LED_PIN
+    digitalWrite(EXT_LED_PIN, HIGH);
+#endif
+
     // Check if the modem is responsive, otherwise reboot
     bool isPowerOn = modem.testAT(3000);
     if (!isPowerOn) {
@@ -482,52 +540,34 @@ void loop()
         esp_restart();
     }
 
- 
-    // Le modem reste en veille pendant qu'on cherche un fix
-    gps_sleep(false); 
-    bool hasFix = loopGPS(info);
 
-    if (hasFix) {
-        modem_wake();  // DTR LOW
-        bool sent = post_location(info);
-        if (!sent) {
-            Serial.println("Échec d'envoi. Donnée perdue.");
-        }
+
+    bool rlst = loopGPS(info);
+
+
+#ifdef EXT_LED_PIN
+    digitalWrite(EXT_LED_PIN, LOW);
+#endif
+
+    if (!rlst) {
+        // If positioning is not successful, set ESP to enter light sleep mode to save power consumption
+        modem_enter_sleep(REPORT_LOCATION_RATE_SECOND * 1000);
     } else {
-        Serial.println("Pas de fix GPS, on dort quand même.");
+        rlst = post_location(info);
+        if (rlst) {
+            // If the positioning is successful and the location is sent successfully,
+            // the ESP and modem are set to sleep mode. The sleep mode consumes about 2~3mA
+            // For power consumption records, please see README
+            modem_enter_sleep(REPORT_LOCATION_RATE_SECOND * 1000);
+        } else {
+            // If the positioning is successful, if the sending of the position fails,
+            // set the ESP to sleep mode and wait for the next sending
+            modem_enter_sleep(REPORT_LOCATION_RATE_SECOND * 1000);
+            //light_sleep_delay(REPORT_LOCATION_RATE_SECOND * 1000);
+        }
     }
-
-    // ✅ Dans tous les cas : endormir modem + GPS avant de dormir
-    modem_sleep();  // inclut gps_sleep(true) + DTR HIGH
-    Serial.printf("💤 Attente avant prochain cycle : %u secondes...\n", REPORT_LOCATION_RATE_SECOND);
-    light_sleep_delay(REPORT_LOCATION_RATE_SECOND * 1000);
-
 }
-
-
-
-
-
-
 
 #ifndef TINY_GSM_FORK_LIBRARY
 #error "No correct definition detected, Please copy all the [lib directories](https://github.com/Xinyuan-LilyGO/LilyGO-T-A76XX/tree/main/lib) to the arduino libraries directory , See README"
 #endif
-
-
-
-/*    #ifdef BOARD_BAT_ADC_PIN
-        uint32_t batt_mv = getBatteryVoltage();
-        if (batt_mv < 3200) {
-            Serial.printf("Tension critique (%u mV). Entrée en sommeil profond pour protéger la batterie.\n", batt_mv);
-            gps_sleep(true);
-            modem.sleepEnable(true);
-    
-            // Optionnel : couper alimentation GPS si contrôlée
-            digitalWrite(BOARD_GPS_WAKEUP_PIN, LOW);
-    
-            delay(100);
-            esp_deep_sleep_start();  // Sommeil illimité
-        }
-    #endif
-*/
