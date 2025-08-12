@@ -77,7 +77,7 @@ void light_sleep_delay(uint32_t ms)
     esp_light_sleep_start();
     esp_sleep_wakeup_cause_t wakeup_reason;
 wakeup_reason = esp_sleep_get_wakeup_cause();
-Serial.printf("Wakeup reason: %d\n", wakeup_reason);
+//Serial.printf("Wakeup reason: %d\n", wakeup_reason);
 #endif
 }
 
@@ -116,7 +116,7 @@ bool post_location(GPSInfo &info)
     // Initialize HTTPS
     modem.https_begin();
 
-    char post_buffer[128];
+    char post_buffer[256];
 
     // Do not calculate the power consumption, fixed at 100%
     uint8_t battery_percent = 100;
