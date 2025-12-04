@@ -1,6 +1,5 @@
-1. docker-compose.yml
-'''version: "3.9"
-
+1. docker-compose.ym
+```
 services:
 
   database:
@@ -57,7 +56,8 @@ services:
       AUTOHEAL_INTERVAL: 60
       AUTOHEAL_START_PERIOD: 3600
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro'''
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+```
 
 
 Le service cloudflared utilise le mode “tunnel token” recommandé par Cloudflare pour Docker : on lui passe simplement un TUNNEL_TOKEN et il se connecte à ton tunnel géré côté Cloudflare. 
