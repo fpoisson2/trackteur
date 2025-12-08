@@ -117,12 +117,11 @@
 <ol>
 <li>
 <p>Créez un fichier <code>.env</code> à la racine du projet :</p>
-<p><code>bash
-touch .env</code></p>
+<pre class="highlight"><code class="language-bash">touch .env</code></pre>
 </li>
 <li>
 <p>Ajoutez votre token de tunnel Cloudflare au fichier <code>.env</code> :</p>
-<p><code>TUNNEL_TOKEN=&lt;VOTRE_TOKEN_DE_TUNNEL_CLOUDFLARE&gt;</code></p>
+<pre class="highlight"><code>TUNNEL_TOKEN=&lt;VOTRE_TOKEN_DE_TUNNEL_CLOUDFLARE&gt;</code></pre>
 <p>Remplacez <code>&lt;VOTRE_TOKEN_DE_TUNNEL_CLOUDFLARE&gt;</code> par le token que vous obtiendrez à l'étape suivante.</p>
 </li>
 </ol>
@@ -142,8 +141,7 @@ touch .env</code></p>
 </ol>
 <h2 id="3-demarrer-les-services">3. Démarrer les services</h2>
 <p>Si ce n'est pas déjà fait, démarrez la stack Docker :</p>
-<pre><code class="language-bash">sudo docker-compose up -d
-</code></pre>
+<pre class="highlight"><code class="language-bash">sudo docker-compose up -d</code></pre>
 <p>Le conteneur <code>cloudflared</code> devrait maintenant démarrer et établir la connexion avec Cloudflare.</p>
 <h2 id="4-acceder-a-traccar">4. Accéder à Traccar</h2>
 <p>Une fois que <code>cloudflared</code> est en cours d'exécution, vous pouvez accéder à l'interface de Traccar via l'URL que vous avez configurée (par exemple, <code>https://traccar.votredomaine.com</code>).</p>

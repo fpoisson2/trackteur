@@ -124,36 +124,31 @@
 <ol>
 <li>
 <p><strong>Désinstaller les anciens paquets si présents :</strong></p>
-<p><code>bash
-sudo apt remove docker docker-engine docker.io containerd runc</code></p>
+<pre class="highlight"><code class="language-bash">sudo apt remove docker docker-engine docker.io containerd runc</code></pre>
 </li>
 <li>
 <p><strong>Installer les dépendances et ajouter la clé GPG officielle :</strong></p>
-<p><code>bash
-sudo apt update
+<pre class="highlight"><code class="language-bash">sudo apt update
 sudo apt install -y ca-certificates curl gnupg
 sudo install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-sudo chmod a+r /etc/apt/keyrings/docker.gpg</code></p>
+sudo chmod a+r /etc/apt/keyrings/docker.gpg</code></pre>
 </li>
 <li>
 <p><strong>Ajouter le dépôt Docker et installer le moteur avec le plugin Compose :</strong></p>
-<p><code>bash
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release &amp;&amp; echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list &gt; /dev/null
+<pre class="highlight"><code class="language-bash">echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release &amp;&amp; echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list &gt; /dev/null
 sudo apt update
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin</code></p>
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin</code></pre>
 </li>
 <li>
 <p><strong>Vérifier que Docker et Compose fonctionnent :</strong></p>
-<p><code>bash
-sudo docker run --rm hello-world
-docker compose version</code></p>
+<pre class="highlight"><code class="language-bash">sudo docker run --rm hello-world
+docker compose version</code></pre>
 </li>
 <li>
 <p><strong>(Optionnel) Autoriser l’utilisateur courant à utiliser Docker sans <code>sudo</code> :</strong></p>
-<p><code>bash
-sudo usermod -aG docker $USER
-newgrp docker</code></p>
+<pre class="highlight"><code class="language-bash">sudo usermod -aG docker $USER
+newgrp docker</code></pre>
 </li>
 </ol>
 <h2 id="fichier-docker-composeyml">Fichier <code>docker-compose.yml</code></h2>
@@ -171,8 +166,7 @@ newgrp docker</code></p>
 </ul>
 <h2 id="demarrage-des-conteneurs">Démarrage des conteneurs</h2>
 <p>Pour démarrer tous les services, exécutez la commande suivante à la racine du projet :</p>
-<pre><code class="language-bash">sudo docker-compose up -d
-</code></pre>
+<pre class="highlight"><code class="language-bash">sudo docker-compose up -d</code></pre>
 <ul>
 <li><code>up</code>: Crée et démarre les conteneurs.</li>
 <li><code>-d</code>: Exécute les conteneurs en arrière-plan (detached mode).</li>
@@ -182,21 +176,17 @@ newgrp docker</code></p>
 <ul>
 <li>
 <p><strong>Voir les logs</strong>: Pour voir les logs de tous les services :</p>
-<p><code>bash
-sudo docker-compose logs -f</code></p>
+<pre class="highlight"><code class="language-bash">sudo docker-compose logs -f</code></pre>
 <p>Pour voir les logs d'un service spécifique (par exemple, <code>traccar</code>) :</p>
-<p><code>bash
-sudo docker-compose logs -f traccar</code></p>
+<pre class="highlight"><code class="language-bash">sudo docker-compose logs -f traccar</code></pre>
 </li>
 <li>
 <p><strong>Arrêter les services</strong>:</p>
-<p><code>bash
-sudo docker-compose down</code></p>
+<pre class="highlight"><code class="language-bash">sudo docker-compose down</code></pre>
 </li>
 <li>
 <p><strong>Redémarrer les services</strong>:</p>
-<p><code>bash
-sudo docker-compose restart</code></p>
+<pre class="highlight"><code class="language-bash">sudo docker-compose restart</code></pre>
 </li>
 </ul>
 <h2 id="acces-a-linterface-web">Accès à l'interface Web</h2>
@@ -208,10 +198,9 @@ sudo docker-compose restart</code></p>
 <p>Il est fortement recommandé de changer le mot de passe administrateur dès votre première connexion.</p>
 <h2 id="configuration-de-traccar">Configuration de Traccar</h2>
 <p>Avec cette configuration Docker, les paramètres de Traccar sont gérés via des variables d'environnement dans le fichier <code>docker-compose.yml</code>. Si vous avez besoin de modifier la configuration avancée, vous pouvez monter un fichier <code>traccar.xml</code> personnalisé dans le conteneur <code>traccar</code> en ajoutant un volume :</p>
-<pre><code class="language-yaml">volumes:
+<pre class="highlight"><code class="language-yaml">volumes:
   - /chemin/vers/votre/traccar.xml:/opt/traccar/conf/traccar.xml
-  - /opt/traccar/logs:/opt/traccar/logs
-</code></pre>
+  - /opt/traccar/logs:/opt/traccar/logs</code></pre>
 <p>Consultez la <a href="https://www.traccar.org/documentation/traccar-with-docker/">documentation officielle de Traccar</a> pour plus d'informations sur la configuration avec Docker.</p>
               
             </div>

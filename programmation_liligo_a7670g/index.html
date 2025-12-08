@@ -207,7 +207,7 @@
 <li>Ouvrez Arduino IDE</li>
 <li>Allez dans <code>File</code> &gt; <code>Preferences</code></li>
 <li>Dans "Additional Board Manager URLs", ajoutez:
-   <code>https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json</code></li>
+   <pre class="highlight"><code>https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json</code></pre></li>
 <li>Allez dans <code>Tools</code> &gt; <code>Board</code> &gt; <code>Boards Manager</code></li>
 <li>Recherchez "ESP32" et installez "esp32 by Espressif Systems"</li>
 </ol>
@@ -225,19 +225,18 @@
 - StreamDebugger (si DUMP_AT_COMMANDS est activé)</p>
 <h3 id="4-configuration-du-code">4. Configuration du code</h3>
 <p>Ouvrez le fichier <code>TraccarGPS.ino</code> et modifiez les paramètres suivants:</p>
-<pre><code class="language-cpp">// ID unique de votre appareil (OBLIGATOIRE)
-const char *client_id = &quot;DEVICE_ID_001&quot;;  // Remplacez par un ID unique
+<pre class="highlight"><code class="language-cpp">// ID unique de votre appareil (OBLIGATOIRE)
+const char *client_id = "DEVICE_ID_001";  // Remplacez par un ID unique
 
 // URL du serveur Traccar (déjà configuré)
-const char *request_url = &quot;http://serveur1d.trackteur.cc:5055&quot;;
+const char *request_url = "http://serveur1d.trackteur.cc:5055";
 
 // APN de votre opérateur (si nécessaire)
 // Décommentez et modifiez selon votre opérateur:
-// #define NETWORK_APN &quot;internet&quot;      // Orange/Sosh
-// #define NETWORK_APN &quot;free&quot;          // Free Mobile
-// #define NETWORK_APN &quot;sl2sfr&quot;        // SFR
-// #define NETWORK_APN &quot;mmsbouygtel.com&quot;  // Bouygues
-</code></pre>
+// #define NETWORK_APN "internet"      // Orange/Sosh
+// #define NETWORK_APN "free"          // Free Mobile
+// #define NETWORK_APN "sl2sfr"        // SFR
+// #define NETWORK_APN "mmsbouygtel.com"  // Bouygues</code></pre>
 <h3 id="5-configuration-de-la-carte-dans-arduino-ide">5. Configuration de la carte dans Arduino IDE</h3>
 <ol>
 <li>Connectez la carte LilyGo A7670G via USB</li>
@@ -257,14 +256,12 @@ const char *request_url = &quot;http://serveur1d.trackteur.cc:5055&quot;;
 </ol>
 <h2 id="format-des-donnees">📊 Format des données</h2>
 <h3 id="donnees-envoyees-a-traccar">Données envoyées à Traccar</h3>
-<p>Le code envoie les données au format Traccar OsmAnd protocol:</p>
-<pre><code>http://serveur1d.trackteur.cc:5055/?id=DEVICE_ID&amp;lat=48.8566&amp;lon=2.3522&amp;speed=15.5&amp;altitude=35.2&amp;bearing=270&amp;timestamp=2025-12-08T10:30:00Z&amp;hdop=1.2&amp;batt=100
-</code></pre>
+<p>Le code envoie les données au format Traccar OsmAnd protocol:
+<pre class="highlight"><code>http://serveur1d.trackteur.cc:5055/?id=DEVICE_ID&amp;lat=48.8566&amp;lon=2.3522&amp;speed=15.5&amp;altitude=35.2&amp;bearing=270&amp;timestamp=2025-12-08T10:30:00Z&amp;hdop=1.2&amp;batt=100</code></pre></p>
 <h3 id="donnees-sauvegardees-sur-sd-csv">Données sauvegardées sur SD (CSV)</h3>
-<p>Format du fichier <code>gps_data.csv</code>:</p>
-<pre><code class="language-csv">timestamp,latitude,longitude,speed,altitude,bearing,hdop
-2025-12-08 10:30:00,48.8566000,2.3522000,15.50,35.20,270.00,1.20
-</code></pre>
+<p>Format du fichier <code>gps_data.csv</code>:
+<pre class="highlight"><code class="language-csv">timestamp,latitude,longitude,speed,altitude,bearing,hdop
+2025-12-08 10:30:00,48.8566000,2.3522000,15.50,35.20,270.00,1.20</code></pre></p>
 <h2 id="diagnostic">🔍 Diagnostic</h2>
 <h3 id="led-de-statut">LED de statut</h3>
 <ul>
@@ -336,25 +333,20 @@ const char *request_url = &quot;http://serveur1d.trackteur.cc:5055&quot;;
 <p>💡 Pour une batterie de 3000 mAh, autonomie estimée: 12-25 jours</p>
 <h2 id="personnalisation">🛠️ Personnalisation</h2>
 <h3 id="modifier-lintervalle-denvoi">Modifier l'intervalle d'envoi</h3>
-<pre><code class="language-cpp">#define REPORT_LOCATION_RATE_SECOND     120  // 120 = 2 minutes
-</code></pre>
+<pre class="highlight"><code class="language-cpp">#define REPORT_LOCATION_RATE_SECOND     120  // 120 = 2 minutes</code></pre>
 <h3 id="modifier-le-nombre-de-retry">Modifier le nombre de retry</h3>
-<pre><code class="language-cpp">#define MAX_RETRY_ATTEMPTS              3    // Nombre de tentatives
-</code></pre>
+<pre class="highlight"><code class="language-cpp">#define MAX_RETRY_ATTEMPTS              3    // Nombre de tentatives</code></pre>
 <h3 id="desactiver-la-sauvegarde-sd">Désactiver la sauvegarde SD</h3>
-<pre><code class="language-cpp">#define USE_SD_CARD                     false
-</code></pre>
+<pre class="highlight"><code class="language-cpp">#define USE_SD_CARD                     false</code></pre>
 <h3 id="activer-le-debug-at">Activer le debug AT</h3>
-<p>Décommentez pour voir toutes les commandes AT:</p>
-<pre><code class="language-cpp">#define DUMP_AT_COMMANDS
-</code></pre>
+<p>Décommentez pour voir toutes les commandes AT:
+<pre class="highlight"><code class="language-cpp">#define DUMP_AT_COMMANDS</code></pre></p>
 <h2 id="structure-du-projet">📝 Structure du projet</h2>
-<pre><code>code/
+<pre class="highlight"><code>code/
 ├── README.md                 # Ce fichier
 └── TraccarGPS/
     ├── TraccarGPS.ino       # Code principal
-    └── utilities.h          # Configuration des pins
-</code></pre>
+    └── utilities.h          # Configuration des pins</code></pre>
 <h2 id="securite">🔒 Sécurité</h2>
 <p>⚠️ <strong>Important</strong>:
 - Ne partagez pas votre <code>client_id</code> publiquement
