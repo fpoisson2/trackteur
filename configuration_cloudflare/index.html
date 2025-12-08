@@ -47,20 +47,24 @@
                 <li class="toctree-l1 current"><a class="reference internal current" href="#">Configuration de Cloudflare</a>
     <ul class="current">
     <li class="toctree-l2"><a class="reference internal" href="#prerequis">Prérequis</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#installer-dockerdocker-compose-sur-ubuntu-2204-ou-plus-recent">Installer Docker/Docker Compose sur Ubuntu (22.04 ou plus récent)</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#quest-ce-que-cloudflare-tunnel">Qu'est-ce que Cloudflare Tunnel ?</a>
+        </ul>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#1-installation-de-cloudflared-sur-votre-serveur">1. Installation de cloudflared sur votre serveur</a>
+    <li class="toctree-l2"><a class="reference internal" href="#1-preparer-le-fichier-de-composition">1. Préparer le fichier de composition</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#2-authentification-de-cloudflared-avec-votre-compte-cloudflare">2. Authentification de cloudflared avec votre compte Cloudflare</a>
+    <li class="toctree-l2"><a class="reference internal" href="#2-creer-le-fichier-env">2. Créer le fichier .env</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#3-creation-et-configuration-du-tunnel">3. Création et configuration du Tunnel</a>
+    <li class="toctree-l2"><a class="reference internal" href="#3-creer-le-tunnel-cloudflare">3. Créer le tunnel Cloudflare</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#4-demarrer-les-services">4. Démarrer les services</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#5-acceder-a-traccar">5. Accéder à Traccar</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#6-notes-utiles">6. Notes utiles</a>
     </li>
     </ul>
-                </li>
-              </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../installation_traccar/">Installation de Traccar</a>
                 </li>
               </ul>
               <ul>
@@ -102,131 +106,98 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
             <div class="section" itemprop="articleBody">
               
-                <h1 id="configuration-de-cloudflare-avec-des-tunnels">Configuration de Cloudflare avec des Tunnels</h1>
-<p>La configuration de Cloudflare est essentielle pour sécuriser et optimiser l'accès à votre serveur Traccar. L'utilisation de Cloudflare Tunnels est particulièrement avantageuse pour exposer des services internes de manière sécurisée sans ouvrir de ports sur votre pare-feu.</p>
+                <h1 id="deployer-traccar-avec-docker-et-mysql">Déployer Traccar avec Docker et MySQL</h1>
+<p>Ce dépôt propose un exemple de stack Docker pour Traccar utilisant MySQL comme base de données, un tunnel Cloudflare et un conteneur d’auto-heal. Un fichier <code>docker-compose.example.yml</code> est fourni pour éviter le copier-coller.</p>
 <h2 id="prerequis">Prérequis</h2>
 <ul>
-<li>Un compte Cloudflare actif.</li>
-<li>Un nom de domaine enregistré et géré par Cloudflare.</li>
-<li>Un serveur Linux avec Traccar installé et fonctionnant (généralement sur <code>localhost:8082</code>).</li>
+<li>Docker et Docker Compose installés sur l’hôte</li>
+<li>Accès à un domaine géré par Cloudflare (pour le tunnel)</li>
 </ul>
-<h2 id="quest-ce-que-cloudflare-tunnel">Qu'est-ce que Cloudflare Tunnel ?</h2>
-<p>Cloudflare Tunnel (anciennement Argo Tunnel) crée une connexion sécurisée et chiffrée entre votre serveur et le réseau Cloudflare, sans qu'il soit nécessaire d'ouvrir des ports entrants sur votre pare-feu. Votre serveur initie la connexion sortante vers Cloudflare, ce qui rend l'exposition de services beaucoup plus sécurisée.</p>
-<h2 id="1-installation-de-cloudflared-sur-votre-serveur">1. Installation de <code>cloudflared</code> sur votre serveur</h2>
-<p><code>cloudflared</code> est le démon client de Cloudflare Tunnel.</p>
+<h3 id="installer-dockerdocker-compose-sur-ubuntu-2204-ou-plus-recent">Installer Docker/Docker Compose sur Ubuntu (22.04 ou plus récent)</h3>
 <ol>
 <li>
-<p><strong>Téléchargez <code>cloudflared</code> :</strong></p>
-<p>Pour les systèmes basés sur Debian/Ubuntu :
-<code>bash
-curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared</code>
-<em>Adaptez l'URL de téléchargement à votre architecture si nécessaire (par exemple, <code>arm64</code> pour Raspberry Pi).</em></p>
+<p><strong>Désinstaller les anciens paquets si présents :</strong></p>
+<p><code>bash
+sudo apt remove docker docker-engine docker.io containerd runc</code></p>
 </li>
 <li>
-<p><strong>Rendez l'exécutable :</strong>
-    <code>bash
-    sudo chmod +x /usr/local/bin/cloudflared</code></p>
+<p><strong>Installer les dépendances et ajouter la clé GPG officielle :</strong></p>
+<p><code>bash
+sudo apt update
+sudo apt install -y ca-certificates curl gnupg
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg</code></p>
 </li>
 <li>
-<p><strong>Vérifiez l'installation :</strong>
-    <code>bash
-    cloudflared --version</code></p>
+<p><strong>Ajouter le dépôt Docker et installer le moteur avec le plugin Compose :</strong></p>
+<p><code>bash
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release &amp;&amp; echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list &gt; /dev/null
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin</code></p>
+</li>
+<li>
+<p><strong>Vérifier que Docker et Compose fonctionnent :</strong></p>
+<p><code>bash
+sudo docker run --rm hello-world
+docker compose version</code></p>
+</li>
+<li>
+<p><strong>(Optionnel) Autoriser l’utilisateur courant à utiliser Docker sans <code>sudo</code> :</strong></p>
+<p><code>bash
+sudo usermod -aG docker $USER
+newgrp docker</code></p>
 </li>
 </ol>
-<h2 id="2-authentification-de-cloudflared-avec-votre-compte-cloudflare">2. Authentification de <code>cloudflared</code> avec votre compte Cloudflare</h2>
-<p>Cette étape va lier <code>cloudflared</code> à votre compte Cloudflare et générer un certificat.</p>
-<ol>
-<li><strong>Lancez la commande d'authentification :</strong>
-    <code>bash
-    cloudflared tunnel login</code></li>
-<li>Une URL s'affichera dans votre terminal. Copiez-la et ouvrez-la dans votre navigateur web.</li>
-<li>Connectez-vous à votre compte Cloudflare et sélectionnez le domaine que vous souhaitez utiliser pour le tunnel.</li>
-<li>Une fois l'authentification réussie, un fichier de certificat (<code>cert.pem</code>) sera téléchargé et stocké dans le répertoire par défaut de <code>cloudflared</code> (généralement <code>~/.cloudflared/</code>).</li>
-</ol>
-<h2 id="3-creation-et-configuration-du-tunnel">3. Création et configuration du Tunnel</h2>
-<ol>
-<li>
-<p><strong>Créez un nouveau tunnel :</strong>
-    Donnez un nom unique à votre tunnel (par exemple, <code>traccar-tunnel</code>).
-    <code>bash
-    cloudflared tunnel create traccar-tunnel</code>
-    Cette commande va créer le tunnel et générer un ID de tunnel (UUID) et un fichier de configuration pour celui-ci (par exemple, <code>~/.cloudflared/&lt;UUID&gt;.json</code>).</p>
-</li>
-<li>
-<p><strong>Créez un fichier de configuration pour le tunnel (<code>config.yml</code>) :</strong>
-    Ce fichier indique à <code>cloudflared</code> comment acheminer le trafic. Créez-le dans le même répertoire que votre certificat (<code>~/.cloudflared/</code>) ou dans un répertoire dédié au tunnel (par exemple, <code>/etc/cloudflared/traccar-tunnel/</code>).</p>
-<p>```yaml</p>
-<h1 id="cloudflaredconfigyml-ou-etccloudflaredtraccar-tunnelconfigyml">~/.cloudflared/config.yml ou /etc/cloudflared/traccar-tunnel/config.yml</h1>
-<p>tunnel: <YOUR_TUNNEL_UUID>
-credentials-file: /root/.cloudflared/<YOUR_TUNNEL_UUID>.json</p>
-<p>ingress:
-  # Règle pour l'interface web de Traccar (port 8082)
-  - hostname: traccar.<YOUR_DOMAIN.COM>
-    service: http://localhost:8082
-    originRequest:
-      noTLSVerify: true # Utilisez cette option si Traccar est en HTTP local
-                       # Ou configurez HTTPS sur Traccar si vous avez un certificat local valide</p>
-<p># Règle pour le port des appareils GPS (ex: OsmAnd sur 5055)
-  # Il faut exposer ce port directement, car Cloudflare ne proxyfie pas les ports non-HTTP/HTTPS par défaut
-  # Pour exposer des ports non-HTTP/HTTPS via Tunnel, il faut utiliser Cloudflare Spectrum (payant)
-  # Une solution plus simple est de ne pas proxyfier ce sous-domaine via Cloudflare (nuage gris)
-  - hostname: gps.<YOUR_DOMAIN.COM>
-    service: tcp://localhost:5055 # Exemple pour OsmAnd
-    # Si vous exposez directement (sans proxy Cloudflare) ce sous-domaine (gps.YOUR_DOMAIN.COM)
-    # vers votre IP, il n'y a pas besoin de règle d'ingress ici pour le port 5055.
-    # Le tunnel est principalement pour le trafic HTTP/HTTPS.</p>
+<h2 id="1-preparer-le-fichier-de-composition">1. Préparer le fichier de composition</h2>
+<p>Copiez l’exemple et adaptez-le si nécessaire (chemins de volumes, ports, options MySQL, etc.) :</p>
+<pre><code class="language-bash">cp docker-compose.example.yml docker-compose.yml
+</code></pre>
+<p>L’exemple utilise :</p>
 <ul>
-<li>service: http_status:404
-```</li>
+<li>MySQL 8.4 avec les options JDBC recommandées pour Traccar</li>
+<li>Traccar (<code>traccar/traccar:latest</code>) exposé sur le port 8082 et la plage 5000-5500</li>
+<li><code>cloudflared</code> en mode tunnel token</li>
+<li><code>autoheal</code> pour relancer les conteneurs marqués <code>unhealthy</code></li>
 </ul>
-<p><em>Remplacez <code>&lt;YOUR_TUNNEL_UUID&gt;</code> par l'ID de votre tunnel et <code>&lt;YOUR_DOMAIN.COM&gt;</code> par votre nom de domaine.</em></p>
-</li>
-</ol>
-<h2 id="4-configuration-dns-dans-cloudflare">4. Configuration DNS dans Cloudflare</h2>
-<p>Pour que votre sous-domaine pointe vers votre tunnel, vous devez créer un enregistrement CNAME dans votre tableau de bord Cloudflare.</p>
+<h2 id="2-creer-le-fichier-env">2. Créer le fichier <code>.env</code></h2>
+<p>Dans le même dossier que <code>docker-compose.yml</code>, créez un <code>.env</code> contenant votre token Cloudflare :</p>
+<pre><code>TUNNEL_TOKEN=&lt;TOKEN_TRES_LONG&gt;
+</code></pre>
+<p>Le token est fourni par Cloudflare lors de la création du tunnel (voir étape suivante).</p>
+<h2 id="3-creer-le-tunnel-cloudflare">3. Créer le tunnel Cloudflare</h2>
 <ol>
-<li><strong>Connectez-vous à votre tableau de bord Cloudflare.</strong></li>
-<li>Sélectionnez votre nom de domaine.</li>
-<li>Dans le menu de gauche, allez dans la section <strong>DNS</strong>.</li>
-<li>
-<p>Cliquez sur <strong>Ajouter un enregistrement</strong> (<code>Add record</code>).</p>
+<li>Sur le dashboard Cloudflare, assurez-vous que votre domaine (ex. <code>edxo.ca</code>) est géré par Cloudflare.</li>
+<li>Rendez-vous dans <strong>Zero Trust → Networks → Tunnels</strong> puis <strong>Add a tunnel / Create a tunnel</strong>.</li>
+<li>Choisissez <strong>Docker</strong> comme méthode d’installation et notez le token fourni après <code>--token</code>.</li>
+<li>Ajoutez un <strong>Public hostname</strong> pointant vers <code>http://traccar:8082</code> (le nom du service Docker).</li>
+<li>Collez le token dans <code>.env</code> sous <code>TUNNEL_TOKEN</code>.</li>
+</ol>
+<h2 id="4-demarrer-les-services">4. Démarrer les services</h2>
+<p>Depuis le dossier contenant <code>docker-compose.yml</code> et <code>.env</code> :</p>
+<pre><code class="language-bash">sudo mkdir -p /opt/traccar/data /opt/traccar/logs
+# Lancer la stack en arrière-plan
+docker compose up -d
+</code></pre>
+<p>Vérifier les journaux si besoin :</p>
+<pre><code class="language-bash">docker compose ps
+docker compose logs -f traccar
+docker compose logs -f cloudflared
+</code></pre>
+<h2 id="5-acceder-a-traccar">5. Accéder à Traccar</h2>
+<p>Une fois que Traccar est en état <code>healthy</code> et que <code>cloudflared</code> tourne, accédez à l’interface via l’URL configurée dans Cloudflare (ex. <code>https://gps.edxo.ca</code>).</p>
+<h2 id="6-notes-utiles">6. Notes utiles</h2>
 <ul>
-<li><strong>Type</strong>: <code>CNAME</code></li>
-<li><strong>Nom</strong>: <code>traccar</code> (ou le nom de votre sous-domaine)</li>
-<li><strong>Cible</strong>: L'adresse fournie par <code>cloudflared</code> lors de la création du tunnel. Elle se termine généralement par <code>cfargotunnel.com</code>. Par exemple, <code>abcd.cfargotunnel.com</code>.</li>
-<li><strong>Proxy status</strong>: Assurez-vous que le nuage orange est activé (Proxied).</li>
+<li>Vous pouvez retirer le mapping <code>8082:8082</code> pour n’exposer Traccar que via Cloudflare.</li>
+<li>Pour plusieurs sous-domaines, ajoutez plusieurs règles d’ingress dans le tunnel Cloudflare.</li>
+<li><code>autoheal</code> relance automatiquement les conteneurs marqués <code>unhealthy</code> via les <code>healthchecks</code>.</li>
 </ul>
-</li>
-<li>
-<p>Cliquez sur <strong>Enregistrer</strong>.</p>
-</li>
-</ol>
-<p><em>Note : Si vous exposez des ports non-HTTP/HTTPS (comme 5055 pour les appareils GPS) sans Cloudflare Spectrum, vous devrez créer un enregistrement <code>A</code> pointant directement vers votre IP de serveur pour un sous-domaine comme <code>gps.YOUR_DOMAIN.COM</code>, et vous assurer que ce sous-domaine </em><em>n'est pas proxyfié</em><em> (nuage gris).</em></p>
-<h2 id="5-execution-de-cloudflared-comme-service-systeme">5. Exécution de <code>cloudflared</code> comme service système</h2>
-<p>Pour que votre tunnel reste actif, même après un redémarrage du serveur, exécutez <code>cloudflared</code> en tant que service système.</p>
-<ol>
-<li><strong>Installez le service :</strong>
-    <code>bash
-    sudo cloudflared tunnel install</code></li>
-<li><strong>Démarrez le service :</strong>
-    <code>bash
-    sudo systemctl start cloudflared</code></li>
-<li><strong>Vérifiez le statut du service :</strong>
-    <code>bash
-    sudo systemctl status cloudflared</code></li>
-<li><strong>Assurez-vous qu'il démarre au boot :</strong>
-    <code>bash
-    sudo systemctl enable cloudflared</code></li>
-</ol>
-<h2 id="conclusion">Conclusion</h2>
-<p>Votre serveur Traccar est maintenant accessible de manière sécurisée via Cloudflare Tunnel. Cette configuration offre une couche de sécurité supplémentaire en masquant l'adresse IP de votre serveur et en utilisant les protections DDoS et le pare-feu applicatif web (WAF) de Cloudflare.</p>
-<p>N'oubliez pas de mettre à jour votre <code>/opt/traccar/conf/traccar.xml</code> pour que Traccar écoute sur <code>localhost</code> si ce n'est pas déjà le cas, et configurez vos appareils GPS pour qu'ils pointent vers <code>traccar.&lt;YOUR_DOMAIN.COM&gt;</code> (ou <code>gps.&lt;YOUR_DOMAIN.COM&gt;</code> si vous avez configuré un sous-domaine non proxyfié pour les ports non-HTTP/HTTPS).</p>
               
             </div>
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
         <a href=".." class="btn btn-neutral float-left" title="Accueil"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-        <a href="../installation_traccar/" class="btn btn-neutral float-right" title="Installation de Traccar">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../programmation_liligo_a7670g/" class="btn btn-neutral float-right" title="Programmation du Liligo A7670G">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>
@@ -252,7 +223,7 @@ credentials-file: /root/.cloudflared/<YOUR_TUNNEL_UUID>.json</p>
       <span><a href=".." style="color: #fcfcfc">&laquo; Previous</a></span>
     
     
-      <span><a href="../installation_traccar/" style="color: #fcfcfc">Next &raquo;</a></span>
+      <span><a href="../programmation_liligo_a7670g/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>

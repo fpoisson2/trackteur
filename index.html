@@ -43,32 +43,28 @@
                 <li class="toctree-l1 current"><a class="reference internal current" href="#">Accueil</a>
     <ul class="current">
     <li class="toctree-l2"><a class="reference internal" href="#prerequis">Prérequis</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#fichier-docker-composeyml">Fichier docker-compose.yml</a>
         <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#installer-dockerdocker-compose-sur-ubuntu-2204-ou-plus-recent">Installer Docker/Docker Compose sur Ubuntu (22.04 ou plus récent)</a>
+    <li class="toctree-l3"><a class="reference internal" href="#personnalisation-du-docker-composeyml">Personnalisation du docker-compose.yml</a>
     </li>
         </ul>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#1-preparer-le-fichier-de-composition">1. Préparer le fichier de composition</a>
+    <li class="toctree-l2"><a class="reference internal" href="#creation-du-fichier-env">Création du fichier .env</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#2-creer-le-fichier-env">2. Créer le fichier .env</a>
+    <li class="toctree-l2"><a class="reference internal" href="#demarrage-des-conteneurs">Démarrage des conteneurs</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#3-creer-le-tunnel-cloudflare">3. Créer le tunnel Cloudflare</a>
+    <li class="toctree-l2"><a class="reference internal" href="#gestion-des-services">Gestion des services</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#4-demarrer-les-services">4. Démarrer les services</a>
+    <li class="toctree-l2"><a class="reference internal" href="#acces-a-linterface-web">Accès à l'interface Web</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#5-acceder-a-traccar">5. Accéder à Traccar</a>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#6-notes-utiles">6. Notes utiles</a>
+    <li class="toctree-l2"><a class="reference internal" href="#configuration-de-traccar">Configuration de Traccar</a>
     </li>
     </ul>
                 </li>
               </ul>
               <ul>
                 <li class="toctree-l1"><a class="reference internal" href="configuration_cloudflare/">Configuration de Cloudflare</a>
-                </li>
-              </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="installation_traccar/">Installation de Traccar</a>
                 </li>
               </ul>
               <ul>
@@ -110,78 +106,84 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
             <div class="section" itemprop="articleBody">
               
-                <h1 id="deployer-traccar-avec-docker-et-mysql">Déployer Traccar avec Docker et MySQL</h1>
-<p>Ce dépôt propose un exemple de stack Docker pour Traccar utilisant MySQL comme base de données, un tunnel Cloudflare et un conteneur d’auto-heal. Un fichier <code>docker-compose.example.yml</code> est fourni pour éviter le copier-coller.</p>
+                <h1 id="installation-de-traccar-avec-docker">Installation de Traccar avec Docker</h1>
+<p>Ce guide explique comment installer Traccar en utilisant Docker et Docker Compose. Cette méthode est recommandée car elle simplifie le déploiement et la gestion de Traccar et de ses dépendances.</p>
 <h2 id="prerequis">Prérequis</h2>
 <ul>
-<li>Docker et Docker Compose installés sur l’hôte</li>
-<li>Accès à un domaine géré par Cloudflare (pour le tunnel)</li>
+<li>Un serveur Linux avec <a href="https://docs.docker.com/engine/install/">Docker</a> et <a href="https://docs.docker.com/compose/install/">Docker Compose</a> installés.</li>
+<li>Un accès root ou un utilisateur avec des privilèges <code>sudo</code>.</li>
 </ul>
-<h3 id="installer-dockerdocker-compose-sur-ubuntu-2204-ou-plus-recent">Installer Docker/Docker Compose sur Ubuntu (22.04 ou plus récent)</h3>
-<p>1) Désinstaller les anciens paquets si présents :</p>
-<pre><code class="language-bash">sudo apt remove docker docker-engine docker.io containerd runc
-</code></pre>
-<p>2) Installer les dépendances et ajouter la clé GPG officielle :</p>
-<pre><code class="language-bash">sudo apt update
-sudo apt install -y ca-certificates curl gnupg
-sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-sudo chmod a+r /etc/apt/keyrings/docker.gpg
-</code></pre>
-<p>3) Ajouter le dépôt Docker et installer le moteur avec le plugin Compose :</p>
-<pre><code class="language-bash">echo &quot;deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release &amp;&amp; echo &quot;$VERSION_CODENAME&quot;) stable&quot; | sudo tee /etc/apt/sources.list.d/docker.list &gt; /dev/null
-sudo apt update
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-</code></pre>
-<p>4) Vérifier que Docker et Compose fonctionnent :</p>
-<pre><code class="language-bash">sudo docker run --rm hello-world
-docker compose version
-</code></pre>
-<p>5) (Optionnel) Autoriser l’utilisateur courant à utiliser Docker sans <code>sudo</code> :</p>
-<pre><code class="language-bash">sudo usermod -aG docker $USER
-newgrp docker
-</code></pre>
-<h2 id="1-preparer-le-fichier-de-composition">1. Préparer le fichier de composition</h2>
-<p>Copiez l’exemple et adaptez-le si nécessaire (chemins de volumes, ports, options MySQL, etc.) :</p>
-<pre><code class="language-bash">cp docker-compose.example.yml docker-compose.yml
-</code></pre>
-<p>L’exemple utilise :
-- MySQL 8.4 (<code>traccar</code>/<code>traccar</code>) avec les options JDBC recommandées pour Traccar
-- Traccar (<code>traccar/traccar:latest</code>) exposé sur le port 8082 et la plage 5000-5500
-- <code>cloudflared</code> en mode tunnel token
-- <code>autoheal</code> pour relancer les conteneurs marqués <code>unhealthy</code></p>
-<h2 id="2-creer-le-fichier-env">2. Créer le fichier <code>.env</code></h2>
-<p>Dans le même dossier que <code>docker-compose.yml</code>, créez un <code>.env</code> contenant votre token Cloudflare :</p>
-<pre><code class="language-env">TUNNEL_TOKEN=&lt;TOKEN_TRES_LONG&gt;
-</code></pre>
-<p>Le token est fourni par Cloudflare lors de la création du tunnel (voir étape suivante).</p>
-<h2 id="3-creer-le-tunnel-cloudflare">3. Créer le tunnel Cloudflare</h2>
-<ol>
-<li>Sur le dashboard Cloudflare, assurez-vous que votre domaine (ex. <code>edxo.ca</code>) est géré par Cloudflare.</li>
-<li>Rendez-vous dans <strong>Zero Trust → Networks → Tunnels</strong> puis <strong>Add a tunnel / Create a tunnel</strong>.</li>
-<li>Choisissez Docker comme méthode d’installation et notez le token fourni après <code>--token</code>.</li>
-<li>Ajoutez un <strong>Public hostname</strong> pointant vers <code>http://traccar:8082</code> (le nom du service Docker).</li>
-<li>Collez le token dans <code>.env</code> sous <code>TUNNEL_TOKEN</code>.</li>
-</ol>
-<h2 id="4-demarrer-les-services">4. Démarrer les services</h2>
-<p>Depuis le dossier contenant <code>docker-compose.yml</code> et <code>.env</code> :</p>
-<pre><code class="language-bash">sudo mkdir -p /opt/traccar/data /opt/traccar/logs
-# Lancer la stack en arrière-plan
-docker compose up -d
-</code></pre>
-<p>Vérifier les journaux si besoin :</p>
-<pre><code class="language-bash">docker compose ps
-docker compose logs -f traccar
-docker compose logs -f cloudflared
-</code></pre>
-<h2 id="5-acceder-a-traccar">5. Accéder à Traccar</h2>
-<p>Une fois que Traccar est en état <em>healthy</em> et que <code>cloudflared</code> tourne, accédez à l’interface via l’URL configurée dans Cloudflare (ex. <code>https://gps.edxo.ca</code>).</p>
-<h2 id="6-notes-utiles">6. Notes utiles</h2>
+<h2 id="fichier-docker-composeyml">Fichier <code>docker-compose.yml</code></h2>
+<p>Le fichier <code>docker-compose.yml</code> à la racine de ce projet définit les services suivants :</p>
 <ul>
-<li>Vous pouvez retirer le mapping <code>8082:8082</code> pour n’exposer Traccar que via Cloudflare.</li>
-<li>Pour plusieurs sous-domaines, ajoutez plusieurs règles d’ingress dans le tunnel Cloudflare.</li>
-<li><code>autoheal</code> relance automatiquement les conteneurs marqués <code>unhealthy</code> via les healthchecks.</li>
+<li><code>database</code>: Un conteneur MySQL pour stocker les données de Traccar.</li>
+<li><code>traccar</code>: Le conteneur principal de Traccar.</li>
+<li><code>cloudflared</code>: Un conteneur pour le tunnel Cloudflare, qui expose Traccar de manière sécurisée.</li>
+<li><code>autoheal</code>: Un conteneur qui surveille et redémarre les conteneurs en mauvaise santé.</li>
 </ul>
+<h3 id="personnalisation-du-docker-composeyml">Personnalisation du <code>docker-compose.yml</code></h3>
+<ul>
+<li><strong>Volumes</strong>: Les volumes sont configurés pour stocker les données de la base de données (<code>/opt/traccar/data</code>) et les logs de Traccar (<code>/opt/traccar/logs</code>) sur l'hôte. Vous pouvez changer ces chemins si nécessaire.</li>
+<li><strong>Ports</strong>: Le port <code>8082</code> est exposé pour l'interface web de Traccar. La plage de ports <code>5000-5500</code> est également exposée pour la communication avec les appareils GPS. Vous pouvez ajuster cette plage en fonction des ports requis par vos appareils.</li>
+</ul>
+<h2 id="creation-du-fichier-env">Création du fichier <code>.env</code></h2>
+<p>Le service <code>cloudflared</code> a besoin d'un token de tunnel pour s'authentifier auprès de Cloudflare. Ce token est fourni via une variable d'environnement.</p>
+<ol>
+<li>
+<p>Créez un fichier <code>.env</code> à la racine du projet :</p>
+<p><code>bash
+touch .env</code></p>
+</li>
+<li>
+<p>Ajoutez votre token de tunnel Cloudflare au fichier <code>.env</code> :</p>
+<p><code>TUNNEL_TOKEN=&lt;VOTRE_TOKEN_DE_TUNNEL_CLOUDFLARE&gt;</code></p>
+<p>Remplacez <code>&lt;VOTRE_TOKEN_DE_TUNNEL_CLOUDFLARE&gt;</code> par le token que vous avez obtenu en créant votre tunnel Cloudflare.</p>
+</li>
+</ol>
+<h2 id="demarrage-des-conteneurs">Démarrage des conteneurs</h2>
+<p>Pour démarrer tous les services, exécutez la commande suivante à la racine du projet :</p>
+<pre><code class="language-bash">sudo docker-compose up -d
+</code></pre>
+<ul>
+<li><code>up</code>: Crée et démarre les conteneurs.</li>
+<li><code>-d</code>: Exécute les conteneurs en arrière-plan (detached mode).</li>
+</ul>
+<p>Les images Docker seront téléchargées, et les conteneurs seront créés et démarrés.</p>
+<h2 id="gestion-des-services">Gestion des services</h2>
+<ul>
+<li>
+<p><strong>Voir les logs</strong>: Pour voir les logs de tous les services :</p>
+<p><code>bash
+sudo docker-compose logs -f</code></p>
+<p>Pour voir les logs d'un service spécifique (par exemple, <code>traccar</code>) :</p>
+<p><code>bash
+sudo docker-compose logs -f traccar</code></p>
+</li>
+<li>
+<p><strong>Arrêter les services</strong>:</p>
+<p><code>bash
+sudo docker-compose down</code></p>
+</li>
+<li>
+<p><strong>Redémarrer les services</strong>:</p>
+<p><code>bash
+sudo docker-compose restart</code></p>
+</li>
+</ul>
+<h2 id="acces-a-linterface-web">Accès à l'interface Web</h2>
+<p>Une fois les conteneurs démarrés, vous pouvez accéder à l'interface web de Traccar via l'URL que vous avez configurée avec votre tunnel Cloudflare (par exemple, <code>https://traccar.votredomaine.com</code>).</p>
+<ul>
+<li><strong>Identifiant par défaut</strong>: <code>admin</code></li>
+<li><strong>Mot de passe par défaut</strong>: <code>admin</code></li>
+</ul>
+<p>Il est fortement recommandé de changer le mot de passe administrateur dès votre première connexion.</p>
+<h2 id="configuration-de-traccar">Configuration de Traccar</h2>
+<p>Avec cette configuration Docker, les paramètres de Traccar sont gérés via des variables d'environnement dans le fichier <code>docker-compose.yml</code>. Si vous avez besoin de modifier la configuration avancée, vous pouvez monter un fichier <code>traccar.xml</code> personnalisé dans le conteneur <code>traccar</code> en ajoutant un volume :</p>
+<pre><code class="language-yaml">volumes:
+  - /chemin/vers/votre/traccar.xml:/opt/traccar/conf/traccar.xml
+  - /opt/traccar/logs:/opt/traccar/logs
+</code></pre>
+<p>Consultez la <a href="https://www.traccar.org/documentation/traccar-with-docker/">documentation officielle de Traccar</a> pour plus d'informations sur la configuration avec Docker.</p>
               
             </div>
           </div><footer>
@@ -230,5 +232,5 @@ docker compose logs -f cloudflared
 
 <!--
 MkDocs version : 1.6.1
-Build Date UTC : 2025-12-08 16:05:37.795794+00:00
+Build Date UTC : 2025-12-08 16:22:23.519623+00:00
 -->
