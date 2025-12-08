@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Programmation du Liligo A7670G - Trackteur Arduino</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Programmation du Liligo A7670G";
+        var mkdocs_page_input_path = "programmation_liligo_a7670g.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Trackteur Arduino
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Accueil</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../configuration_cloudflare/">Configuration de Cloudflare</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation_traccar/">Installation de Traccar</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Programmation du Liligo A7670G</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#fonctionnalites">📋 Fonctionnalités</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#prerequis">🔧 Prérequis</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#materiel">Matériel</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#logiciel">Logiciel</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#installation">📦 Installation</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#1-installation-de-larduino-ide">1. Installation de l'Arduino IDE</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#2-installation-du-support-esp32">2. Installation du support ESP32</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#3-installation-de-la-bibliotheque-tinygsm">3. Installation de la bibliothèque TinyGSM</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#4-configuration-du-code">4. Configuration du code</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#5-configuration-de-la-carte-dans-arduino-ide">5. Configuration de la carte dans Arduino IDE</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#6-compilation-et-televersement">6. Compilation et téléversement</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#format-des-donnees">📊 Format des données</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#donnees-envoyees-a-traccar">Données envoyées à Traccar</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#donnees-sauvegardees-sur-sd-csv">Données sauvegardées sur SD (CSV)</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#diagnostic">🔍 Diagnostic</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#led-de-statut">LED de statut</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#moniteur-serie">Moniteur série</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#messages-derreur-courants">Messages d'erreur courants</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#configuration-traccar">📡 Configuration Traccar</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#ajout-de-lappareil-sur-le-serveur">Ajout de l'appareil sur le serveur</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#verification-de-la-reception">Vérification de la réception</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#consommation-denergie">⚡ Consommation d'énergie</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#personnalisation">🛠️ Personnalisation</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#modifier-lintervalle-denvoi">Modifier l'intervalle d'envoi</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#modifier-le-nombre-de-retry">Modifier le nombre de retry</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#desactiver-la-sauvegarde-sd">Désactiver la sauvegarde SD</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#activer-le-debug-at">Activer le debug AT</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#structure-du-projet">📝 Structure du projet</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#securite">🔒 Sécurité</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#support">🆘 Support</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#licence">📄 Licence</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#changelog">🔄 Changelog</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#version-10-2025-12-08">Version 1.0 (2025-12-08)</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../creation_carte_sim_hologram/">Création de carte SIM - Hologram</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../fabrication_traceur_gps/">Fabrication du traceur GPS</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation_vehicule/">Installation dans le véhicule</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Trackteur Arduino</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Programmation du Liligo A7670G</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="code-gps-tracker-lilygo-a7670g-pour-traccar">Code GPS Tracker - LilyGo A7670G pour Traccar</h1>
+<p>Ce dossier contient le code Arduino pour le module LilyGo A7670G afin d'envoyer les données GPS au serveur Traccar.</p>
+<h2 id="fonctionnalites">📋 Fonctionnalités</h2>
+<ul>
+<li>✅ Envoi automatique des données GPS toutes les 2 minutes</li>
+<li>✅ Serveur Traccar: <code>serveur1d.trackteur.cc:5055</code></li>
+<li>✅ Logique de retry avec 3 tentatives en cas d'échec</li>
+<li>✅ Sauvegarde automatique sur carte SD si l'envoi échoue</li>
+<li>✅ Mode veille pour économiser la batterie</li>
+<li>✅ Support GPS/GLONASS/BeiDou/Galileo</li>
+<li>✅ Format CSV pour les données sauvegardées</li>
+</ul>
+<h2 id="prerequis">🔧 Prérequis</h2>
+<h3 id="materiel">Matériel</h3>
+<ul>
+<li>LilyGo T-A7670G (avec GPS intégré)</li>
+<li>Carte SIM avec données mobiles actives</li>
+<li>Carte microSD (optionnel, pour backup)</li>
+<li>Antenne GPS</li>
+<li>Antenne 4G/LTE</li>
+</ul>
+<h3 id="logiciel">Logiciel</h3>
+<ul>
+<li>Arduino IDE 1.8.x ou 2.x</li>
+<li>Bibliothèque TinyGSM (version fork LilyGo)</li>
+<li>ESP32 Board Support Package</li>
+</ul>
+<h2 id="installation">📦 Installation</h2>
+<h3 id="1-installation-de-larduino-ide">1. Installation de l'Arduino IDE</h3>
+<p>Téléchargez et installez Arduino IDE depuis <a href="https://www.arduino.cc/en/software">arduino.cc</a></p>
+<h3 id="2-installation-du-support-esp32">2. Installation du support ESP32</h3>
+<ol>
+<li>Ouvrez Arduino IDE</li>
+<li>Allez dans <code>File</code> &gt; <code>Preferences</code></li>
+<li>Dans "Additional Board Manager URLs", ajoutez:
+   <code>https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json</code></li>
+<li>Allez dans <code>Tools</code> &gt; <code>Board</code> &gt; <code>Boards Manager</code></li>
+<li>Recherchez "ESP32" et installez "esp32 by Espressif Systems"</li>
+</ol>
+<h3 id="3-installation-de-la-bibliotheque-tinygsm">3. Installation de la bibliothèque TinyGSM</h3>
+<p>⚠️ <strong>IMPORTANT</strong>: Utilisez la version fork de LilyGo, pas la version standard!</p>
+<ol>
+<li>Téléchargez le dépôt: https://github.com/Xinyuan-LilyGO/LilyGO-T-A76XX</li>
+<li>Copiez tous les dossiers du répertoire <code>lib</code> vers le dossier Arduino libraries:</li>
+<li>Windows: <code>C:\Users\[VotreNom]\Documents\Arduino\libraries\</code></li>
+<li>Mac: <code>~/Documents/Arduino/libraries/</code></li>
+<li>Linux: <code>~/Arduino/libraries/</code></li>
+</ol>
+<p>Les bibliothèques nécessaires sont:
+- TinyGSM (fork LilyGo)
+- StreamDebugger (si DUMP_AT_COMMANDS est activé)</p>
+<h3 id="4-configuration-du-code">4. Configuration du code</h3>
+<p>Ouvrez le fichier <code>TraccarGPS.ino</code> et modifiez les paramètres suivants:</p>
+<pre><code class="language-cpp">// ID unique de votre appareil (OBLIGATOIRE)
+const char *client_id = &quot;DEVICE_ID_001&quot;;  // Remplacez par un ID unique
+
+// URL du serveur Traccar (déjà configuré)
+const char *request_url = &quot;http://serveur1d.trackteur.cc:5055&quot;;
+
+// APN de votre opérateur (si nécessaire)
+// Décommentez et modifiez selon votre opérateur:
+// #define NETWORK_APN &quot;internet&quot;      // Orange/Sosh
+// #define NETWORK_APN &quot;free&quot;          // Free Mobile
+// #define NETWORK_APN &quot;sl2sfr&quot;        // SFR
+// #define NETWORK_APN &quot;mmsbouygtel.com&quot;  // Bouygues
+</code></pre>
+<h3 id="5-configuration-de-la-carte-dans-arduino-ide">5. Configuration de la carte dans Arduino IDE</h3>
+<ol>
+<li>Connectez la carte LilyGo A7670G via USB</li>
+<li>Dans Arduino IDE:</li>
+<li><code>Tools</code> &gt; <code>Board</code> &gt; <code>ESP32 Arduino</code> &gt; <code>ESP32 Dev Module</code></li>
+<li><code>Tools</code> &gt; <code>Port</code> &gt; Sélectionnez le port COM correspondant</li>
+<li><code>Tools</code> &gt; <code>Upload Speed</code> &gt; <code>115200</code></li>
+<li><code>Tools</code> &gt; <code>Flash Size</code> &gt; <code>4MB (32Mb)</code></li>
+<li><code>Tools</code> &gt; <code>Partition Scheme</code> &gt; <code>Default 4MB with spiffs</code></li>
+</ol>
+<h3 id="6-compilation-et-televersement">6. Compilation et téléversement</h3>
+<ol>
+<li>Vérifiez le code: Cliquez sur ✓ (Verify)</li>
+<li>Téléversez: Cliquez sur → (Upload)</li>
+<li>Ouvrez le moniteur série: <code>Tools</code> &gt; <code>Serial Monitor</code></li>
+<li>Configurez le baud rate à <code>115200</code></li>
+</ol>
+<h2 id="format-des-donnees">📊 Format des données</h2>
+<h3 id="donnees-envoyees-a-traccar">Données envoyées à Traccar</h3>
+<p>Le code envoie les données au format Traccar OsmAnd protocol:</p>
+<pre><code>http://serveur1d.trackteur.cc:5055/?id=DEVICE_ID&amp;lat=48.8566&amp;lon=2.3522&amp;speed=15.5&amp;altitude=35.2&amp;bearing=270&amp;timestamp=2025-12-08T10:30:00Z&amp;hdop=1.2&amp;batt=100
+</code></pre>
+<h3 id="donnees-sauvegardees-sur-sd-csv">Données sauvegardées sur SD (CSV)</h3>
+<p>Format du fichier <code>gps_data.csv</code>:</p>
+<pre><code class="language-csv">timestamp,latitude,longitude,speed,altitude,bearing,hdop
+2025-12-08 10:30:00,48.8566000,2.3522000,15.50,35.20,270.00,1.20
+</code></pre>
+<h2 id="diagnostic">🔍 Diagnostic</h2>
+<h3 id="led-de-statut">LED de statut</h3>
+<ul>
+<li>LED allumée: GPS en cours de lecture</li>
+<li>LED éteinte: Mode veille</li>
+</ul>
+<h3 id="moniteur-serie">Moniteur série</h3>
+<p>Le moniteur série affiche:
+- État du modem (démarrage, enregistrement réseau)
+- État de la carte SIM
+- Qualité du signal
+- Données GPS reçues
+- Résultat des envois HTTP
+- Sauvegarde sur SD</p>
+<h3 id="messages-derreur-courants">Messages d'erreur courants</h3>
+<table>
+<thead>
+<tr>
+<th>Erreur</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>No SD card attached</code></td>
+<td>Vérifiez que la carte SD est bien insérée</td>
+</tr>
+<tr>
+<td><code>Network registration denied</code></td>
+<td>Vérifiez l'APN et que la carte SIM a un forfait data actif</td>
+</tr>
+<tr>
+<td><code>HTTP request failed! Error code: XXX</code></td>
+<td>Vérifiez la connexion réseau et l'URL du serveur</td>
+</tr>
+<tr>
+<td><code>GPS fix not available</code></td>
+<td>Placez l'antenne GPS à l'extérieur ou près d'une fenêtre</td>
+</tr>
+<tr>
+<td><code>SIM card locked</code></td>
+<td>Déverrouillez la carte SIM (retirez le code PIN)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="configuration-traccar">📡 Configuration Traccar</h2>
+<h3 id="ajout-de-lappareil-sur-le-serveur">Ajout de l'appareil sur le serveur</h3>
+<ol>
+<li>Connectez-vous à votre serveur Traccar: <code>http://serveur1d.trackteur.cc</code></li>
+<li>Allez dans <code>Settings</code> &gt; <code>Devices</code> &gt; <code>Add Device</code></li>
+<li>Configurez:</li>
+<li><strong>Name</strong>: Nom de votre tracker</li>
+<li><strong>Identifier</strong>: L'ID que vous avez mis dans <code>client_id</code> (ex: DEVICE_ID_001)</li>
+<li><strong>Group</strong>: (optionnel)</li>
+<li>Cliquez sur <code>Add</code></li>
+</ol>
+<h3 id="verification-de-la-reception">Vérification de la réception</h3>
+<ol>
+<li>Dans Traccar, sélectionnez votre appareil</li>
+<li>Vous devriez voir la position mise à jour toutes les 2 minutes</li>
+<li>Consultez les logs pour voir les données reçues</li>
+</ol>
+<h2 id="consommation-denergie">⚡ Consommation d'énergie</h2>
+<ul>
+<li><strong>Lecture GPS + Envoi</strong>: ~350-500 mA</li>
+<li><strong>Mode veille</strong>: ~2-3 mA</li>
+<li><strong>Cycle complet (2 min)</strong>: Moyenne ~5-10 mA</li>
+</ul>
+<p>💡 Pour une batterie de 3000 mAh, autonomie estimée: 12-25 jours</p>
+<h2 id="personnalisation">🛠️ Personnalisation</h2>
+<h3 id="modifier-lintervalle-denvoi">Modifier l'intervalle d'envoi</h3>
+<pre><code class="language-cpp">#define REPORT_LOCATION_RATE_SECOND     120  // 120 = 2 minutes
+</code></pre>
+<h3 id="modifier-le-nombre-de-retry">Modifier le nombre de retry</h3>
+<pre><code class="language-cpp">#define MAX_RETRY_ATTEMPTS              3    // Nombre de tentatives
+</code></pre>
+<h3 id="desactiver-la-sauvegarde-sd">Désactiver la sauvegarde SD</h3>
+<pre><code class="language-cpp">#define USE_SD_CARD                     false
+</code></pre>
+<h3 id="activer-le-debug-at">Activer le debug AT</h3>
+<p>Décommentez pour voir toutes les commandes AT:</p>
+<pre><code class="language-cpp">#define DUMP_AT_COMMANDS
+</code></pre>
+<h2 id="structure-du-projet">📝 Structure du projet</h2>
+<pre><code>code/
+├── README.md                 # Ce fichier
+└── TraccarGPS/
+    ├── TraccarGPS.ino       # Code principal
+    └── utilities.h          # Configuration des pins
+</code></pre>
+<h2 id="securite">🔒 Sécurité</h2>
+<p>⚠️ <strong>Important</strong>:
+- Ne partagez pas votre <code>client_id</code> publiquement
+- Utilisez un ID unique pour chaque appareil
+- Changez les identifiants par défaut</p>
+<h2 id="support">🆘 Support</h2>
+<p>Pour obtenir de l'aide:
+1. Vérifiez les messages du moniteur série
+2. Consultez la documentation LilyGo: https://github.com/Xinyuan-LilyGO/LilyGO-T-A76XX
+3. Documentation Traccar: https://www.traccar.org/osmand/</p>
+<h2 id="licence">📄 Licence</h2>
+<p>MIT License - Libre d'utilisation et de modification</p>
+<h2 id="changelog">🔄 Changelog</h2>
+<h3 id="version-10-2025-12-08">Version 1.0 (2025-12-08)</h3>
+<ul>
+<li>Envoi initial vers serveur1d.trackteur.cc</li>
+<li>Support carte SD avec sauvegarde CSV</li>
+<li>Logique de retry (3 tentatives)</li>
+<li>Intervalle de 2 minutes</li>
+<li>Mode veille pour économie d'énergie</li>
+</ul>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../installation_traccar/" class="btn btn-neutral float-left" title="Installation de Traccar"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../creation_carte_sim_hologram/" class="btn btn-neutral float-right" title="Création de carte SIM - Hologram">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../installation_traccar/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../creation_carte_sim_hologram/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
