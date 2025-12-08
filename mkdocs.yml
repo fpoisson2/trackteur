@@ -12,3 +12,11 @@ theme:
   name: readthedocs
 docs_dir: docs
 site_dir: site
+
+markdown_extensions:
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+
+plugins:
+  - search
+  - mermaid2
