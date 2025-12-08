@@ -4,8 +4,49 @@ Ce guide explique comment installer Traccar en utilisant Docker et Docker Compos
 
 ## Prérequis
 
--   Un serveur Linux avec [Docker](https://docs.docker.com/engine/install/) et [Docker Compose](https://docs.docker.com/compose/install/) installés.
+-   Un serveur Linux.
 -   Un accès root ou un utilisateur avec des privilèges `sudo`.
+-   [Docker](https://docs.docker.com/engine/install/) et [Docker Compose](https://docs.docker.com/compose/install/) installés.
+
+### Installer Docker/Docker Compose sur Ubuntu (22.04 ou plus récent)
+
+1.  **Désinstaller les anciens paquets si présents :**
+
+    ```bash
+    sudo apt remove docker docker-engine docker.io containerd runc
+    ```
+
+2.  **Installer les dépendances et ajouter la clé GPG officielle :**
+
+    ```bash
+    sudo apt update
+    sudo apt install -y ca-certificates curl gnupg
+    sudo install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    sudo chmod a+r /etc/apt/keyrings/docker.gpg
+    ```
+
+3.  **Ajouter le dépôt Docker et installer le moteur avec le plugin Compose :**
+
+    ```bash
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    sudo apt update
+    sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    ```
+
+4.  **Vérifier que Docker et Compose fonctionnent :**
+
+    ```bash
+    sudo docker run --rm hello-world
+    docker compose version
+    ```
+
+5.  **(Optionnel) Autoriser l’utilisateur courant à utiliser Docker sans `sudo` :**
+
+    ```bash
+    sudo usermod -aG docker $USER
+    newgrp docker
+    ```
 
 ## Fichier `docker-compose.yml`
 
@@ -20,24 +61,6 @@ Le fichier `docker-compose.yml` à la racine de ce projet définit les services 
 
 -   **Volumes**: Les volumes sont configurés pour stocker les données de la base de données (`/opt/traccar/data`) et les logs de Traccar (`/opt/traccar/logs`) sur l'hôte. Vous pouvez changer ces chemins si nécessaire.
 -   **Ports**: Le port `8082` est exposé pour l'interface web de Traccar. La plage de ports `5000-5500` est également exposée pour la communication avec les appareils GPS. Vous pouvez ajuster cette plage en fonction des ports requis par vos appareils.
-
-## Création du fichier `.env`
-
-Le service `cloudflared` a besoin d'un token de tunnel pour s'authentifier auprès de Cloudflare. Ce token est fourni via une variable d'environnement.
-
-1.  Créez un fichier `.env` à la racine du projet :
-
-    ```bash
-    touch .env
-    ```
-
-2.  Ajoutez votre token de tunnel Cloudflare au fichier `.env` :
-
-    ```
-    TUNNEL_TOKEN=<VOTRE_TOKEN_DE_TUNNEL_CLOUDFLARE>
-    ```
-
-    Remplacez `<VOTRE_TOKEN_DE_TUNNEL_CLOUDFLARE>` par le token que vous avez obtenu en créant votre tunnel Cloudflare.
 
 ## Démarrage des conteneurs
 
