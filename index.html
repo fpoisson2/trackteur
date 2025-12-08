@@ -42,31 +42,19 @@
               <ul class="current">
                 <li class="toctree-l1 current"><a class="reference internal current" href="#">Accueil</a>
     <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#prerequis">Prérequis</a>
+    <li class="toctree-l2"><a class="reference internal" href="#vue-densemble-de-linfrastructure">Vue d'ensemble de l'infrastructure</a>
         <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#installer-dockerdocker-compose-sur-ubuntu-2204-ou-plus-recent">Installer Docker/Docker Compose sur Ubuntu (22.04 ou plus récent)</a>
+    <li class="toctree-l3"><a class="reference internal" href="#composants">Composants</a>
     </li>
         </ul>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#fichier-docker-composeyml">Fichier docker-compose.yml</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#personnalisation-du-docker-composeyml">Personnalisation du docker-compose.yml</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#demarrage-des-conteneurs">Démarrage des conteneurs</a>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#gestion-des-services">Gestion des services</a>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#acces-a-linterface-web">Accès à l'interface Web</a>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#configuration-de-traccar">Configuration de Traccar</a>
+    <li class="toctree-l2"><a class="reference internal" href="#navigation">Navigation</a>
     </li>
     </ul>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="configuration_cloudflare/">Configuration de Cloudflare</a>
+                <li class="toctree-l1"><a class="reference internal" href="fabrication_traceur_gps/">Fabrication du traceur GPS</a>
                 </li>
               </ul>
               <ul>
@@ -74,11 +62,15 @@
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="creation_carte_sim_hologram/">Création de carte SIM - Hologram</a>
+                <li class="toctree-l1"><a class="reference internal" href="installation_docker/">Déploiement des serveurs Traccar</a>
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="fabrication_traceur_gps/">Fabrication du traceur GPS</a>
+                <li class="toctree-l1"><a class="reference internal" href="configuration_cloudflare/">Configuration de Cloudflare</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="creation_carte_sim_hologram/">Création de carte SIM - Hologram</a>
                 </li>
               </ul>
               <ul>
@@ -108,112 +100,54 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
             <div class="section" itemprop="articleBody">
               
-                <h1 id="installation-de-traccar-avec-docker">Installation de Traccar avec Docker</h1>
-<p>Ce guide explique comment installer Traccar en utilisant Docker et Docker Compose. Cette méthode est recommandée car elle simplifie le déploiement et la gestion de Traccar et de ses dépendances.</p>
-<h2 id="prerequis">Prérequis</h2>
-<ul>
-<li>Un serveur Linux.</li>
-<li>Un accès root ou un utilisateur avec des privilèges <code>sudo</code>.</li>
-<li><a href="https://docs.docker.com/engine/install/">Docker</a> et <a href="https://docs.docker.com/compose/install/">Docker Compose</a> installés.</li>
-</ul>
-<h3 id="installer-dockerdocker-compose-sur-ubuntu-2204-ou-plus-recent">Installer Docker/Docker Compose sur Ubuntu (22.04 ou plus récent)</h3>
+                <h1 id="trackteur-un-projet-de-traceur-gps-diy">Trackteur - Un projet de traceur GPS DIY</h1>
+<p>Ce projet documente la création et le déploiement d'un système de suivi GPS complet, depuis le matériel jusqu'à l'infrastructure serveur.</p>
+<h2 id="vue-densemble-de-linfrastructure">Vue d'ensemble de l'infrastructure</h2>
+<p>L'architecture est conçue pour être résiliente et évolutive, en s'appuyant sur des services cloud modernes pour le routage et l'hébergement.</p>
+<pre><code class="language-mermaid">graph LR
+    A[Traceur GPS DIY] --envoie les données--&gt; B[endpoint.domain.com]
+
+    subgraph Cloudflare
+        B
+        C[Cloudflare Worker]
+    end
+
+    B --&gt; C
+
+    subgraph &quot;Serveurs Traccar (Load Balanced)&quot;
+        D[Serveur 1 &lt;br&gt; traccar1.domain.com]
+        E[Serveur 2 &lt;br&gt; traccar2.domain.com]
+        F[Serveur 3 &lt;br&gt; traccar3.domain.com]
+    end
+
+    C --route le trafic vers--&gt; D
+    C --route le trafic vers--&gt; E
+    C --route le trafic vers--&gt; F
+</code></pre>
+<h3 id="composants">Composants</h3>
 <ol>
-<li>
-<p><strong>Désinstaller les anciens paquets si présents :</strong></p>
-<p><code>bash
-sudo apt remove docker docker-engine docker.io containerd runc</code></p>
-</li>
-<li>
-<p><strong>Installer les dépendances et ajouter la clé GPG officielle :</strong></p>
-<p><code>bash
-sudo apt update
-sudo apt install -y ca-certificates curl gnupg
-sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-sudo chmod a+r /etc/apt/keyrings/docker.gpg</code></p>
-</li>
-<li>
-<p><strong>Ajouter le dépôt Docker et installer le moteur avec le plugin Compose :</strong></p>
-<p><code>bash
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release &amp;&amp; echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list &gt; /dev/null
-sudo apt update
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin</code></p>
-</li>
-<li>
-<p><strong>Vérifier que Docker et Compose fonctionnent :</strong></p>
-<p><code>bash
-sudo docker run --rm hello-world
-docker compose version</code></p>
-</li>
-<li>
-<p><strong>(Optionnel) Autoriser l’utilisateur courant à utiliser Docker sans <code>sudo</code> :</strong></p>
-<p><code>bash
-sudo usermod -aG docker $USER
-newgrp docker</code></p>
+<li><strong>Traceur GPS DIY</strong>: Un appareil basé sur un microcontrôleur (ESP32) équipé d'un module GPS et cellulaire (GSM/LTE) pour collecter et transmettre les coordonnées en temps réel.</li>
+<li><strong>Cloudflare Worker</strong>: Agit comme un point d'entrée unique (<code>endpoint.domain.com</code>) et un répartiteur de charge (load balancer). Il reçoit les données du traceur et les redirige de manière transparente vers l'un des serveurs Traccar disponibles.</li>
+<li><strong>Serveurs Traccar</strong>: Trois instances indépendantes du serveur Traccar, chacune fonctionnant sur son propre sous-domaine (<code>traccar1.domain.com</code>, etc.). Chaque serveur expose :<ul>
+<li>Le port <code>5055</code> pour le protocole OsmAnd, utilisé par les traceurs.</li>
+<li>Le port <code>8082</code> pour l'interface web de Traccar.</li>
+</ul>
 </li>
 </ol>
-<h2 id="fichier-docker-composeyml">Fichier <code>docker-compose.yml</code></h2>
-<p>Le fichier <code>docker-compose.yml</code> à la racine de ce projet définit les services suivants :</p>
+<h2 id="navigation">Navigation</h2>
 <ul>
-<li><code>database</code>: Un conteneur MySQL pour stocker les données de Traccar.</li>
-<li><code>traccar</code>: Le conteneur principal de Traccar.</li>
-<li><code>cloudflared</code>: Un conteneur pour le tunnel Cloudflare, qui expose Traccar de manière sécurisée.</li>
-<li><code>autoheal</code>: Un conteneur qui surveille et redémarre les conteneurs en mauvaise santé.</li>
+<li><strong><a href="fabrication_traceur_gps/">Fabrication du traceur GPS</a></strong>: Instructions pour assembler le matériel.</li>
+<li><strong><a href="programmation_liligo_a7670g/">Programmation du Liligo A7670G</a></strong>: Guide pour flasher le firmware du traceur.</li>
+<li><strong><a href="installation_docker/">Déploiement des serveurs Traccar</a></strong>: Comment mettre en place les serveurs Traccar avec Docker.</li>
+<li><strong><a href="configuration_cloudflare/">Configuration de Cloudflare</a></strong>: Mise en place du tunnel et du Worker.</li>
+<li><strong><a href="creation_carte_sim_hologram/">Création de carte SIM Hologram</a></strong>: Pour la connectivité cellulaire.</li>
+<li><strong><a href="installation_vehicule/">Installation dans un véhicule</a></strong>: Conseils pour l'installation physique du traceur.</li>
 </ul>
-<h3 id="personnalisation-du-docker-composeyml">Personnalisation du <code>docker-compose.yml</code></h3>
-<ul>
-<li><strong>Volumes</strong>: Les volumes sont configurés pour stocker les données de la base de données (<code>/opt/traccar/data</code>) et les logs de Traccar (<code>/opt/traccar/logs</code>) sur l'hôte. Vous pouvez changer ces chemins si nécessaire.</li>
-<li><strong>Ports</strong>: Le port <code>8082</code> est exposé pour l'interface web de Traccar. La plage de ports <code>5000-5500</code> est également exposée pour la communication avec les appareils GPS. Vous pouvez ajuster cette plage en fonction des ports requis par vos appareils.</li>
-</ul>
-<h2 id="demarrage-des-conteneurs">Démarrage des conteneurs</h2>
-<p>Pour démarrer tous les services, exécutez la commande suivante à la racine du projet :</p>
-<pre><code class="language-bash">sudo docker-compose up -d
-</code></pre>
-<ul>
-<li><code>up</code>: Crée et démarre les conteneurs.</li>
-<li><code>-d</code>: Exécute les conteneurs en arrière-plan (detached mode).</li>
-</ul>
-<p>Les images Docker seront téléchargées, et les conteneurs seront créés et démarrés.</p>
-<h2 id="gestion-des-services">Gestion des services</h2>
-<ul>
-<li>
-<p><strong>Voir les logs</strong>: Pour voir les logs de tous les services :</p>
-<p><code>bash
-sudo docker-compose logs -f</code></p>
-<p>Pour voir les logs d'un service spécifique (par exemple, <code>traccar</code>) :</p>
-<p><code>bash
-sudo docker-compose logs -f traccar</code></p>
-</li>
-<li>
-<p><strong>Arrêter les services</strong>:</p>
-<p><code>bash
-sudo docker-compose down</code></p>
-</li>
-<li>
-<p><strong>Redémarrer les services</strong>:</p>
-<p><code>bash
-sudo docker-compose restart</code></p>
-</li>
-</ul>
-<h2 id="acces-a-linterface-web">Accès à l'interface Web</h2>
-<p>Une fois les conteneurs démarrés, vous pouvez accéder à l'interface web de Traccar via l'URL que vous avez configurée avec votre tunnel Cloudflare (par exemple, <code>https://traccar.votredomaine.com</code>).</p>
-<ul>
-<li><strong>Identifiant par défaut</strong>: <code>admin</code></li>
-<li><strong>Mot de passe par défaut</strong>: <code>admin</code></li>
-</ul>
-<p>Il est fortement recommandé de changer le mot de passe administrateur dès votre première connexion.</p>
-<h2 id="configuration-de-traccar">Configuration de Traccar</h2>
-<p>Avec cette configuration Docker, les paramètres de Traccar sont gérés via des variables d'environnement dans le fichier <code>docker-compose.yml</code>. Si vous avez besoin de modifier la configuration avancée, vous pouvez monter un fichier <code>traccar.xml</code> personnalisé dans le conteneur <code>traccar</code> en ajoutant un volume :</p>
-<pre><code class="language-yaml">volumes:
-  - /chemin/vers/votre/traccar.xml:/opt/traccar/conf/traccar.xml
-  - /opt/traccar/logs:/opt/traccar/logs
-</code></pre>
-<p>Consultez la <a href="https://www.traccar.org/documentation/traccar-with-docker/">documentation officielle de Traccar</a> pour plus d'informations sur la configuration avec Docker.</p>
               
             </div>
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
-        <a href="configuration_cloudflare/" class="btn btn-neutral float-right" title="Configuration de Cloudflare">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="fabrication_traceur_gps/" class="btn btn-neutral float-right" title="Fabrication du traceur GPS">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>
@@ -237,7 +171,7 @@ sudo docker-compose restart</code></p>
     
     
     
-      <span><a href="configuration_cloudflare/" style="color: #fcfcfc">Next &raquo;</a></span>
+      <span><a href="fabrication_traceur_gps/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>
@@ -257,5 +191,5 @@ sudo docker-compose restart</code></p>
 
 <!--
 MkDocs version : 1.6.1
-Build Date UTC : 2025-12-08 16:25:24.398504+00:00
+Build Date UTC : 2025-12-08 16:28:39.322586+00:00
 -->
