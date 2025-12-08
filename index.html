@@ -43,14 +43,16 @@
                 <li class="toctree-l1 current"><a class="reference internal current" href="#">Accueil</a>
     <ul class="current">
     <li class="toctree-l2"><a class="reference internal" href="#prerequis">Prérequis</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#installer-dockerdocker-compose-sur-ubuntu-2204-ou-plus-recent">Installer Docker/Docker Compose sur Ubuntu (22.04 ou plus récent)</a>
+    </li>
+        </ul>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#fichier-docker-composeyml">Fichier docker-compose.yml</a>
         <ul>
     <li class="toctree-l3"><a class="reference internal" href="#personnalisation-du-docker-composeyml">Personnalisation du docker-compose.yml</a>
     </li>
         </ul>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#creation-du-fichier-env">Création du fichier .env</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#demarrage-des-conteneurs">Démarrage des conteneurs</a>
     </li>
@@ -110,9 +112,46 @@
 <p>Ce guide explique comment installer Traccar en utilisant Docker et Docker Compose. Cette méthode est recommandée car elle simplifie le déploiement et la gestion de Traccar et de ses dépendances.</p>
 <h2 id="prerequis">Prérequis</h2>
 <ul>
-<li>Un serveur Linux avec <a href="https://docs.docker.com/engine/install/">Docker</a> et <a href="https://docs.docker.com/compose/install/">Docker Compose</a> installés.</li>
+<li>Un serveur Linux.</li>
 <li>Un accès root ou un utilisateur avec des privilèges <code>sudo</code>.</li>
+<li><a href="https://docs.docker.com/engine/install/">Docker</a> et <a href="https://docs.docker.com/compose/install/">Docker Compose</a> installés.</li>
 </ul>
+<h3 id="installer-dockerdocker-compose-sur-ubuntu-2204-ou-plus-recent">Installer Docker/Docker Compose sur Ubuntu (22.04 ou plus récent)</h3>
+<ol>
+<li>
+<p><strong>Désinstaller les anciens paquets si présents :</strong></p>
+<p><code>bash
+sudo apt remove docker docker-engine docker.io containerd runc</code></p>
+</li>
+<li>
+<p><strong>Installer les dépendances et ajouter la clé GPG officielle :</strong></p>
+<p><code>bash
+sudo apt update
+sudo apt install -y ca-certificates curl gnupg
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg</code></p>
+</li>
+<li>
+<p><strong>Ajouter le dépôt Docker et installer le moteur avec le plugin Compose :</strong></p>
+<p><code>bash
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release &amp;&amp; echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list &gt; /dev/null
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin</code></p>
+</li>
+<li>
+<p><strong>Vérifier que Docker et Compose fonctionnent :</strong></p>
+<p><code>bash
+sudo docker run --rm hello-world
+docker compose version</code></p>
+</li>
+<li>
+<p><strong>(Optionnel) Autoriser l’utilisateur courant à utiliser Docker sans <code>sudo</code> :</strong></p>
+<p><code>bash
+sudo usermod -aG docker $USER
+newgrp docker</code></p>
+</li>
+</ol>
 <h2 id="fichier-docker-composeyml">Fichier <code>docker-compose.yml</code></h2>
 <p>Le fichier <code>docker-compose.yml</code> à la racine de ce projet définit les services suivants :</p>
 <ul>
@@ -126,20 +165,6 @@
 <li><strong>Volumes</strong>: Les volumes sont configurés pour stocker les données de la base de données (<code>/opt/traccar/data</code>) et les logs de Traccar (<code>/opt/traccar/logs</code>) sur l'hôte. Vous pouvez changer ces chemins si nécessaire.</li>
 <li><strong>Ports</strong>: Le port <code>8082</code> est exposé pour l'interface web de Traccar. La plage de ports <code>5000-5500</code> est également exposée pour la communication avec les appareils GPS. Vous pouvez ajuster cette plage en fonction des ports requis par vos appareils.</li>
 </ul>
-<h2 id="creation-du-fichier-env">Création du fichier <code>.env</code></h2>
-<p>Le service <code>cloudflared</code> a besoin d'un token de tunnel pour s'authentifier auprès de Cloudflare. Ce token est fourni via une variable d'environnement.</p>
-<ol>
-<li>
-<p>Créez un fichier <code>.env</code> à la racine du projet :</p>
-<p><code>bash
-touch .env</code></p>
-</li>
-<li>
-<p>Ajoutez votre token de tunnel Cloudflare au fichier <code>.env</code> :</p>
-<p><code>TUNNEL_TOKEN=&lt;VOTRE_TOKEN_DE_TUNNEL_CLOUDFLARE&gt;</code></p>
-<p>Remplacez <code>&lt;VOTRE_TOKEN_DE_TUNNEL_CLOUDFLARE&gt;</code> par le token que vous avez obtenu en créant votre tunnel Cloudflare.</p>
-</li>
-</ol>
 <h2 id="demarrage-des-conteneurs">Démarrage des conteneurs</h2>
 <p>Pour démarrer tous les services, exécutez la commande suivante à la racine du projet :</p>
 <pre><code class="language-bash">sudo docker-compose up -d
@@ -232,5 +257,5 @@ sudo docker-compose restart</code></p>
 
 <!--
 MkDocs version : 1.6.1
-Build Date UTC : 2025-12-08 16:22:23.519623+00:00
+Build Date UTC : 2025-12-08 16:25:24.398504+00:00
 -->
