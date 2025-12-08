@@ -1,123 +1,46 @@
-# Installation de Traccar avec Docker
+# Trackteur - Un projet de traceur GPS DIY
 
-Ce guide explique comment installer Traccar en utilisant Docker et Docker Compose. Cette méthode est recommandée car elle simplifie le déploiement et la gestion de Traccar et de ses dépendances.
+Ce projet documente la création et le déploiement d'un système de suivi GPS complet, depuis le matériel jusqu'à l'infrastructure serveur.
 
-## Prérequis
+## Vue d'ensemble de l'infrastructure
 
--   Un serveur Linux.
--   Un accès root ou un utilisateur avec des privilèges `sudo`.
--   [Docker](https://docs.docker.com/engine/install/) et [Docker Compose](https://docs.docker.com/compose/install/) installés.
+L'architecture est conçue pour être résiliente et évolutive, en s'appuyant sur des services cloud modernes pour le routage et l'hébergement.
 
-### Installer Docker/Docker Compose sur Ubuntu (22.04 ou plus récent)
+```mermaid
+graph LR
+    A[Traceur GPS DIY] --envoie les données--> B[endpoint.domain.com]
+    
+    subgraph Cloudflare
+        B
+        C[Cloudflare Worker]
+    end
+    
+    B --> C
+    
+    subgraph "Serveurs Traccar (Load Balanced)"
+        D[Serveur 1 <br> traccar1.domain.com]
+        E[Serveur 2 <br> traccar2.domain.com]
+        F[Serveur 3 <br> traccar3.domain.com]
+    end
 
-1.  **Désinstaller les anciens paquets si présents :**
-
-    ```bash
-    sudo apt remove docker docker-engine docker.io containerd runc
-    ```
-
-2.  **Installer les dépendances et ajouter la clé GPG officielle :**
-
-    ```bash
-    sudo apt update
-    sudo apt install -y ca-certificates curl gnupg
-    sudo install -m 0755 -d /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-    sudo chmod a+r /etc/apt/keyrings/docker.gpg
-    ```
-
-3.  **Ajouter le dépôt Docker et installer le moteur avec le plugin Compose :**
-
-    ```bash
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-    sudo apt update
-    sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-    ```
-
-4.  **Vérifier que Docker et Compose fonctionnent :**
-
-    ```bash
-    sudo docker run --rm hello-world
-    docker compose version
-    ```
-
-5.  **(Optionnel) Autoriser l’utilisateur courant à utiliser Docker sans `sudo` :**
-
-    ```bash
-    sudo usermod -aG docker $USER
-    newgrp docker
-    ```
-
-## Fichier `docker-compose.yml`
-
-Le fichier `docker-compose.yml` à la racine de ce projet définit les services suivants :
-
--   `database`: Un conteneur MySQL pour stocker les données de Traccar.
--   `traccar`: Le conteneur principal de Traccar.
--   `cloudflared`: Un conteneur pour le tunnel Cloudflare, qui expose Traccar de manière sécurisée.
--   `autoheal`: Un conteneur qui surveille et redémarre les conteneurs en mauvaise santé.
-
-### Personnalisation du `docker-compose.yml`
-
--   **Volumes**: Les volumes sont configurés pour stocker les données de la base de données (`/opt/traccar/data`) et les logs de Traccar (`/opt/traccar/logs`) sur l'hôte. Vous pouvez changer ces chemins si nécessaire.
--   **Ports**: Le port `8082` est exposé pour l'interface web de Traccar. La plage de ports `5000-5500` est également exposée pour la communication avec les appareils GPS. Vous pouvez ajuster cette plage en fonction des ports requis par vos appareils.
-
-## Démarrage des conteneurs
-
-Pour démarrer tous les services, exécutez la commande suivante à la racine du projet :
-
-```bash
-sudo docker-compose up -d
+    C --route le trafic vers--> D
+    C --route le trafic vers--> E
+    C --route le trafic vers--> F
 ```
 
--   `up`: Crée et démarre les conteneurs.
--   `-d`: Exécute les conteneurs en arrière-plan (detached mode).
+### Composants
 
-Les images Docker seront téléchargées, et les conteneurs seront créés et démarrés.
+1.  **Traceur GPS DIY**: Un appareil basé sur un microcontrôleur (ESP32) équipé d'un module GPS et cellulaire (GSM/LTE) pour collecter et transmettre les coordonnées en temps réel.
+2.  **Cloudflare Worker**: Agit comme un point d'entrée unique (`endpoint.domain.com`) et un répartiteur de charge (load balancer). Il reçoit les données du traceur et les redirige de manière transparente vers l'un des serveurs Traccar disponibles.
+3.  **Serveurs Traccar**: Trois instances indépendantes du serveur Traccar, chacune fonctionnant sur son propre sous-domaine (`traccar1.domain.com`, etc.). Chaque serveur expose :
+    -   Le port `5055` pour le protocole OsmAnd, utilisé par les traceurs.
+    -   Le port `8082` pour l'interface web de Traccar.
 
-## Gestion des services
+## Navigation
 
--   **Voir les logs**: Pour voir les logs de tous les services :
-
-    ```bash
-    sudo docker-compose logs -f
-    ```
-
-    Pour voir les logs d'un service spécifique (par exemple, `traccar`) :
-
-    ```bash
-    sudo docker-compose logs -f traccar
-    ```
-
--   **Arrêter les services**:
-
-    ```bash
-    sudo docker-compose down
-    ```
-
--   **Redémarrer les services**:
-
-    ```bash
-    sudo docker-compose restart
-    ```
-
-## Accès à l'interface Web
-
-Une fois les conteneurs démarrés, vous pouvez accéder à l'interface web de Traccar via l'URL que vous avez configurée avec votre tunnel Cloudflare (par exemple, `https://traccar.votredomaine.com`).
-
--   **Identifiant par défaut**: `admin`
--   **Mot de passe par défaut**: `admin`
-
-Il est fortement recommandé de changer le mot de passe administrateur dès votre première connexion.
-
-## Configuration de Traccar
-
-Avec cette configuration Docker, les paramètres de Traccar sont gérés via des variables d'environnement dans le fichier `docker-compose.yml`. Si vous avez besoin de modifier la configuration avancée, vous pouvez monter un fichier `traccar.xml` personnalisé dans le conteneur `traccar` en ajoutant un volume :
-
-```yaml
-volumes:
-  - /chemin/vers/votre/traccar.xml:/opt/traccar/conf/traccar.xml
-  - /opt/traccar/logs:/opt/traccar/logs
-```
-
-Consultez la [documentation officielle de Traccar](https://www.traccar.org/documentation/traccar-with-docker/) pour plus d'informations sur la configuration avec Docker.
+-   **[Fabrication du traceur GPS](fabrication_traceur_gps.md)**: Instructions pour assembler le matériel.
+-   **[Programmation du Liligo A7670G](programmation_liligo_a7670g.md)**: Guide pour flasher le firmware du traceur.
+-   **[Déploiement des serveurs Traccar](installation_docker.md)**: Comment mettre en place les serveurs Traccar avec Docker.
+-   **[Configuration de Cloudflare](configuration_cloudflare.md)**: Mise en place du tunnel et du Worker.
+-   **[Création de carte SIM Hologram](creation_carte_sim_hologram.md)**: Pour la connectivité cellulaire.
+-   **[Installation dans un véhicule](installation_vehicule.md)**: Conseils pour l'installation physique du traceur.

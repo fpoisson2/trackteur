@@ -2,10 +2,11 @@ site_name: Trackteur Arduino
 site_description: Documentation du projet Trackteur Arduino (GPS, GSM, SD-Logger)
 nav:
   - Accueil: index.md
-  - Configuration de Cloudflare: configuration_cloudflare.md
-  - Programmation du Liligo A7670G: programmation_liligo_a7670g.md
-  - Création de carte SIM - Hologram: creation_carte_sim_hologram.md
   - Fabrication du traceur GPS: fabrication_traceur_gps.md
+  - Programmation du Liligo A7670G: programmation_liligo_a7670g.md
+  - Déploiement des serveurs Traccar: installation_docker.md
+  - Configuration de Cloudflare: configuration_cloudflare.md
+  - Création de carte SIM - Hologram: creation_carte_sim_hologram.md
   - Installation dans le véhicule: installation_vehicule.md
 theme:
   name: readthedocs
