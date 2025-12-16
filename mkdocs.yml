@@ -2,6 +2,7 @@ site_name: Trackteur Arduino
 site_description: Documentation du projet Trackteur Arduino (GPS, GSM, SD-Logger)
 nav:
   - Accueil: index.md
+  - BOM (Liste des composants): BOM.md
   - Fabrication du traceur GPS: fabrication_traceur_gps.md
   - Programmation du Liligo A7670G: programmation_liligo_a7670g.md
   - Déploiement des serveurs Traccar: installation_docker.md
