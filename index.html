@@ -54,14 +54,6 @@
 </li>
 </ul>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="fabrication_traceur_gps/">Fabrication du traceur GPS</a>
-</li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="programmation_liligo_a7670g/">Programmation du Liligo A7670G</a>
-</li>
-</ul>
-<ul>
 <li class="toctree-l1"><a class="reference internal" href="installation_docker/">Déploiement des serveurs Traccar</a>
 </li>
 </ul>
@@ -70,7 +62,15 @@
 </li>
 </ul>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="creation_carte_sim_hologram/">Création de carte SIM - Hologram</a>
+<li class="toctree-l1"><a class="reference internal" href="creation_carte_sim_hologram/">Création de carte SIM Hologram</a>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="programmation_liligo_a7670g/">Programmation du Lilygo A7670G</a>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="fabrication_traceur_gps/">Fabrication du traceur GPS</a>
 </li>
 </ul>
 <ul>
@@ -111,7 +111,7 @@
 
     B --&gt; C
 
-    subgraph "Serveurs Traccar (Load Balanced)"
+    subgraph "Serveurs Traccar (Réplication)"
         D[Serveur 1 &lt;br&gt; traccar1.domain.com]
         E[Serveur 2 &lt;br&gt; traccar2.domain.com]
         F[Serveur 3 &lt;br&gt; traccar3.domain.com]
@@ -123,7 +123,7 @@
 <h3 id="composants">Composants</h3>
 <ol>
 <li><strong>Traceur GPS DIY</strong>: Un appareil basé sur un microcontrôleur (ESP32) équipé d'un module GPS et cellulaire (GSM/LTE) pour collecter et transmettre les coordonnées en temps réel.</li>
-<li><strong>Cloudflare Worker</strong>: Agit comme un point d'entrée unique (<code>endpoint.domain.com</code>) et un répartiteur de charge (load balancer). Il reçoit les données du traceur et les redirige de manière transparente vers l'un des serveurs Traccar disponibles.</li>
+<li><strong>Cloudflare Worker</strong>: Agit comme un point d'entrée unique (<code>endpoint.domain.com</code>) et réplique les données vers plusieurs destinations. Il reçoit les données du traceur et les transmet simultanément à tous les serveurs Traccar configurés, assurant une redondance des données.</li>
 <li><strong>Serveurs Traccar</strong>: Trois instances indépendantes du serveur Traccar, chacune fonctionnant sur son propre sous-domaine (<code>traccar1.domain.com</code>, etc.). Chaque serveur expose :<ul>
 <li>Le port <code>5055</code> pour le protocole OsmAnd, utilisé par les traceurs.</li>
 <li>Le port <code>8082</code> pour l'interface web de Traccar.</li>
@@ -175,5 +175,5 @@ mermaid.initialize({});</script></body>
 </html>
 <!--
 MkDocs version : 1.6.1
-Build Date UTC : 2025-12-16 02:54:36.736049+00:00
+Build Date UTC : 2025-12-17 14:07:15.072695+00:00
 -->

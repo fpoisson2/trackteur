@@ -1,204 +1,311 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+
+<html class="writer-html5" lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <link rel="shortcut icon" href="../img/favicon.ico" />
-    <title>Configuration de Cloudflare - Trackteur Arduino</title>
-    <link rel="stylesheet" href="../css/theme.css" />
-    <link rel="stylesheet" href="../css/theme_extra.css" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
-    
-      <script>
+<meta charset="utf-8"/>
+<meta content="IE=edge" http-equiv="X-UA-Compatible"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="../img/favicon.ico" rel="shortcut icon"/>
+<title>Configuration de Cloudflare - Trackteur Arduino</title>
+<link href="../css/theme.css" rel="stylesheet"/>
+<link href="../css/theme_extra.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" rel="stylesheet"/>
+<script>
         // Current page data
         var mkdocs_page_name = "Configuration de Cloudflare";
         var mkdocs_page_input_path = "configuration_cloudflare.md";
         var mkdocs_page_url = null;
       </script>
-    
-    <!--[if lt IE 9]>
+<!--[if lt IE 9]>
       <script src="../js/html5shiv.min.js"></script>
     <![endif]-->
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
-      <script>hljs.highlightAll();</script> 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
 </head>
-
 <body class="wy-body-for-nav" role="document">
-
-  <div class="wy-grid-for-nav">
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
-    <div class="wy-side-scroll">
-      <div class="wy-side-nav-search">
-          <a href=".." class="icon icon-home"> Trackteur Arduino
+<div class="wy-grid-for-nav">
+<nav class="wy-nav-side stickynav" data-toggle="wy-nav-shift">
+<div class="wy-side-scroll">
+<div class="wy-side-nav-search">
+<a class="icon icon-home" href=".."> Trackteur Arduino
         </a><div role="search">
-  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
-      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
-  </form>
+<form action="../search.html" class="wy-form" id="rtd-search-form" method="get">
+<input aria-label="Search docs" name="q" placeholder="Search docs" title="Type search term here" type="text"/>
+</form>
 </div>
-      </div>
-
-      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="..">Accueil</a>
-                </li>
-              </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../BOM/">BOM (Liste des composants)</a>
-                </li>
-              </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../fabrication_traceur_gps/">Fabrication du traceur GPS</a>
-                </li>
-              </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../programmation_liligo_a7670g/">Programmation du Liligo A7670G</a>
-                </li>
-              </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../installation_docker/">Déploiement des serveurs Traccar</a>
-                </li>
-              </ul>
-              <ul class="current">
-                <li class="toctree-l1 current"><a class="reference internal current" href="#">Configuration de Cloudflare</a>
-    <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#prerequis">Prérequis</a>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#1-creer-le-fichier-env">1. Créer le fichier .env</a>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#2-creer-le-tunnel-cloudflare">2. Créer le tunnel Cloudflare</a>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#3-demarrer-les-services">3. Démarrer les services</a>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#4-acceder-a-traccar">4. Accéder à Traccar</a>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#notes-utiles">Notes utiles</a>
-    </li>
-    </ul>
-                </li>
-              </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../creation_carte_sim_hologram/">Création de carte SIM - Hologram</a>
-                </li>
-              </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../installation_vehicule/">Installation dans le véhicule</a>
-                </li>
-              </ul>
-      </div>
-    </div>
-    </nav>
-
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="..">Trackteur Arduino</a>
-        
-      </nav>
-      <div class="wy-nav-content">
-        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
-  <ul class="wy-breadcrumbs">
-    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
-      <li class="breadcrumb-item active">Configuration de Cloudflare</li>
-    <li class="wy-breadcrumbs-aside">
-    </li>
-  </ul>
-  <hr/>
 </div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-            <div class="section" itemprop="articleBody">
-              
-                <h1 id="configuration-de-cloudflare-tunnel">Configuration de Cloudflare Tunnel</h1>
-<p>Ce guide explique comment configurer un tunnel Cloudflare pour exposer votre instance Traccar de manière sécurisée.</p>
+<div aria-label="Navigation menu" class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="..">Accueil</a>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../BOM/">BOM (Liste des composants)</a>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation_docker/">Déploiement des serveurs Traccar</a>
+</li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal current" href="#">Configuration de Cloudflare</a>
+<ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="#prerequis">Prérequis</a>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#architecture">Architecture</a>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#1-creer-les-tunnels-cloudflare-pour-chaque-serveur">1. Créer les tunnels Cloudflare (pour chaque serveur)</a>
+<ul>
+<li class="toctree-l3"><a class="reference internal" href="#11-creer-le-fichier-env">1.1 Créer le fichier .env</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#12-creer-le-tunnel-sur-cloudflare">1.2 Créer le tunnel sur Cloudflare</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#13-demarrer-les-services">1.3 Démarrer les services</a>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#2-creer-le-worker-cloudflare">2. Créer le Worker Cloudflare</a>
+<ul>
+<li class="toctree-l3"><a class="reference internal" href="#21-creer-le-worker">2.1 Créer le Worker</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#22-configurer-le-code-du-worker">2.2 Configurer le code du Worker</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#23-configurer-les-variables-denvironnement">2.3 Configurer les variables d'environnement</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#24-configurer-le-domaine-personnalise">2.4 Configurer le domaine personnalisé</a>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#3-configurer-le-traceur-gps">3. Configurer le traceur GPS</a>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#notes-utiles">Notes utiles</a>
+</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../creation_carte_sim_hologram/">Création de carte SIM Hologram</a>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../programmation_liligo_a7670g/">Programmation du Lilygo A7670G</a>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../fabrication_traceur_gps/">Fabrication du traceur GPS</a>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation_vehicule/">Installation dans le véhicule</a>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<section class="wy-nav-content-wrap" data-toggle="wy-nav-shift">
+<nav aria-label="Mobile navigation menu" class="wy-nav-top" role="navigation">
+<i class="fa fa-bars" data-toggle="wy-nav-top"></i>
+<a href="..">Trackteur Arduino</a>
+</nav>
+<div class="wy-nav-content">
+<div class="rst-content"><div aria-label="breadcrumbs navigation" role="navigation">
+<ul class="wy-breadcrumbs">
+<li><a aria-label="Docs" class="icon icon-home" href=".."></a></li>
+<li class="breadcrumb-item active">Configuration de Cloudflare</li>
+<li class="wy-breadcrumbs-aside">
+</li>
+</ul>
+<hr/>
+</div>
+<div class="document" itemscope="itemscope" itemtype="http://schema.org/Article" role="main">
+<div class="section" itemprop="articleBody">
+<h1 id="configuration-de-cloudflare">Configuration de Cloudflare</h1>
+<p>Ce guide explique comment configurer Cloudflare pour exposer vos serveurs Traccar et créer le Worker qui réplique les données GPS vers tous les serveurs.</p>
 <h2 id="prerequis">Prérequis</h2>
 <ul>
-<li>Un compte Cloudflare actif.</li>
-<li>Un nom de domaine enregistré et géré par Cloudflare.</li>
-<li>Traccar fonctionnant (via Docker ou une autre méthode).</li>
+<li>Un compte Cloudflare actif</li>
+<li>Un nom de domaine enregistré et géré par Cloudflare</li>
+<li>Serveurs Traccar déployés et fonctionnels</li>
 </ul>
-<h2 id="1-creer-le-fichier-env">1. Créer le fichier <code>.env</code></h2>
-<p>Le service <code>cloudflared</code> a besoin d'un token de tunnel pour s'authentifier auprès de Cloudflare. Ce token est fourni via une variable d'environnement.</p>
-<ol>
-<li>
-<p>Créez un fichier <code>.env</code> à la racine du projet :</p>
+<h2 id="architecture">Architecture</h2>
+<div class="mermaid">flowchart LR
+    GPS[Traceur GPS] --&gt;|Données| W[Worker Cloudflare&lt;br/&gt;endpoint.domaine.com]
+    W --&gt;|Réplication| T1[Tunnel 1&lt;br/&gt;serveur1.domaine.com]
+    W --&gt;|Réplication| T2[Tunnel 2&lt;br/&gt;serveur2.domaine.com]
+    W --&gt;|Réplication| T3[Tunnel 3&lt;br/&gt;serveur3.domaine.com]
+    T1 --&gt; S1[Serveur Traccar 1]
+    T2 --&gt; S2[Serveur Traccar 2]
+    T3 --&gt; S3[Serveur Traccar 3]</div>
+<h2 id="1-creer-les-tunnels-cloudflare-pour-chaque-serveur">1. Créer les tunnels Cloudflare (pour chaque serveur)</h2>
+<p>Répétez ces étapes pour chaque serveur Traccar.</p>
+<h3 id="11-creer-le-fichier-env">1.1 Créer le fichier <code>.env</code></h3>
+<p>Le service <code>cloudflared</code> a besoin d'un token de tunnel pour s'authentifier.</p>
 <pre class="highlight"><code class="language-bash">touch .env</code></pre>
-</li>
-<li>
-<p>Ajoutez votre token de tunnel Cloudflare au fichier <code>.env</code> :</p>
+<p>Ajoutez votre token de tunnel :</p>
 <pre class="highlight"><code>TUNNEL_TOKEN=&lt;VOTRE_TOKEN_DE_TUNNEL_CLOUDFLARE&gt;</code></pre>
-<p>Remplacez <code>&lt;VOTRE_TOKEN_DE_TUNNEL_CLOUDFLARE&gt;</code> par le token que vous obtiendrez à l'étape suivante.</p>
-</li>
-</ol>
-<h2 id="2-creer-le-tunnel-cloudflare">2. Créer le tunnel Cloudflare</h2>
+<h3 id="12-creer-le-tunnel-sur-cloudflare">1.2 Créer le tunnel sur Cloudflare</h3>
 <ol>
-<li>Sur le dashboard Cloudflare, assurez-vous que votre domaine (ex. <code>votredomaine.com</code>) est géré par Cloudflare.</li>
-<li>Rendez-vous dans <strong>Zero Trust → Networks → Tunnels</strong> puis <strong>Add a tunnel / Create a tunnel</strong>.</li>
-<li>Choisissez <strong>Docker</strong> comme méthode d’installation.</li>
-<li>Copiez le token fourni (il ressemble à <code>ey...</code>). C'est votre <code>TUNNEL_TOKEN</code>. Collez-le dans votre fichier <code>.env</code>.</li>
-<li>Dans la section <strong>Public Hostnames</strong>, créez un enregistrement :<ul>
-<li><strong>Subdomain</strong>: <code>traccar</code> (ou ce que vous préférez).</li>
-<li><strong>Domain</strong>: Votre domaine.</li>
-<li><strong>Service</strong>: <code>HTTP</code> et <code>http://traccar:8082</code>.</li>
-</ul>
-</li>
-<li>Enregistrez le tunnel.</li>
+<li>Sur le dashboard Cloudflare, vérifiez que votre domaine est géré par Cloudflare</li>
+<li>Rendez-vous dans <strong>Zero Trust → Networks → Tunnels</strong></li>
+<li>Cliquez sur <strong>Add a tunnel / Create a tunnel</strong></li>
+<li>Choisissez <strong>Docker</strong> comme méthode d'installation</li>
+<li>Copiez le token fourni et collez-le dans votre fichier <code>.env</code></li>
+<li>Dans <strong>Public Hostnames</strong>, créez un enregistrement :</li>
+<li><strong>Subdomain</strong> : <code>serveur1</code> (ou <code>serveur2</code>, <code>serveur3</code>, etc.)</li>
+<li><strong>Domain</strong> : Votre domaine</li>
+<li><strong>Service</strong> : <code>HTTP</code> et <code>http://traccar:8082</code></li>
+<li>Enregistrez le tunnel</li>
 </ol>
-<h2 id="3-demarrer-les-services">3. Démarrer les services</h2>
-<p>Si ce n'est pas déjà fait, démarrez la stack Docker :</p>
+<h3 id="13-demarrer-les-services">1.3 Démarrer les services</h3>
 <pre class="highlight"><code class="language-bash">sudo docker-compose up -d</code></pre>
-<p>Le conteneur <code>cloudflared</code> devrait maintenant démarrer et établir la connexion avec Cloudflare.</p>
-<h2 id="4-acceder-a-traccar">4. Accéder à Traccar</h2>
-<p>Une fois que <code>cloudflared</code> est en cours d'exécution, vous pouvez accéder à l'interface de Traccar via l'URL que vous avez configurée (par exemple, <code>https://traccar.votredomaine.com</code>).</p>
+<h2 id="2-creer-le-worker-cloudflare">2. Créer le Worker Cloudflare</h2>
+<p>Le Worker reçoit les données GPS du traceur et les réplique vers tous les serveurs Traccar simultanément.</p>
+<h3 id="21-creer-le-worker">2.1 Créer le Worker</h3>
+<ol>
+<li>Sur le dashboard Cloudflare, allez dans <strong>Workers et Pages</strong></li>
+<li>Cliquez sur <strong>Create Worker</strong></li>
+<li>Donnez un nom au Worker (ex: <code>traccar-replicator</code>)</li>
+<li>Cliquez sur <strong>Deploy</strong></li>
+</ol>
+<h3 id="22-configurer-le-code-du-worker">2.2 Configurer le code du Worker</h3>
+<ol>
+<li>Cliquez sur <strong>Edit code</strong></li>
+<li>Remplacez le contenu par :</li>
+</ol>
+<pre class="highlight"><code class="language-javascript">export default {
+  async fetch(request, env, ctx) {
+    const targets = [
+      env.TRACCAR_A,
+      env.TRACCAR_B,
+      env.TRACCAR_C,
+    ];
+
+    const url = new URL(request.url);
+    const method = request.method;
+
+    const queryString = url.search; // garde ?id=...&amp;lat=...
+    const body = await request.arrayBuffer();
+
+    const headers = new Headers(request.headers);
+    headers.delete("Host");
+    headers.delete("Content-Length");
+
+    const promises = targets.map(async (baseUrl) =&gt; {
+      if (!baseUrl) {
+        return { target: baseUrl, ok: false, error: "missing target" };
+      }
+
+      const targetUrl = baseUrl + queryString;
+
+      try {
+        const resp = await fetch(targetUrl, {
+          method,
+          headers,
+          body: method === "GET" ? undefined : body,
+        });
+        return { target: targetUrl, ok: resp.ok, status: resp.status };
+      } catch (e) {
+        return { target: targetUrl, ok: false, error: String(e) };
+      }
+    });
+
+    ctx.waitUntil(
+      (async () =&gt; {
+        const results = await Promise.all(promises);
+        console.log("Traccar fan-out results", JSON.stringify(results));
+      })()
+    );
+
+    return new Response("OK\n", { status: 200, headers: { "Content-Type": "text/plain" } });
+  },
+};</code></pre>
+<ol>
+<li>Cliquez sur <strong>Save and Deploy</strong></li>
+</ol>
+<h3 id="23-configurer-les-variables-denvironnement">2.3 Configurer les variables d'environnement</h3>
+<ol>
+<li>Allez dans l'onglet <strong>Settings</strong> du Worker</li>
+<li>Dans <strong>Variables and Secrets</strong>, ajoutez les variables suivantes :</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Nom</th>
+<th>Valeur</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Text</td>
+<td><code>TRACCAR_A</code></td>
+<td><code>https://serveur1.votredomaine.com</code></td>
+</tr>
+<tr>
+<td>Text</td>
+<td><code>TRACCAR_B</code></td>
+<td><code>https://serveur2.votredomaine.com</code></td>
+</tr>
+<tr>
+<td>Text</td>
+<td><code>TRACCAR_C</code></td>
+<td><code>https://serveur3.votredomaine.com</code></td>
+</tr>
+</tbody>
+</table>
+<ol>
+<li>Cliquez sur <strong>Save</strong></li>
+</ol>
+<h3 id="24-configurer-le-domaine-personnalise">2.4 Configurer le domaine personnalisé</h3>
+<ol>
+<li>Allez dans l'onglet <strong>Domains &amp; Routes</strong> du Worker</li>
+<li>Cliquez sur <strong>Add</strong> → <strong>Custom Domain</strong></li>
+<li>Entrez le sous-domaine pour le point d'entrée GPS (ex: <code>gps.votredomaine.com</code>)</li>
+<li>Cliquez sur <strong>Add Domain</strong></li>
+</ol>
+<h2 id="3-configurer-le-traceur-gps">3. Configurer le traceur GPS</h2>
+<p>Dans la configuration du traceur (fichier <code>config.h</code>), utilisez l'URL du Worker :</p>
+<pre class="highlight"><code class="language-cpp">#define TRACCAR_SERVER_URL "https://gps.votredomaine.com"</code></pre>
+<p>Le traceur enverra ses données au Worker, qui les répliquera automatiquement vers tous les serveurs Traccar.</p>
 <h2 id="notes-utiles">Notes utiles</h2>
 <ul>
-<li>Vous pouvez retirer le mapping de port <code>8082:8082</code> du service <code>traccar</code> dans <code>docker-compose.yml</code> pour n'exposer Traccar qu'à travers le tunnel Cloudflare.</li>
-<li>Pour ajouter d'autres services, vous pouvez ajouter des "Public Hostnames" à votre tunnel.</li>
+<li>Le Worker répond toujours <code>OK</code> au traceur, même si certains serveurs sont indisponibles</li>
+<li>Les logs du Worker (accessibles dans <strong>Observability</strong>) montrent le résultat de chaque réplication</li>
+<li>Vous pouvez ajouter ou retirer des serveurs en modifiant les variables d'environnement</li>
 </ul>
-              
-            </div>
-          </div><footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
-        <a href="../installation_docker/" class="btn btn-neutral float-left" title="Déploiement des serveurs Traccar"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-        <a href="../creation_carte_sim_hologram/" class="btn btn-neutral float-right" title="Création de carte SIM - Hologram">Next <span class="icon icon-circle-arrow-right"></span></a>
-    </div>
-
-  <hr/>
-
-  <div role="contentinfo">
-    <!-- Copyright etc -->
-  </div>
+</div>
+</div><footer>
+<div aria-label="Footer Navigation" class="rst-footer-buttons" role="navigation">
+<a class="btn btn-neutral float-left" href="../installation_docker/" title="Déploiement des serveurs Traccar"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+<a class="btn btn-neutral float-right" href="../creation_carte_sim_hologram/" title="Création de carte SIM Hologram">Next <span class="icon icon-circle-arrow-right"></span></a>
+</div>
+<hr/>
+<div role="contentinfo">
+<!-- Copyright etc -->
+</div>
 
   Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 </footer>
-          
-        </div>
-      </div>
-
-    </section>
-
-  </div>
-
-  <div class="rst-versions" role="note" aria-label="Versions">
-  <span class="rst-current-version" data-toggle="rst-current-version">
-    
-    
-      <span><a href="../installation_docker/" style="color: #fcfcfc">&laquo; Previous</a></span>
-    
-    
-      <span><a href="../creation_carte_sim_hologram/" style="color: #fcfcfc">Next &raquo;</a></span>
-    
-  </span>
 </div>
-    <script src="../js/jquery-3.6.0.min.js"></script>
-    <script>var base_url = "..";</script>
-    <script src="../js/theme_extra.js"></script>
-    <script src="../js/theme.js"></script>
-      <script src="../search/main.js"></script>
-    <script>
+</div>
+</section>
+</div>
+<div aria-label="Versions" class="rst-versions" role="note">
+<span class="rst-current-version" data-toggle="rst-current-version">
+<span><a href="../installation_docker/" style="color: #fcfcfc">« Previous</a></span>
+<span><a href="../creation_carte_sim_hologram/" style="color: #fcfcfc">Next »</a></span>
+</span>
+</div>
+<script src="../js/jquery-3.6.0.min.js"></script>
+<script>var base_url = "..";</script>
+<script src="../js/theme_extra.js"></script>
+<script src="../js/theme.js"></script>
+<script src="../search/main.js"></script>
+<script>
         jQuery(function () {
             SphinxRtdTheme.Navigation.enable(true);
         });
     </script>
-
-</body>
+<script type="module">import mermaid from "https://unpkg.com/mermaid@10.4.0/dist/mermaid.esm.min.mjs";
+mermaid.initialize({});</script></body>
 </html>

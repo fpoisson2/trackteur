@@ -1,147 +1,273 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+
+<html class="writer-html5" lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <link rel="shortcut icon" href="../img/favicon.ico" />
-    <title>Fabrication du traceur GPS - Trackteur Arduino</title>
-    <link rel="stylesheet" href="../css/theme.css" />
-    <link rel="stylesheet" href="../css/theme_extra.css" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
-    
-      <script>
+<meta charset="utf-8"/>
+<meta content="IE=edge" http-equiv="X-UA-Compatible"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="../img/favicon.ico" rel="shortcut icon"/>
+<title>Fabrication du traceur GPS - Trackteur Arduino</title>
+<link href="../css/theme.css" rel="stylesheet"/>
+<link href="../css/theme_extra.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" rel="stylesheet"/>
+<script>
         // Current page data
         var mkdocs_page_name = "Fabrication du traceur GPS";
         var mkdocs_page_input_path = "fabrication_traceur_gps.md";
         var mkdocs_page_url = null;
       </script>
-    
-    <!--[if lt IE 9]>
+<!--[if lt IE 9]>
       <script src="../js/html5shiv.min.js"></script>
     <![endif]-->
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
-      <script>hljs.highlightAll();</script> 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
 </head>
-
 <body class="wy-body-for-nav" role="document">
-
-  <div class="wy-grid-for-nav">
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
-    <div class="wy-side-scroll">
-      <div class="wy-side-nav-search">
-          <a href=".." class="icon icon-home"> Trackteur Arduino
+<div class="wy-grid-for-nav">
+<nav class="wy-nav-side stickynav" data-toggle="wy-nav-shift">
+<div class="wy-side-scroll">
+<div class="wy-side-nav-search">
+<a class="icon icon-home" href=".."> Trackteur Arduino
         </a><div role="search">
-  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
-      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
-  </form>
+<form action="../search.html" class="wy-form" id="rtd-search-form" method="get">
+<input aria-label="Search docs" name="q" placeholder="Search docs" title="Type search term here" type="text"/>
+</form>
 </div>
-      </div>
-
-      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="..">Accueil</a>
-                </li>
-              </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../BOM/">BOM (Liste des composants)</a>
-                </li>
-              </ul>
-              <ul class="current">
-                <li class="toctree-l1 current"><a class="reference internal current" href="#">Fabrication du traceur GPS</a>
-    <ul class="current">
-    </ul>
-                </li>
-              </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../programmation_liligo_a7670g/">Programmation du Liligo A7670G</a>
-                </li>
-              </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../installation_docker/">Déploiement des serveurs Traccar</a>
-                </li>
-              </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../configuration_cloudflare/">Configuration de Cloudflare</a>
-                </li>
-              </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../creation_carte_sim_hologram/">Création de carte SIM - Hologram</a>
-                </li>
-              </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../installation_vehicule/">Installation dans le véhicule</a>
-                </li>
-              </ul>
-      </div>
-    </div>
-    </nav>
-
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="..">Trackteur Arduino</a>
-        
-      </nav>
-      <div class="wy-nav-content">
-        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
-  <ul class="wy-breadcrumbs">
-    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
-      <li class="breadcrumb-item active">Fabrication du traceur GPS</li>
-    <li class="wy-breadcrumbs-aside">
-    </li>
-  </ul>
-  <hr/>
 </div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-            <div class="section" itemprop="articleBody">
-              
-                <h1 id="fabrication-du-traceur-gps">Fabrication du traceur GPS</h1>
-              
-            </div>
-          </div><footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
-        <a href="../BOM/" class="btn btn-neutral float-left" title="BOM (Liste des composants)"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-        <a href="../programmation_liligo_a7670g/" class="btn btn-neutral float-right" title="Programmation du Liligo A7670G">Next <span class="icon icon-circle-arrow-right"></span></a>
-    </div>
+<div aria-label="Navigation menu" class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="..">Accueil</a>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../BOM/">BOM (Liste des composants)</a>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation_docker/">Déploiement des serveurs Traccar</a>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../configuration_cloudflare/">Configuration de Cloudflare</a>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../creation_carte_sim_hologram/">Création de carte SIM Hologram</a>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../programmation_liligo_a7670g/">Programmation du Lilygo A7670G</a>
+</li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal current" href="#">Fabrication du traceur GPS</a>
+<ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="#materiel-requis">Matériel requis</a>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#schema-de-cablage">Schéma de câblage</a>
+<ul>
+<li class="toctree-l3"><a class="reference internal" href="#legende">Légende</a>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#etapes-dassemblage">Étapes d'assemblage</a>
+<ul>
+<li class="toctree-l3"><a class="reference internal" href="#etape-1-preparation-du-boitier">Étape 1 : Préparation du boîtier</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#etape-2-preparation-du-cablage-dalimentation">Étape 2 : Préparation du câblage d'alimentation</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#etape-3-preparation-du-lilygo">Étape 3 : Préparation du LilyGo</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#etape-4-installation-des-composants-dans-le-boitier">Étape 4 : Installation des composants dans le boîtier</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#etape-5-preparation-du-cable-cote-vehicule">Étape 5 : Préparation du câble côté véhicule</a>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#installation-dans-le-vehicule">Installation dans le véhicule</a>
+<ul>
+<li class="toctree-l3"><a class="reference internal" href="#connexion-electrique">Connexion électrique</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#fixation-du-boitier">Fixation du boîtier</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#connexion-finale">Connexion finale</a>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#verification">Vérification</a>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#conseils">Conseils</a>
+</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation_vehicule/">Installation dans le véhicule</a>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<section class="wy-nav-content-wrap" data-toggle="wy-nav-shift">
+<nav aria-label="Mobile navigation menu" class="wy-nav-top" role="navigation">
+<i class="fa fa-bars" data-toggle="wy-nav-top"></i>
+<a href="..">Trackteur Arduino</a>
+</nav>
+<div class="wy-nav-content">
+<div class="rst-content"><div aria-label="breadcrumbs navigation" role="navigation">
+<ul class="wy-breadcrumbs">
+<li><a aria-label="Docs" class="icon icon-home" href=".."></a></li>
+<li class="breadcrumb-item active">Fabrication du traceur GPS</li>
+<li class="wy-breadcrumbs-aside">
+</li>
+</ul>
+<hr/>
+</div>
+<div class="document" itemscope="itemscope" itemtype="http://schema.org/Article" role="main">
+<div class="section" itemprop="articleBody">
+<h1 id="fabrication-du-traceur-gps">Fabrication du traceur GPS</h1>
+<p>Ce guide détaille l'assemblage mécanique du traceur GPS Trackteur.</p>
+<h2 id="materiel-requis">Matériel requis</h2>
+<p>Référez-vous au <a href="../BOM/">BOM (Bill of Materials)</a> pour la liste complète des composants avec images.</p>
+<h2 id="schema-de-cablage">Schéma de câblage</h2>
+<div class="mermaid">flowchart LR
+    subgraph vehicule["Véhicule (Tracteur, Voiture, etc.)"]
+        ACC[Fil ACC 12V]
+        GND[Masse]
+    end
 
-  <hr/>
+    subgraph jonction["Jonction 3 pattes"]
+        J[Connexion ACC]
+    end
 
-  <div role="contentinfo">
-    <!-- Copyright etc -->
-  </div>
+    subgraph connecteur["Connecteur 2 pattes&lt;br/&gt;(extérieur boîtier)"]
+        C[Déconnexion rapide]
+    end
+
+    subgraph boitier["Boîtier étanche IP67"]
+        PE[Presse-étoupe]
+        CONV[Convertisseur&lt;br/&gt;12V → 5V]
+        LILYGO[LilyGo A7670G]
+        BAT[Batteries 18650&lt;br/&gt;backup]
+        SD[Carte SD]
+        ANT1[Antenne GPS]
+        ANT2[Antenne 4G]
+    end
+
+    ACC --&gt; J
+    GND --&gt; J
+    J --&gt;|Câble weatherproof| C
+    C --&gt;|Câble weatherproof| PE
+    PE --&gt; CONV
+    CONV --&gt;|USB 5V| LILYGO
+    BAT -.-&gt;|Backup| LILYGO
+    SD -.-&gt; LILYGO
+    ANT1 -.-&gt; LILYGO
+    ANT2 -.-&gt; LILYGO</div>
+<h3 id="legende">Légende</h3>
+<ul>
+<li><strong>Trait plein</strong> : Connexions d'alimentation</li>
+<li><strong>Trait pointillé</strong> : Connexions internes au boîtier</li>
+</ul>
+<h2 id="etapes-dassemblage">Étapes d'assemblage</h2>
+<h3 id="etape-1-preparation-du-boitier">Étape 1 : Préparation du boîtier</h3>
+<ol>
+<li>Percez un trou dans le boîtier pour le presse-étoupe (diamètre selon PG7 ou PG9)</li>
+<li>Installez le presse-étoupe et serrez-le pour assurer l'étanchéité</li>
+</ol>
+<h3 id="etape-2-preparation-du-cablage-dalimentation">Étape 2 : Préparation du câblage d'alimentation</h3>
+<ol>
+<li>Passez le câble weatherproof à travers le presse-étoupe</li>
+<li>À l'intérieur du boîtier :</li>
+<li>Connectez les fils du câble au convertisseur 12V-5V (entrée)</li>
+<li>Connectez la sortie 5V du convertisseur au port USB du LilyGo</li>
+<li>À l'extérieur du boîtier :</li>
+<li>Installez le connecteur 2 pattes weatherproof sur le câble (côté mâle)</li>
+</ol>
+<h3 id="etape-3-preparation-du-lilygo">Étape 3 : Préparation du LilyGo</h3>
+<ol>
+<li>Installez les batteries 18650 dans le support du LilyGo</li>
+<li>Insérez la carte SIM dans le slot du LilyGo</li>
+<li>Insérez la carte SD 16 Go pour le backup des données GPS</li>
+<li>Connectez les antennes GPS et 4G au module</li>
+</ol>
+<h3 id="etape-4-installation-des-composants-dans-le-boitier">Étape 4 : Installation des composants dans le boîtier</h3>
+<p>Tous les composants sont fixés au fond du boîtier avec des tie-wraps :</p>
+<ol>
+<li><strong>LilyGo A7670G</strong> (avec batteries déjà installées) : Fixez-le solidement avec 2-3 tie-wraps</li>
+<li><strong>Convertisseur 12V-5V</strong> : Fixez-le à côté du LilyGo</li>
+</ol>
+<h3 id="etape-5-preparation-du-cable-cote-vehicule">Étape 5 : Préparation du câble côté véhicule</h3>
+<ol>
+<li>Installez le connecteur 2 pattes weatherproof (côté femelle) sur un nouveau segment de câble</li>
+<li>À l'autre extrémité, connectez la jonction 3 pattes weatherproof</li>
+<li>La jonction 3 pattes servira à raccorder le câble aux fils ACC (12V) du véhicule</li>
+</ol>
+<h2 id="installation-dans-le-vehicule">Installation dans le véhicule</h2>
+<h3 id="connexion-electrique">Connexion électrique</h3>
+<ol>
+<li>Identifiez un fil ACC (accessoires) 12V dans le véhicule</li>
+<li>Ce fil est alimenté uniquement quand le contact est mis</li>
+<li>Idéal pour tracteurs, voitures, camions, etc.</li>
+<li>Utilisez la jonction 3 pattes pour vous raccorder aux fils ACC (+12V et masse)</li>
+</ol>
+<h3 id="fixation-du-boitier">Fixation du boîtier</h3>
+<ol>
+<li>Choisissez un emplacement discret et protégé dans le véhicule</li>
+<li>Fixez le boîtier avec des tie-wraps sur un support existant</li>
+<li>Assurez-vous que les antennes GPS et 4G ont une bonne réception</li>
+</ol>
+<h3 id="connexion-finale">Connexion finale</h3>
+<ol>
+<li>Branchez le connecteur 2 pattes pour alimenter le traceur</li>
+<li>Le connecteur externe permet de retirer facilement le traceur pour maintenance ou changement de véhicule</li>
+</ol>
+<h2 id="verification">Vérification</h2>
+<ol>
+<li>Mettez le contact du véhicule</li>
+<li>Vérifiez que le LilyGo s'allume (LED)</li>
+<li>Attendez l'acquisition GPS (peut prendre 1-2 minutes au premier démarrage)</li>
+<li>Vérifiez sur votre serveur Traccar que les positions sont reçues</li>
+</ol>
+<h2 id="conseils">Conseils</h2>
+<ul>
+<li>Gardez les antennes à l'intérieur du boîtier mais orientées vers le haut pour une meilleure réception</li>
+<li>Si possible, placez le boîtier près du pare-brise ou dans un endroit avec vue dégagée vers le ciel</li>
+<li>Le boîtier étanche IP65/IP67 protège contre la poussière et les projections d'eau</li>
+</ul>
+</div>
+</div><footer>
+<div aria-label="Footer Navigation" class="rst-footer-buttons" role="navigation">
+<a class="btn btn-neutral float-left" href="../programmation_liligo_a7670g/" title="Programmation du Lilygo A7670G"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+<a class="btn btn-neutral float-right" href="../installation_vehicule/" title="Installation dans le véhicule">Next <span class="icon icon-circle-arrow-right"></span></a>
+</div>
+<hr/>
+<div role="contentinfo">
+<!-- Copyright etc -->
+</div>
 
   Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 </footer>
-          
-        </div>
-      </div>
-
-    </section>
-
-  </div>
-
-  <div class="rst-versions" role="note" aria-label="Versions">
-  <span class="rst-current-version" data-toggle="rst-current-version">
-    
-    
-      <span><a href="../BOM/" style="color: #fcfcfc">&laquo; Previous</a></span>
-    
-    
-      <span><a href="../programmation_liligo_a7670g/" style="color: #fcfcfc">Next &raquo;</a></span>
-    
-  </span>
 </div>
-    <script src="../js/jquery-3.6.0.min.js"></script>
-    <script>var base_url = "..";</script>
-    <script src="../js/theme_extra.js"></script>
-    <script src="../js/theme.js"></script>
-      <script src="../search/main.js"></script>
-    <script>
+</div>
+</section>
+</div>
+<div aria-label="Versions" class="rst-versions" role="note">
+<span class="rst-current-version" data-toggle="rst-current-version">
+<span><a href="../programmation_liligo_a7670g/" style="color: #fcfcfc">« Previous</a></span>
+<span><a href="../installation_vehicule/" style="color: #fcfcfc">Next »</a></span>
+</span>
+</div>
+<script src="../js/jquery-3.6.0.min.js"></script>
+<script>var base_url = "..";</script>
+<script src="../js/theme_extra.js"></script>
+<script src="../js/theme.js"></script>
+<script src="../search/main.js"></script>
+<script>
         jQuery(function () {
             SphinxRtdTheme.Navigation.enable(true);
         });
     </script>
-
-</body>
+<script type="module">import mermaid from "https://unpkg.com/mermaid@10.4.0/dist/mermaid.esm.min.mjs";
+mermaid.initialize({});</script></body>
 </html>
