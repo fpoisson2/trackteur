@@ -52,6 +52,18 @@
 <ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="#prerequis">Prérequis</a>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#0-achat-du-nom-de-domaine-sur-cloudflare">0. Achat du nom de domaine sur Cloudflare</a>
+<ul>
+<li class="toctree-l3"><a class="reference internal" href="#01-creer-un-compte-cloudflare">0.1 Créer un compte Cloudflare</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#02-rechercher-et-acheter-un-domaine">0.2 Rechercher et acheter un domaine</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#03-verifier-la-configuration-dns">0.3 Vérifier la configuration DNS</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#04-activer-les-fonctionnalites-gratuites">0.4 Activer les fonctionnalités gratuites</a>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#architecture">Architecture</a>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#1-creer-les-tunnels-cloudflare-pour-chaque-serveur">1. Créer les tunnels Cloudflare (pour chaque serveur)</a>
@@ -120,13 +132,49 @@
 <div class="document" itemscope="itemscope" itemtype="http://schema.org/Article" role="main">
 <div class="section" itemprop="articleBody">
 <h1 id="configuration-de-cloudflare">Configuration de Cloudflare</h1>
-<p>Ce guide explique comment configurer Cloudflare pour exposer vos serveurs Traccar et créer le Worker qui réplique les données GPS vers tous les serveurs.</p>
+<p>Ce guide explique comment acheter un nom de domaine, configurer Cloudflare pour exposer vos serveurs Traccar et créer le Worker qui réplique les données GPS vers tous les serveurs.</p>
 <h2 id="prerequis">Prérequis</h2>
 <ul>
-<li>Un compte Cloudflare actif</li>
-<li>Un nom de domaine enregistré et géré par Cloudflare</li>
+<li>Un compte Cloudflare actif (gratuit)</li>
+<li>Une carte de crédit pour l'achat du domaine</li>
 <li>Serveurs Traccar déployés et fonctionnels</li>
 </ul>
+<h2 id="0-achat-du-nom-de-domaine-sur-cloudflare">0. Achat du nom de domaine sur Cloudflare</h2>
+<p>Cloudflare propose l'enregistrement de domaines au prix coûtant (sans marge), ce qui en fait une option économique.</p>
+<h3 id="01-creer-un-compte-cloudflare">0.1 Créer un compte Cloudflare</h3>
+<ol>
+<li>Aller sur <a href="https://dash.cloudflare.com/sign-up">https://dash.cloudflare.com/sign-up</a></li>
+<li>Créer un compte avec votre email</li>
+<li>Valider l'email de confirmation</li>
+</ol>
+<h3 id="02-rechercher-et-acheter-un-domaine">0.2 Rechercher et acheter un domaine</h3>
+<ol>
+<li>Dans le dashboard, aller dans <strong>Domain Registration</strong> → <strong>Register Domains</strong></li>
+<li>Rechercher le nom de domaine souhaité (ex: <code>trackteur.cc</code>, <code>montracker.com</code>)</li>
+<li>Vérifier la disponibilité et le prix</li>
+<li><code>.com</code> : ~$10/an</li>
+<li><code>.cc</code> : ~$10/an</li>
+<li><code>.io</code> : ~$35/an</li>
+<li>Cliquer sur <strong>Purchase</strong></li>
+<li>Remplir les informations WHOIS (contact)</li>
+<li>Cloudflare masque automatiquement vos infos personnelles (WHOIS privacy gratuit)</li>
+<li>Entrer les informations de paiement</li>
+<li>Confirmer l'achat</li>
+</ol>
+<h3 id="03-verifier-la-configuration-dns">0.3 Vérifier la configuration DNS</h3>
+<p>Après l'achat, le domaine est automatiquement configuré avec les DNS Cloudflare:</p>
+<ol>
+<li>Aller dans <strong>Websites</strong> → Sélectionner votre domaine</li>
+<li>Aller dans <strong>DNS</strong> → <strong>Records</strong></li>
+<li>Vous devriez voir les nameservers Cloudflare actifs</li>
+</ol>
+<h3 id="04-activer-les-fonctionnalites-gratuites">0.4 Activer les fonctionnalités gratuites</h3>
+<p>Dans les paramètres du domaine, activez:</p>
+<ol>
+<li><strong>SSL/TLS</strong> → Mode <strong>Full (strict)</strong></li>
+<li><strong>Security</strong> → <strong>Bot Fight Mode</strong> (optionnel)</li>
+<li><strong>Speed</strong> → <strong>Auto Minify</strong> (optionnel)</li>
+</ol>
 <h2 id="architecture">Architecture</h2>
 <div class="mermaid">flowchart LR
     GPS[Traceur GPS] --&gt;|Données| W[Worker Cloudflare&lt;br/&gt;endpoint.domaine.com]
