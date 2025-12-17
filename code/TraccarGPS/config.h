@@ -37,6 +37,10 @@
 // 120 = 2 minutes
 #define GPS_REPORT_INTERVAL     120
 
+// Timeout sans fix GPS avant sleep (en secondes)
+// 60 = 1 minute - évite de vider la batterie à l'intérieur
+#define GPS_FIX_TIMEOUT         60
+
 // ========================================
 // PARAMÈTRES RÉSEAU
 // ========================================

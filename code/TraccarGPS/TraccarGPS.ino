@@ -44,6 +44,7 @@ const char *post_format = "/?id=%s&lat=%.7f&lon=%.7f&speed=%.2f&altitude=%.2f&be
 String modemName = "UNKNOWN";
 bool sdCardAvailable = false;
 unsigned long lastReportTime = 0;
+unsigned long lastGpsFixTime = 0;
 
 // Fonction pour formater la date/heure ISO 8601
 String formatTimestamp(TrackteurGPSInfo &info) {
@@ -330,7 +331,7 @@ void setup() {
     Serial.println("Activating network...");
     retry = 3;
     while (retry--) {
-        if (modem.setNetworkActive(apn, false)) {
+        if (modem.setNetworkActive()) {
             break;
         }
         Serial.println("Failed, retrying...");
@@ -392,6 +393,9 @@ void loop() {
     }
 
     if (gps.location.isUpdated() && gps.location.isValid()) {
+        // Reset timeout car on a un fix GPS
+        lastGpsFixTime = millis();
+
         TrackteurGPSInfo info;
         info.isFix = 2; // 2 for 3D fix
         info.latitude = gps.location.lat();
@@ -421,6 +425,16 @@ void loop() {
         }
     } else if (gps.location.isUpdated()) {
         Serial.println("GPS fix not available, waiting...");
+
+        // Timeout sans fix GPS - entrer en sleep pour économiser la batterie
+        if (lastGpsFixTime == 0) {
+            lastGpsFixTime = millis(); // Initialiser au premier passage
+        }
+        if (millis() - lastGpsFixTime >= GPS_FIX_TIMEOUT * 1000) {
+            Serial.println("GPS fix timeout - entering sleep to save battery...");
+            modem_enter_sleep(GPS_REPORT_INTERVAL * 1000);
+            lastGpsFixTime = millis(); // Reset après sleep
+        }
     }
 
 

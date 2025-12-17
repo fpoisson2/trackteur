@@ -1,7 +1,5 @@
 # BOM - Bill of Materials (Liste des composants)
 
-## Vue d'ensemble
-
 Ce document liste tous les composants nécessaires à la fabrication d'un traceur GPS Trackteur.
 
 **Projet destiné au Sénégal** - Fournisseurs chinois privilégiés pour les meilleurs prix et livraison internationale.
@@ -10,124 +8,150 @@ Ce document liste tous les composants nécessaires à la fabrication d'un traceu
 
 ## Liste des composants
 
-| # | Composant | Description | Qté | Prix (USD) | Fournisseur |
-|---|-----------|-------------|-----|------------|-------------|
-| 1 | **LilyGo T-A7670G** | Module ESP32 avec modem 4G LTE et GPS intégré | 1 | 30-45 $ | [AliExpress](https://www.aliexpress.com/item/1005004125654500.html) / [LilyGo Store](https://www.lilygo.cc/) |
-| 2 | **Antenne GPS** | Antenne GPS/GNSS active, connecteur IPEX/U.FL, gain 28 dB | 1 | 3-6 $ | [AliExpress](https://www.aliexpress.com/w/wholesale-gps-antenna-ipex.html) |
-| 3 | **Antenne 4G/LTE** | Antenne cellulaire SMA, bandes 700-2700 MHz, gain 3-5 dBi | 1 | 3-6 $ | [AliExpress](https://www.aliexpress.com/w/wholesale-4g-lte-antenna-sma.html) |
-| 4 | **Carte SIM** | Nano-SIM avec forfait data M2M/IoT | 1 | 5 $ + forfait | [Hologram.io](https://www.hologram.io/) / Opérateur local |
-| 5 | **Boîtier étanche** | Boîtier ABS IP65/IP67, min 120x80x40 mm | 1 | 5-12 $ | [AliExpress](https://www.aliexpress.com/w/wholesale-waterproof-junction-box-ip65.html) |
-| 6 | **Vis de fixation** | Vis inox M3 ou M4 avec écrous | 4-8 | 1-3 $ | [AliExpress](https://www.aliexpress.com/w/wholesale-m3-stainless-steel-screws.html) |
-| 7 | **Presse-étoupe** | Passe-câble étanche PG7 ou PG9, IP68 | 1-2 | 1-3 $ | [AliExpress](https://www.aliexpress.com/w/wholesale-cable-gland-pg7.html) |
-| 8 | **Fil d'alimentation** | Câble 2 conducteurs, 0.5-1.0 mm², rouge/noir | 2 m | 2-4 $ | [AliExpress](https://www.aliexpress.com/w/wholesale-electrical-wire-2-conductor.html) |
-| 9 | **Batterie LiPo** | Batterie 3.7V, 2000-5000 mAh, connecteur JST | 1 | 8-15 $ | [AliExpress](https://www.aliexpress.com/w/wholesale-lipo-battery-3.7v-3000mah-jst.html) |
-| 10 | **Convertisseur 12V-5V** | Module DC-DC step-down, entrée 8-35V, sortie 5V 3A | 1 | 2-5 $ | [AliExpress](https://www.aliexpress.com/w/wholesale-dc-dc-12v-5v-3a.html) |
+### 1. LilyGo T-A7670G
 
----
-
-## Coût total
+![LilyGo A7670G avec antennes](images/Lilygo%20A7670G%20avec%20antennes.png)
 
 | | |
 |---|---|
-| **Total composants** | **60-105 $ USD** |
+| **Description** | Module ESP32 avec modem 4G LTE et GPS intégré (avec antennes GPS et 4G) |
+| **Quantité** | 1 |
+| **Prix** | 50-60 $ |
+| **Fournisseur** | [AliExpress](https://www.aliexpress.com/item/1005004125654500.html) / [LilyGo Store](https://www.lilygo.cc/) |
+
+---
+
+### 2. Boîtier étanche
+
+![Boîtier étanche](images/Boîtier%20étanche.png)
+
+| | |
+|---|---|
+| **Description** | Boîtier ABS IP65/IP67, min 120x80x40 mm |
+| **Quantité** | 1 |
+| **Prix** | 20-30 $ |
+| **Fournisseur** | [AliExpress](https://www.aliexpress.com/w/wholesale-waterproof-junction-box-ip65.html) |
+
+---
+
+### 3. Convertisseur 12V-5V
+
+![Convertisseur 12V à 5V](images/Convertisseur%2012V%20à%205V.png)
+
+| | |
+|---|---|
+| **Description** | Module DC-DC step-down, entrée 8-35V, sortie 5V 3A |
+| **Quantité** | 1 |
+| **Prix** | 2-5 $ |
+| **Fournisseur** | [AliExpress](https://www.aliexpress.com/w/wholesale-dc-dc-12v-5v-3a.html) |
+
+---
+
+### 4. Batteries 18650
+
+![Batteries 18650](images/Batteries%2018650.png)
+
+| | |
+|---|---|
+| **Description** | Batteries Li-Ion 3.7V rechargeables |
+| **Quantité** | 2 |
+| **Prix** | 8-15 $ |
+| **Fournisseur** | [AliExpress](https://www.aliexpress.com/w/wholesale-18650-battery.html) |
+
+---
+
+### 5. Presse-étoupe
+
+![Presse-étoupe](images/Presse-étoupe.png)
+
+| | |
+|---|---|
+| **Description** | Passe-câble étanche PG7 ou PG9, IP68 |
+| **Quantité** | 1-2 |
+| **Prix** | 1-3 $ |
+| **Fournisseur** | [AliExpress](https://www.aliexpress.com/w/wholesale-cable-gland-pg7.html) |
+
+---
+
+### 6. Câble weatherproof
+
+![Câble weatherproof](images/Câble%20weather%20proof.png)
+
+| | |
+|---|---|
+| **Description** | Câble 2 conducteurs étanche, 0.5-1.0 mm², rouge/noir |
+| **Quantité** | 2 m |
+| **Prix** | 2-4 $ |
+| **Fournisseur** | [AliExpress](https://www.aliexpress.com/w/wholesale-waterproof-electrical-wire.html) |
+
+---
+
+### 7. Connecteurs 2 pattes weatherproof
+
+![Connecteurs 2 pattes weatherproof](images/Connecteurs%202%20pattes%20weatherproof.png)
+
+| | |
+|---|---|
+| **Description** | Connecteurs étanches 2 broches pour déconnexion rapide |
+| **Quantité** | 1 |
+| **Prix** | 2-5 $ |
+| **Fournisseur** | [AliExpress](https://www.aliexpress.com/w/wholesale-waterproof-connector-2-pin.html) |
+
+---
+
+### 8. Jonction 3 pattes weatherproof
+
+![Jonction 3 pattes weatherproof](images/Jonction%203%20pattes%20weatherproof.png)
+
+| | |
+|---|---|
+| **Description** | Boîte de jonction étanche 3 voies pour connexion aux fils ACC du véhicule (1 pour +12V, 1 pour GND) |
+| **Quantité** | 2 |
+| **Prix** | 2-4 $ |
+| **Fournisseur** | [AliExpress](https://www.aliexpress.com/w/wholesale-waterproof-junction-box-3-way.html) |
+
+---
+
+### 9. Carte SD 16 Go
+
+![Carte SD 16 Go](images/Carte%20SD%2016%20Go.png)
+
+| | |
+|---|---|
+| **Description** | Carte microSD pour stockage backup des données GPS |
+| **Quantité** | 1 |
+| **Prix** | 3-8 $ |
+| **Fournisseur** | [AliExpress](https://www.aliexpress.com/w/wholesale-micro-sd-card.html) |
+
+---
+
+### 10. Tie-wraps
+
+![Tie-wraps](images/Tie-wrap.png)
+
+| | |
+|---|---|
+| **Description** | Attaches de câble en nylon |
+| **Quantité** | 10-20 |
+| **Prix** | 1-3 $ |
+| **Fournisseur** | [AliExpress](https://www.aliexpress.com/w/wholesale-cable-ties.html) |
+
+---
+
+### 11. Carte SIM Hologram
+
+| | |
+|---|---|
+| **Description** | Carte SIM IoT avec connectivité mondiale |
+| **Quantité** | 1 |
+| **Prix** | 5 $ + forfait data |
+| **Fournisseur** | [Hologram.io](https://www.hologram.io/) |
+
+---
+
+## Coût total estimé
+
+| | |
+|---|---|
+| **Total composants** | **100-150 $ USD** |
 | **Forfait data** | Variable selon opérateur |
-
----
-
-## Composants optionnels
-
-| Composant | Description | Qté | Prix (USD) | Fournisseur |
-|-----------|-------------|-----|------------|-------------|
-| Carte microSD | Stockage backup données GPS, 8-32 Go | 1 | 3-8 $ | [AliExpress](https://www.aliexpress.com/w/wholesale-micro-sd-card.html) |
-| Fusible inline | Protection circuit 12V, 2-5A | 1 | 1-3 $ | [AliExpress](https://www.aliexpress.com/w/wholesale-inline-fuse-holder.html) |
-| Connecteur déconnexion | Connecteur 2 pins étanche | 1 | 2-5 $ | [AliExpress](https://www.aliexpress.com/w/wholesale-waterproof-connector-2-pin.html) |
-| LED externe | LED 5mm avec résistance | 1 | 1 $ | [AliExpress](https://www.aliexpress.com/w/wholesale-led+5mm.html) |
-| Interrupteur | Interrupteur on/off étanche | 1 | 2-4 $ | [AliExpress](https://www.aliexpress.com/w/wholesale-waterproof-toggle-switch.html) |
-
----
-
-## Spécifications détaillées
-
-### LilyGo T-A7670G
-- **Version**: T-A7670G (avec GPS intégré, pas T-A7670E)
-- **Processeur**: ESP32 dual-core
-- **Modem**: SIMCOM A7670G (4G LTE Cat-1)
-- **GPS**: Multi-constellation (GPS, GLONASS, BeiDou, Galileo)
-- **Bandes LTE**: B1/B3/B5/B7/B8/B20 (compatibles Afrique)
-
-### Antennes
-- **GPS**: Antenne active céramique, câble 15-25 cm, connecteur IPEX
-- **4G/LTE**: Antenne omnidirectionnelle, connecteur SMA mâle
-
-### Carte SIM - Options pour le Sénégal
-- **Hologram.io**: Roaming mondial, ~0.60 $/MB
-- **Orange Sénégal**: Forfaits data locaux
-- **Free Sénégal**: Forfaits data locaux
-- **Expresso**: Forfaits data locaux
-
-### Convertisseur DC-DC
-- **Modèles recommandés**: LM2596, XL4015, MP1584
-- **Entrée**: 8-35V DC (compatible 12V/24V véhicule)
-- **Sortie**: 5V DC, 3A minimum
-- **Efficacité**: >90%
-- **Protection**: Surtension, court-circuit
-
-### Boîtier
-- **Indice IP**: IP65 minimum (IP67 recommandé pour climat tropical)
-- **Matériau**: ABS ou polycarbonate
-- **Dimensions internes**: Min 120x80x40 mm
-- **Couleur**: Noir (discrétion, résistance UV)
-
----
-
-## Fournisseurs recommandés
-
-| Fournisseur | Type | Délai livraison Sénégal | Notes |
-|-------------|------|-------------------------|-------|
-| [AliExpress](https://www.aliexpress.com/) | Électronique générale | 3-6 semaines | Meilleurs prix, livraison gratuite souvent disponible |
-| [LilyGo Store](https://www.lilygo.cc/) | LilyGo officiel | 2-4 semaines | Produits authentiques garantis |
-| [Banggood](https://www.banggood.com/) | Électronique | 3-6 semaines | Alternative à AliExpress |
-| [Hologram.io](https://www.hologram.io/) | Carte SIM IoT | 1-2 semaines | Livraison internationale |
-
----
-
-## Notes pour le Sénégal
-
-### Compatibilité réseau LTE
-Le module A7670G supporte les bandes LTE utilisées au Sénégal:
-- **Orange**: B3 (1800 MHz), B7 (2600 MHz), B20 (800 MHz)
-- **Free**: B3 (1800 MHz), B7 (2600 MHz)
-- **Expresso**: B3 (1800 MHz)
-
-### Considérations climatiques
-- Choisir un boîtier IP67 pour résister à l'humidité et la poussière
-- Prévoir une ventilation passive si installation dans un véhicule exposé au soleil
-- Batterie LiPo: éviter les températures >45°C
-
-### Livraison
-- Prévoir 3-6 semaines pour la livraison depuis la Chine
-- Grouper les commandes pour économiser sur les frais de port
-- Vérifier les frais de douane sénégalais
-
----
-
-## Outils nécessaires
-
-| Outil | Utilité |
-|-------|---------|
-| Fer à souder | Connexions optionnelles |
-| Tournevis cruciforme/plat | Assemblage boîtier |
-| Pince à dénuder | Préparation fils |
-| Perceuse | Perçage boîtier (presse-étoupe) |
-| Pistolet à colle chaude | Fixation interne |
-| Multimètre | Vérification tensions |
-
----
-
-## Notes importantes
-
-1. **Vérifier la compatibilité** des bandes LTE avec l'opérateur choisi
-2. **Commander les antennes** avec les bons connecteurs (IPEX pour GPS, SMA pour LTE)
-3. **Tester le convertisseur** avant installation (vérifier 5V stable en sortie)
-4. **Activer la carte SIM** avant de l'insérer dans le module
-5. **Prévoir des pièces de rechange** vu les délais de livraison

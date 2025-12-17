@@ -19,11 +19,11 @@ Trackteur est un projet de traceur GPS DIY basé sur le module **LilyGo T-A7670G
 ```
 ┌─────────────────┐     ┌─────────────────────┐     ┌─────────────────┐
 │   Traceur GPS   │────▶│  Cloudflare Worker  │────▶│ Serveurs Traccar│
-│   (LilyGo)      │     │   (Load Balancer)   │     │   (Docker)      │
+│   (LilyGo)      │     │    (Réplicateur)    │     │   (Docker)      │
 └─────────────────┘     └─────────────────────┘     └─────────────────┘
 ```
 
-Le système utilise Cloudflare comme point d'entrée unique et répartiteur de charge vers plusieurs serveurs Traccar pour assurer une haute disponibilité.
+Le système utilise un Cloudflare Worker comme point d'entrée unique. Ce worker réplique les données GPS reçues vers plusieurs serveurs Traccar simultanément, assurant une redondance des données.
 
 ## Structure du projet
 

@@ -17,7 +17,7 @@ graph LR
     
     B --> C
     
-    subgraph "Serveurs Traccar (Load Balanced)"
+    subgraph "Serveurs Traccar (Réplication)"
         D[Serveur 1 <br> traccar1.domain.com]
         E[Serveur 2 <br> traccar2.domain.com]
         F[Serveur 3 <br> traccar3.domain.com]
@@ -31,7 +31,7 @@ graph LR
 ### Composants
 
 1.  **Traceur GPS DIY**: Un appareil basé sur un microcontrôleur (ESP32) équipé d'un module GPS et cellulaire (GSM/LTE) pour collecter et transmettre les coordonnées en temps réel.
-2.  **Cloudflare Worker**: Agit comme un point d'entrée unique (`endpoint.domain.com`) et un répartiteur de charge (load balancer). Il reçoit les données du traceur et les redirige de manière transparente vers l'un des serveurs Traccar disponibles.
+2.  **Cloudflare Worker**: Agit comme un point d'entrée unique (`endpoint.domain.com`) et réplique les données vers plusieurs destinations. Il reçoit les données du traceur et les transmet simultanément à tous les serveurs Traccar configurés, assurant une redondance des données.
 3.  **Serveurs Traccar**: Trois instances indépendantes du serveur Traccar, chacune fonctionnant sur son propre sous-domaine (`traccar1.domain.com`, etc.). Chaque serveur expose :
     -   Le port `5055` pour le protocole OsmAnd, utilisé par les traceurs.
     -   Le port `8082` pour l'interface web de Traccar.
