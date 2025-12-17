@@ -58,6 +58,56 @@
               <ul class="current">
                 <li class="toctree-l1 current"><a class="reference internal current" href="#">Création de carte SIM Hologram</a>
     <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#pourquoi-hologram">Pourquoi Hologram?</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#prerequis">Prérequis</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#etape-1-creation-du-compte">Étape 1: Création du compte</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#etape-2-commander-les-cartes-sim">Étape 2: Commander les cartes SIM</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#etape-3-activation-de-la-sim">Étape 3: Activation de la SIM</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#via-dashboard">Via Dashboard</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#configuration-du-device">Configuration du device</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#etape-4-configuration-firmware">Étape 4: Configuration firmware</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#etape-5-verification">Étape 5: Vérification</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#dans-le-dashboard-hologram">Dans le dashboard Hologram</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#sur-le-tracker">Sur le tracker</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#consommation-data-estimee">Consommation data estimée</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#alertes-et-monitoring">Alertes et monitoring</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#configurer-des-alertes">Configurer des alertes</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#webhook-optionnel">Webhook (optionnel)</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#depannage">Dépannage</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#sim-non-reconnue">SIM non reconnue</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#pas-de-reseau">Pas de réseau</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#data-ne-fonctionne-pas">Data ne fonctionne pas</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#tarification-hologram-2025">Tarification Hologram (2025)</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#ressources">Ressources</a>
+    </li>
     </ul>
                 </li>
               </ul>
@@ -96,7 +146,177 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
             <div class="section" itemprop="articleBody">
               
-                <h1 id="creation-de-carte-sim-hologram">Création de carte SIM - Hologram</h1>
+                <h1 id="creation-de-carte-sim-hologram">Création de carte SIM Hologram</h1>
+<p>Guide pour activer et configurer une carte SIM Hologram IoT pour le tracker GPS.</p>
+<h2 id="pourquoi-hologram">Pourquoi Hologram?</h2>
+<ul>
+<li><strong>Couverture mondiale</strong>: Roaming automatique dans 200+ pays</li>
+<li><strong>Bandes Africa</strong>: Compatible avec les réseaux Sénégal (Orange, Free, Expresso)</li>
+<li><strong>Tarification IoT</strong>: Optimisé pour faible volume de données</li>
+<li><strong>Pas de contrat</strong>: Pay-as-you-go</li>
+<li><strong>Dashboard</strong>: Monitoring en temps réel de la consommation</li>
+</ul>
+<h2 id="prerequis">Prérequis</h2>
+<ul>
+<li>Compte Hologram (gratuit)</li>
+<li>Carte de crédit pour l'activation</li>
+<li>Carte SIM Hologram (commandée sur hologram.io)</li>
+</ul>
+<h2 id="etape-1-creation-du-compte">Étape 1: Création du compte</h2>
+<ol>
+<li>Aller sur <a href="https://dashboard.hologram.io/register">https://dashboard.hologram.io/register</a></li>
+<li>Créer un compte avec email professionnel</li>
+<li>Valider l'email de confirmation</li>
+</ol>
+<h2 id="etape-2-commander-les-cartes-sim">Étape 2: Commander les cartes SIM</h2>
+<ol>
+<li>Dans le dashboard, aller sur <strong>Devices</strong> → <strong>Order SIMs</strong></li>
+<li>Sélectionner le type de SIM:</li>
+<li><strong>Hologram Hyper SIM</strong> (recommandé) - Meilleure couverture</li>
+<li>Format: <strong>Nano SIM</strong> (pour LilyGo T-A7670G)</li>
+<li>Quantité selon besoin</li>
+<li>Livraison: ~1-2 semaines vers le Sénégal</li>
+</ol>
+<h2 id="etape-3-activation-de-la-sim">Étape 3: Activation de la SIM</h2>
+<h3 id="via-dashboard">Via Dashboard</h3>
+<ol>
+<li>Aller sur <strong>Devices</strong> → <strong>Activate SIM</strong></li>
+<li>Scanner ou entrer le <strong>ICCID</strong> (numéro sur la carte SIM)</li>
+<li>Donner un nom au device: <code>TRACTEUR_001</code></li>
+<li>Sélectionner le plan:</li>
+<li><strong>Pay-as-you-go</strong>: $0.40/MB (petits volumes)</li>
+<li><strong>Pooled plan</strong>: À partir de $1/mois pour 1MB partagé</li>
+</ol>
+<h3 id="configuration-du-device">Configuration du device</h3>
+<ol>
+<li>Cliquer sur le device activé</li>
+<li>Aller dans <strong>Configuration</strong></li>
+<li>Vérifier l'APN: <code>hologram</code> (par défaut)</li>
+<li>Activer <strong>Data</strong> (toggle ON)</li>
+</ol>
+<h2 id="etape-4-configuration-firmware">Étape 4: Configuration firmware</h2>
+<p>Dans <code>config.h</code> du tracker:</p>
+<pre class="highlight"><code class="language-cpp">#define NETWORK_APN "hologram"</code></pre>
+<p>C'est tout! L'APN Hologram ne nécessite ni username ni password.</p>
+<h2 id="etape-5-verification">Étape 5: Vérification</h2>
+<h3 id="dans-le-dashboard-hologram">Dans le dashboard Hologram</h3>
+<ol>
+<li><strong>Usage</strong> → Voir la consommation data</li>
+<li><strong>Device Logs</strong> → Voir les connexions réseau</li>
+<li><strong>Coverage Map</strong> → Vérifier la couverture dans votre zone</li>
+</ol>
+<h3 id="sur-le-tracker">Sur le tracker</h3>
+<p>Moniteur série (115200 baud):
+<pre class="highlight"><code>Setting network APN: hologram
+Registering on network...
+Network registered!
+Activating network...
+IP Address: 10.x.x.x</code></pre></p>
+<h2 id="consommation-data-estimee">Consommation data estimée</h2>
+<table>
+<thead>
+<tr>
+<th>Fréquence</th>
+<th>Data/jour</th>
+<th>Data/mois</th>
+<th>Coût/mois</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2 min</td>
+<td>~50 KB</td>
+<td>~1.5 MB</td>
+<td>~$0.60</td>
+</tr>
+<tr>
+<td>5 min</td>
+<td>~20 KB</td>
+<td>~600 KB</td>
+<td>~$0.25</td>
+</tr>
+<tr>
+<td>10 min</td>
+<td>~10 KB</td>
+<td>~300 KB</td>
+<td>~$0.12</td>
+</tr>
+</tbody>
+</table>
+<p>Chaque transmission ≈ 200-500 bytes (protocole OsmAnd)</p>
+<h2 id="alertes-et-monitoring">Alertes et monitoring</h2>
+<h3 id="configurer-des-alertes">Configurer des alertes</h3>
+<ol>
+<li><strong>Billing</strong> → <strong>Alerts</strong> → <strong>Add Alert</strong></li>
+<li>Seuil de consommation (ex: 5MB)</li>
+<li>Notification par email</li>
+</ol>
+<h3 id="webhook-optionnel">Webhook (optionnel)</h3>
+<p>Pour recevoir les événements device:
+1. <strong>Devices</strong> → <strong>Webhooks</strong>
+2. URL de votre endpoint
+3. Events: <code>device.connect</code>, <code>device.disconnect</code></p>
+<h2 id="depannage">Dépannage</h2>
+<h3 id="sim-non-reconnue">SIM non reconnue</h3>
+<pre class="highlight"><code>SIM status: SIM_ERROR</code></pre>
+<ul>
+<li>Vérifier l'insertion (contacts vers le bas)</li>
+<li>Vérifier que la SIM est activée dans le dashboard</li>
+<li>Vérifier le format (Nano SIM)</li>
+</ul>
+<h3 id="pas-de-reseau">Pas de réseau</h3>
+<pre class="highlight"><code>Network registration denied!</code></pre>
+<ul>
+<li>Vérifier la couverture dans la zone</li>
+<li>Vérifier que le plan est actif (solde suffisant)</li>
+<li>Essayer de redémarrer le tracker</li>
+</ul>
+<h3 id="data-ne-fonctionne-pas">Data ne fonctionne pas</h3>
+<pre class="highlight"><code>Failed to activate network</code></pre>
+<ul>
+<li>Vérifier l'APN dans config.h: <code>hologram</code></li>
+<li>Vérifier que Data est activé dans le dashboard</li>
+<li>Attendre 1-2 minutes après insertion SIM</li>
+</ul>
+<h2 id="tarification-hologram-2025">Tarification Hologram (2025)</h2>
+<table>
+<thead>
+<tr>
+<th>Plan</th>
+<th>Inclus</th>
+<th>Prix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pay-as-you-go</td>
+<td>-</td>
+<td>$0.40/MB</td>
+</tr>
+<tr>
+<td>1MB Pool</td>
+<td>1MB/mois</td>
+<td>$1.00/mois</td>
+</tr>
+<tr>
+<td>5MB Pool</td>
+<td>5MB/mois</td>
+<td>$3.00/mois</td>
+</tr>
+<tr>
+<td>10MB Pool</td>
+<td>10MB/mois</td>
+<td>$5.00/mois</td>
+</tr>
+</tbody>
+</table>
+<p>Pour un tracker à 2 min d'intervalle: <strong>1MB Pool</strong> suffit.</p>
+<h2 id="ressources">Ressources</h2>
+<ul>
+<li><a href="https://www.hologram.io/docs/">Documentation Hologram</a></li>
+<li><a href="https://www.hologram.io/coverage/">Coverage Map</a></li>
+<li><a href="https://support.hologram.io/">Support</a></li>
+</ul>
               
             </div>
           </div><footer>

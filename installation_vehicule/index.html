@@ -1,144 +1,479 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+
+<html class="writer-html5" lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <link rel="shortcut icon" href="../img/favicon.ico" />
-    <title>Installation dans le véhicule - Trackteur Arduino</title>
-    <link rel="stylesheet" href="../css/theme.css" />
-    <link rel="stylesheet" href="../css/theme_extra.css" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
-    
-      <script>
+<meta charset="utf-8"/>
+<meta content="IE=edge" http-equiv="X-UA-Compatible"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="../img/favicon.ico" rel="shortcut icon"/>
+<title>Installation dans le véhicule - Trackteur Arduino</title>
+<link href="../css/theme.css" rel="stylesheet"/>
+<link href="../css/theme_extra.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" rel="stylesheet"/>
+<script>
         // Current page data
         var mkdocs_page_name = "Installation dans le v\u00e9hicule";
         var mkdocs_page_input_path = "installation_vehicule.md";
         var mkdocs_page_url = null;
       </script>
-    
-    <!--[if lt IE 9]>
+<!--[if lt IE 9]>
       <script src="../js/html5shiv.min.js"></script>
     <![endif]-->
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
-      <script>hljs.highlightAll();</script> 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
 </head>
-
 <body class="wy-body-for-nav" role="document">
-
-  <div class="wy-grid-for-nav">
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
-    <div class="wy-side-scroll">
-      <div class="wy-side-nav-search">
-          <a href=".." class="icon icon-home"> Trackteur Arduino
+<div class="wy-grid-for-nav">
+<nav class="wy-nav-side stickynav" data-toggle="wy-nav-shift">
+<div class="wy-side-scroll">
+<div class="wy-side-nav-search">
+<a class="icon icon-home" href=".."> Trackteur Arduino
         </a><div role="search">
-  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
-      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
-  </form>
+<form action="../search.html" class="wy-form" id="rtd-search-form" method="get">
+<input aria-label="Search docs" name="q" placeholder="Search docs" title="Type search term here" type="text"/>
+</form>
 </div>
-      </div>
-
-      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="..">Accueil</a>
-                </li>
-              </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../BOM/">BOM (Liste des composants)</a>
-                </li>
-              </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../installation_docker/">Déploiement des serveurs Traccar</a>
-                </li>
-              </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../configuration_cloudflare/">Configuration de Cloudflare</a>
-                </li>
-              </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../creation_carte_sim_hologram/">Création de carte SIM Hologram</a>
-                </li>
-              </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../programmation_liligo_a7670g/">Programmation du Lilygo A7670G</a>
-                </li>
-              </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../fabrication_traceur_gps/">Fabrication du traceur GPS</a>
-                </li>
-              </ul>
-              <ul class="current">
-                <li class="toctree-l1 current"><a class="reference internal current" href="#">Installation dans le véhicule</a>
-    <ul class="current">
-    </ul>
-                </li>
-              </ul>
-      </div>
-    </div>
-    </nav>
-
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="..">Trackteur Arduino</a>
-        
-      </nav>
-      <div class="wy-nav-content">
-        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
-  <ul class="wy-breadcrumbs">
-    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
-      <li class="breadcrumb-item active">Installation dans le véhicule</li>
-    <li class="wy-breadcrumbs-aside">
-    </li>
-  </ul>
-  <hr/>
 </div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-            <div class="section" itemprop="articleBody">
-              
-                <h1 id="installation-dans-le-vehicule">Installation dans le véhicule</h1>
-              
-            </div>
-          </div><footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
-        <a href="../fabrication_traceur_gps/" class="btn btn-neutral float-left" title="Fabrication du traceur GPS"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-    </div>
+<div aria-label="Navigation menu" class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="..">Accueil</a>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../BOM/">BOM (Liste des composants)</a>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation_docker/">Déploiement des serveurs Traccar</a>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../configuration_cloudflare/">Configuration de Cloudflare</a>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../creation_carte_sim_hologram/">Création de carte SIM Hologram</a>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../programmation_liligo_a7670g/">Programmation du Lilygo A7670G</a>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../fabrication_traceur_gps/">Fabrication du traceur GPS</a>
+</li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal current" href="#">Installation dans le véhicule</a>
+<ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="#vue-densemble">Vue d'ensemble</a>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#materiel-requis">Matériel requis</a>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#choix-de-lemplacement">Choix de l'emplacement</a>
+<ul>
+<li class="toctree-l3"><a class="reference internal" href="#criteres">Critères</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#emplacements-recommandes">Emplacements recommandés</a>
+<ul>
+<li class="toctree-l4"><a class="reference internal" href="#tracteur">Tracteur</a>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#vehicule-utilitaire">Véhicule utilitaire</a>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#installation-electrique">Installation électrique</a>
+<ul>
+<li class="toctree-l3"><a class="reference internal" href="#schema-de-cablage">Schéma de câblage</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#etapes">Étapes</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#option-alimentation-acc">Option: Alimentation ACC</a>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#installation-des-antennes">Installation des antennes</a>
+<ul>
+<li class="toctree-l3"><a class="reference internal" href="#antenne-gps">Antenne GPS</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#antenne-4g">Antenne 4G</a>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#montage-du-boitier">Montage du boîtier</a>
+<ul>
+<li class="toctree-l3"><a class="reference internal" href="#preparation">Préparation</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#fixation">Fixation</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#protection-vibrations">Protection vibrations</a>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#verification-post-installation">Vérification post-installation</a>
+<ul>
+<li class="toctree-l3"><a class="reference internal" href="#checklist">Checklist</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#test-fonctionnel">Test fonctionnel</a>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#depannage-terrain">Dépannage terrain</a>
+<ul>
+<li class="toctree-l3"><a class="reference internal" href="#pas-de-fix-gps">Pas de fix GPS</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#pas-de-connexion-4g">Pas de connexion 4G</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#redemarrages-frequents">Redémarrages fréquents</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#tracker-ne-demarre-pas">Tracker ne démarre pas</a>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#maintenance">Maintenance</a>
+<ul>
+<li class="toctree-l3"><a class="reference internal" href="#mensuelle">Mensuelle</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#annuelle">Annuelle</a>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#considerations-legales">Considérations légales</a>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#photos-dinstallation-type">Photos d'installation type</a>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<section class="wy-nav-content-wrap" data-toggle="wy-nav-shift">
+<nav aria-label="Mobile navigation menu" class="wy-nav-top" role="navigation">
+<i class="fa fa-bars" data-toggle="wy-nav-top"></i>
+<a href="..">Trackteur Arduino</a>
+</nav>
+<div class="wy-nav-content">
+<div class="rst-content"><div aria-label="breadcrumbs navigation" role="navigation">
+<ul class="wy-breadcrumbs">
+<li><a aria-label="Docs" class="icon icon-home" href=".."></a></li>
+<li class="breadcrumb-item active">Installation dans le véhicule</li>
+<li class="wy-breadcrumbs-aside">
+</li>
+</ul>
+<hr/>
+</div>
+<div class="document" itemscope="itemscope" itemtype="http://schema.org/Article" role="main">
+<div class="section" itemprop="articleBody">
+<h1 id="installation-dans-le-vehicule">Installation dans le véhicule</h1>
+<p>Guide pour installer le tracker GPS dans un tracteur ou véhicule agricole.</p>
+<h2 id="vue-densemble">Vue d'ensemble</h2>
+<div class="mermaid">flowchart LR
+    subgraph vehicule["Véhicule"]
+        BAT12[Batterie 12V]
+        ACC[Accessoire/ACC]
+    end
 
-  <hr/>
+    subgraph alimentation["Alimentation"]
+        DCDC[Convertisseur&lt;br/&gt;12V → 5V]
+        FUSIBLE[Fusible 2A]
+    end
 
-  <div role="contentinfo">
-    <!-- Copyright etc -->
-  </div>
+    subgraph tracker["Tracker"]
+        LILYGO[LilyGo T-A7670G]
+        ANTGPS[Antenne GPS]
+        ANT4G[Antenne 4G]
+        LIPO[Batterie LiPo&lt;br/&gt;Backup]
+    end
+
+    BAT12 --&gt; FUSIBLE
+    FUSIBLE --&gt; DCDC
+    DCDC --&gt; LILYGO
+    LIPO --&gt; LILYGO
+    ANTGPS --&gt; LILYGO
+    ANT4G --&gt; LILYGO</div>
+<h2 id="materiel-requis">Matériel requis</h2>
+<table>
+<thead>
+<tr>
+<th>Composant</th>
+<th>Spécification</th>
+<th>Quantité</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Convertisseur DC-DC</td>
+<td>12V → 5V, 3A min</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Fusible</td>
+<td>2A, porte-fusible</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Câble alimentation</td>
+<td>18 AWG, 2m</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Boîtier étanche</td>
+<td>IP65 minimum</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Connecteur USB-C</td>
+<td>Coudé 90°</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Serre-câbles</td>
+<td>Assortis</td>
+<td>10+</td>
+</tr>
+<tr>
+<td>Ruban auto-vulcanisant</td>
+<td>Pour étanchéité</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Cosse à sertir</td>
+<td>Pour batterie</td>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+<h2 id="choix-de-lemplacement">Choix de l'emplacement</h2>
+<h3 id="criteres">Critères</h3>
+<ol>
+<li><strong>Réception GPS</strong>: Vue dégagée du ciel</li>
+<li><strong>Signal 4G</strong>: Pas de blindage métallique</li>
+<li><strong>Protection</strong>: À l'abri de l'eau et vibrations</li>
+<li><strong>Accessibilité</strong>: Pour maintenance</li>
+<li><strong>Discrétion</strong>: Non visible (anti-vol)</li>
+</ol>
+<h3 id="emplacements-recommandes">Emplacements recommandés</h3>
+<h4 id="tracteur">Tracteur</h4>
+<ul>
+<li><strong>Sous le capot</strong>: Près du pare-brise (bonne réception)</li>
+<li><strong>Derrière le tableau de bord</strong>: Protégé, accès facile</li>
+<li><strong>Dans la cabine</strong>: Sous le siège ou derrière le panneau</li>
+</ul>
+<h4 id="vehicule-utilitaire">Véhicule utilitaire</h4>
+<ul>
+<li><strong>Sous le tableau de bord</strong>: Côté passager</li>
+<li><strong>Dans le coffre</strong>: Sous le tapis</li>
+<li><strong>Pare-chocs</strong>: Avec boîtier étanche</li>
+</ul>
+<h2 id="installation-electrique">Installation électrique</h2>
+<h3 id="schema-de-cablage">Schéma de câblage</h3>
+<pre class="highlight"><code>Batterie 12V (+) ──┬── Fusible 2A ── DC-DC IN+ ── DC-DC OUT+ ── USB-C 5V
+                   │
+Masse véhicule ────┴── DC-DC IN- ──────────────── DC-DC OUT- ── USB-C GND</code></pre>
+<h3 id="etapes">Étapes</h3>
+<ol>
+<li>
+<p><strong>Déconnecter la batterie</strong> du véhicule (sécurité)</p>
+</li>
+<li>
+<p><strong>Installer le fusible</strong></p>
+</li>
+<li>Connecter au + batterie ou borne accessoire</li>
+<li>
+<p>Fusible 2A pour protéger le circuit</p>
+</li>
+<li>
+<p><strong>Connecter le convertisseur DC-DC</strong>
+<pre class="highlight"><code>IN+  → Fusible → Batterie +12V
+IN-  → Masse véhicule
+OUT+ → USB-C rouge (5V)
+OUT- → USB-C noir (GND)</code></pre></p>
+</li>
+<li>
+<p><strong>Vérifier la tension</strong></p>
+</li>
+<li>Mesurer la sortie: doit être 5V ± 0.25V</li>
+<li>
+<p>Vérifier sans charge puis avec le tracker</p>
+</li>
+<li>
+<p><strong>Reconnecter la batterie</strong> du véhicule</p>
+</li>
+</ol>
+<h3 id="option-alimentation-acc">Option: Alimentation ACC</h3>
+<p>Pour éteindre le tracker quand le véhicule est arrêté:
+- Connecter IN+ sur la ligne accessoire (ACC)
+- Le tracker s'éteint avec le contact
+- La batterie LiPo prend le relais brièvement</p>
+<h2 id="installation-des-antennes">Installation des antennes</h2>
+<h3 id="antenne-gps">Antenne GPS</h3>
+<p><strong>Position critique</strong> - Doit voir le ciel!</p>
+<ol>
+<li><strong>Montage magnétique</strong> (recommandé)</li>
+<li>Placer sur le toit métallique</li>
+<li>
+<p>Câble passé par joint de porte</p>
+</li>
+<li>
+<p><strong>Montage intérieur</strong></p>
+</li>
+<li>Sous le pare-brise, côté passager</li>
+<li>
+<p>Performance réduite (~30%)</p>
+</li>
+<li>
+<p><strong>Montage adhésif</strong></p>
+</li>
+<li>Sur tableau de bord, face vers le haut</li>
+<li>Éviter les pare-brises athermiques</li>
+</ol>
+<h3 id="antenne-4g">Antenne 4G</h3>
+<p>Moins critique que le GPS:</p>
+<ol>
+<li>À l'intérieur du boîtier: OK si plastique</li>
+<li>Externe: Meilleure réception en zone rurale</li>
+<li>Éviter: Boîtiers métalliques fermés</li>
+</ol>
+<h2 id="montage-du-boitier">Montage du boîtier</h2>
+<h3 id="preparation">Préparation</h3>
+<ol>
+<li>Percer les trous pour:</li>
+<li>Passage câble alimentation</li>
+<li>
+<p>Passage câbles antennes (si externes)</p>
+</li>
+<li>
+<p>Étanchéifier avec:</p>
+</li>
+<li>Presse-étoupes IP68</li>
+<li>Ou ruban auto-vulcanisant</li>
+</ol>
+<h3 id="fixation">Fixation</h3>
+<ol>
+<li><strong>Velcro industriel</strong>: Facile à retirer</li>
+<li><strong>Serre-câbles</strong>: Sur structure existante</li>
+<li><strong>Vis</strong>: Sur surface plane (attention vibrations)</li>
+</ol>
+<h3 id="protection-vibrations">Protection vibrations</h3>
+<ul>
+<li>Mousse EVA sous le tracker</li>
+<li>Éviter contact direct avec métal</li>
+<li>Serre-câbles avec amortisseurs</li>
+</ul>
+<h2 id="verification-post-installation">Vérification post-installation</h2>
+<h3 id="checklist">Checklist</h3>
+<ul>
+<li>[ ] Alimentation: LED allumée sur le tracker</li>
+<li>[ ] Tension: 5V stable au multimètre</li>
+<li>[ ] GPS: Fix obtenu en &lt; 2 minutes</li>
+<li>[ ] 4G: Connexion réseau établie</li>
+<li>[ ] Transmission: Position visible sur Traccar</li>
+<li>[ ] Étanchéité: Pas d'entrée d'eau possible</li>
+<li>[ ] Fixation: Tracker bien attaché</li>
+<li>[ ] Antennes: Bien connectées et positionnées</li>
+</ul>
+<h3 id="test-fonctionnel">Test fonctionnel</h3>
+<ol>
+<li>Démarrer le véhicule</li>
+<li>Attendre 2-3 minutes</li>
+<li>Vérifier sur Traccar:</li>
+<li>Position correcte</li>
+<li>Vitesse cohérente</li>
+<li>
+<p>Timestamp récent</p>
+</li>
+<li>
+<p>Faire un trajet test de 10 min</p>
+</li>
+<li>Vérifier la trace GPS sur la carte</li>
+</ol>
+<h2 id="depannage-terrain">Dépannage terrain</h2>
+<h3 id="pas-de-fix-gps">Pas de fix GPS</h3>
+<ul>
+<li>Repositionner l'antenne GPS (vue du ciel)</li>
+<li>Vérifier la connexion antenne (SMA bien vissé)</li>
+<li>Attendre 5 min pour cold start</li>
+</ul>
+<h3 id="pas-de-connexion-4g">Pas de connexion 4G</h3>
+<ul>
+<li>Vérifier la couverture réseau (téléphone)</li>
+<li>Repositionner l'antenne 4G</li>
+<li>Vérifier la carte SIM (bien insérée)</li>
+</ul>
+<h3 id="redemarrages-frequents">Redémarrages fréquents</h3>
+<ul>
+<li>Vérifier la tension d'alimentation (5V stable)</li>
+<li>Ajouter condensateur 1000µF sur l'alimentation</li>
+<li>Vérifier les connexions (vibrations)</li>
+</ul>
+<h3 id="tracker-ne-demarre-pas">Tracker ne démarre pas</h3>
+<ul>
+<li>Vérifier le fusible</li>
+<li>Mesurer la tension entrée/sortie DC-DC</li>
+<li>Tester avec alimentation USB directe</li>
+</ul>
+<h2 id="maintenance">Maintenance</h2>
+<h3 id="mensuelle">Mensuelle</h3>
+<ul>
+<li>Vérifier la fixation</li>
+<li>Nettoyer les antennes</li>
+<li>Vérifier les connexions</li>
+</ul>
+<h3 id="annuelle">Annuelle</h3>
+<ul>
+<li>Inspecter le boîtier (étanchéité)</li>
+<li>Vérifier l'état de la batterie LiPo</li>
+<li>Mettre à jour le firmware si nécessaire</li>
+</ul>
+<h2 id="considerations-legales">Considérations légales</h2>
+<ul>
+<li><strong>Véhicules personnels</strong>: Installation libre</li>
+<li><strong>Véhicules d'entreprise</strong>: Informer les conducteurs</li>
+<li><strong>Véhicules de location</strong>: Vérifier la réglementation locale</li>
+<li><strong>Sénégal</strong>: Pas de restriction connue pour usage privé</li>
+</ul>
+<h2 id="photos-dinstallation-type">Photos d'installation type</h2>
+<p><em>À compléter avec photos du projet</em></p>
+<ol>
+<li>Vue d'ensemble du montage</li>
+<li>Connexion alimentation</li>
+<li>Position antenne GPS</li>
+<li>Boîtier fermé installé</li>
+</ol>
+</div>
+</div><footer>
+<div aria-label="Footer Navigation" class="rst-footer-buttons" role="navigation">
+<a class="btn btn-neutral float-left" href="../fabrication_traceur_gps/" title="Fabrication du traceur GPS"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+</div>
+<hr/>
+<div role="contentinfo">
+<!-- Copyright etc -->
+</div>
 
   Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 </footer>
-          
-        </div>
-      </div>
-
-    </section>
-
-  </div>
-
-  <div class="rst-versions" role="note" aria-label="Versions">
-  <span class="rst-current-version" data-toggle="rst-current-version">
-    
-    
-      <span><a href="../fabrication_traceur_gps/" style="color: #fcfcfc">&laquo; Previous</a></span>
-    
-    
-  </span>
 </div>
-    <script src="../js/jquery-3.6.0.min.js"></script>
-    <script>var base_url = "..";</script>
-    <script src="../js/theme_extra.js"></script>
-    <script src="../js/theme.js"></script>
-      <script src="../search/main.js"></script>
-    <script>
+</div>
+</section>
+</div>
+<div aria-label="Versions" class="rst-versions" role="note">
+<span class="rst-current-version" data-toggle="rst-current-version">
+<span><a href="../fabrication_traceur_gps/" style="color: #fcfcfc">« Previous</a></span>
+</span>
+</div>
+<script src="../js/jquery-3.6.0.min.js"></script>
+<script>var base_url = "..";</script>
+<script src="../js/theme_extra.js"></script>
+<script src="../js/theme.js"></script>
+<script src="../search/main.js"></script>
+<script>
         jQuery(function () {
             SphinxRtdTheme.Navigation.enable(true);
         });
     </script>
-
-</body>
+<script type="module">import mermaid from "https://unpkg.com/mermaid@10.4.0/dist/mermaid.esm.min.mjs";
+mermaid.initialize({});</script></body>
 </html>
