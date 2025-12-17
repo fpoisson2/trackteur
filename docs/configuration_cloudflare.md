@@ -1,12 +1,52 @@
 # Configuration de Cloudflare
 
-Ce guide explique comment configurer Cloudflare pour exposer vos serveurs Traccar et créer le Worker qui réplique les données GPS vers tous les serveurs.
+Ce guide explique comment acheter un nom de domaine, configurer Cloudflare pour exposer vos serveurs Traccar et créer le Worker qui réplique les données GPS vers tous les serveurs.
 
 ## Prérequis
 
-- Un compte Cloudflare actif
-- Un nom de domaine enregistré et géré par Cloudflare
+- Un compte Cloudflare actif (gratuit)
+- Une carte de crédit pour l'achat du domaine
 - Serveurs Traccar déployés et fonctionnels
+
+## 0. Achat du nom de domaine sur Cloudflare
+
+Cloudflare propose l'enregistrement de domaines au prix coûtant (sans marge), ce qui en fait une option économique.
+
+### 0.1 Créer un compte Cloudflare
+
+1. Aller sur [https://dash.cloudflare.com/sign-up](https://dash.cloudflare.com/sign-up)
+2. Créer un compte avec votre email
+3. Valider l'email de confirmation
+
+### 0.2 Rechercher et acheter un domaine
+
+1. Dans le dashboard, aller dans **Domain Registration** → **Register Domains**
+2. Rechercher le nom de domaine souhaité (ex: `trackteur.cc`, `montracker.com`)
+3. Vérifier la disponibilité et le prix
+   - `.com` : ~$10/an
+   - `.cc` : ~$10/an
+   - `.io` : ~$35/an
+4. Cliquer sur **Purchase**
+5. Remplir les informations WHOIS (contact)
+   - Cloudflare masque automatiquement vos infos personnelles (WHOIS privacy gratuit)
+6. Entrer les informations de paiement
+7. Confirmer l'achat
+
+### 0.3 Vérifier la configuration DNS
+
+Après l'achat, le domaine est automatiquement configuré avec les DNS Cloudflare:
+
+1. Aller dans **Websites** → Sélectionner votre domaine
+2. Aller dans **DNS** → **Records**
+3. Vous devriez voir les nameservers Cloudflare actifs
+
+### 0.4 Activer les fonctionnalités gratuites
+
+Dans les paramètres du domaine, activez:
+
+1. **SSL/TLS** → Mode **Full (strict)**
+2. **Security** → **Bot Fight Mode** (optionnel)
+3. **Speed** → **Auto Minify** (optionnel)
 
 ## Architecture
 
