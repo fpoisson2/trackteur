@@ -2,145 +2,109 @@
 
 ![Logo](logo.png)
 
-Trackteur est un projet de traceur GPS DIY basé sur le module **LilyGo T-A7670G**. Il permet de suivre des véhicules ou équipements en temps réel via une infrastructure serveur Traccar.
+Système de traceur GPS DIY pour le suivi de véhicules et équipements agricoles. Ce projet documente la création et le déploiement d'un système de suivi GPS complet, depuis le matériel jusqu'à l'infrastructure serveur.
 
-## Caractéristiques
+## Vue d'ensemble de l'infrastructure
 
-- **Module**: LilyGo T-A7670G (ESP32 + modem 4G/LTE + GPS)
-- **Connectivité**: 4G LTE via carte SIM Hologram
-- **Protocole**: OsmAnd (compatible Traccar)
-- **Intervalle d'envoi**: Toutes les 2 minutes (configurable)
-- **Backup**: Sauvegarde automatique sur carte SD en cas d'échec réseau
-- **Mode veille**: Économie d'énergie entre les envois
-- **Multi-constellation GPS**: GPS, GLONASS, BeiDou, Galileo
+L'architecture est conçue pour être résiliente et évolutive, en s'appuyant sur des services cloud modernes pour le routage et l'hébergement.
 
-## Architecture
+```mermaid
+flowchart TB
+    subgraph tracker["Traceur GPS DIY"]
+        ESP[ESP32 + GPS + 4G LTE]
+    end
 
+    subgraph cloudflare["Cloudflare"]
+        WORKER[Cloudflare Worker<br/>endpoint.trackteur.cc]
+    end
+
+    subgraph servers["Serveurs Traccar (Réplication)"]
+        SRV1[Serveur 1<br/>serveur1e.trackteur.cc]
+        SRV2[Serveur 2<br/>serveur2.trackteur.cc]
+        SRV3[Serveur 3<br/>serveur3.trackteur.cc]
+    end
+
+    tracker -->|envoie les données| cloudflare
+    cloudflare -->|route le trafic vers| SRV1
+    cloudflare -->|route le trafic vers| SRV2
+    cloudflare -->|route le trafic vers| SRV3
 ```
-┌─────────────────┐     ┌─────────────────────┐     ┌─────────────────┐
-│   Traceur GPS   │────▶│  Cloudflare Worker  │────▶│ Serveurs Traccar│
-│   (LilyGo)      │     │    (Réplicateur)    │     │   (Docker)      │
-└─────────────────┘     └─────────────────────┘     └─────────────────┘
+
+## Composants
+
+| Composant | Description |
+|-----------|-------------|
+| **Traceur GPS DIY** | Appareil basé sur LilyGo T-A7670G (ESP32) équipé d'un module GPS et cellulaire 4G/LTE pour collecter et transmettre les coordonnées en temps réel. |
+| **Cloudflare Worker** | Point d'entrée unique qui réplique les données vers plusieurs serveurs Traccar, assurant une redondance des données. |
+| **Serveurs Traccar** | Instances indépendantes du serveur Traccar en Docker. Port 5055 pour OsmAnd, port 8082 pour l'interface web. |
+| **Carte SIM Hologram** | Connectivité IoT mondiale avec roaming automatique et tarification optimisée. |
+
+## Caractéristiques du firmware
+
+- **Intervalle d'envoi**: 2 minutes (configurable)
+- **Timeout GPS**: 1 minute sans fix → sleep automatique
+- **Protocole**: OsmAnd (HTTPS)
+- **Backup SD**: Sauvegarde CSV si échec réseau
+- **Multi-constellation**: GPS, GLONASS, BeiDou, Galileo
+- **Mode veille**: Modem sleep entre transmissions (2-3 mA)
+
+## Navigation
+
+| Guide | Description |
+|-------|-------------|
+| [BOM (Liste des composants)](docs/BOM.md) | Liste du matériel nécessaire |
+| [Fabrication du traceur GPS](docs/fabrication_traceur_gps.md) | Instructions pour assembler le matériel |
+| [Programmation du LilyGo A7670G](docs/programmation_liligo_a7670g.md) | Guide pour flasher le firmware |
+| [Déploiement des serveurs Traccar](docs/installation_docker.md) | Mise en place des serveurs avec Docker |
+| [Configuration de Cloudflare](docs/configuration_cloudflare.md) | Mise en place du tunnel et du Worker |
+| [Création de carte SIM Hologram](docs/creation_carte_sim_hologram.md) | Pour la connectivité cellulaire |
+| [Installation dans un véhicule](docs/installation_vehicule.md) | Conseils pour l'installation physique |
+
+## Installation rapide
+
+### 1. Configuration firmware
+
+Éditer `code/TraccarGPS/config.h`:
+
+```cpp
+#define TRACCAR_DEVICE_ID    "TRACTEUR_001"
+#define TRACCAR_SERVER_URL   "https://endpoint.trackteur.cc"
+#define NETWORK_APN          "hologram"
 ```
 
-Le système utilise un Cloudflare Worker comme point d'entrée unique. Ce worker réplique les données GPS reçues vers plusieurs serveurs Traccar simultanément, assurant une redondance des données.
+### 2. Compilation et upload
+
+```bash
+arduino-cli compile --fqbn esp32:esp32:esp32 code/TraccarGPS/
+arduino-cli upload --fqbn esp32:esp32:esp32 --port /dev/ttyACM0 code/TraccarGPS/
+```
+
+### 3. Déploiement serveur
+
+```bash
+docker-compose up -d
+```
 
 ## Structure du projet
 
 ```
 trackteur/
-├── code/
-│   └── TraccarGPS/
-│       ├── TraccarGPS.ino     # Code principal Arduino
-│       ├── config.h           # Configuration (serveur, APN, intervalles)
-│       └── utilities.h        # Définitions des pins
-├── docs/
-│   ├── index.md                       # Vue d'ensemble
-│   ├── fabrication_traceur_gps.md     # Guide d'assemblage
-│   ├── programmation_liligo_a7670g.md # Guide de programmation
-│   ├── installation_docker.md         # Déploiement serveur
-│   ├── configuration_cloudflare.md    # Configuration CDN
-│   ├── creation_carte_sim_hologram.md # Activation SIM
-│   └── installation_vehicule.md       # Installation physique
-├── docker-compose.yml         # Configuration Docker serveur
-└── mkdocs.yml                 # Configuration documentation
+├── code/TraccarGPS/        # Firmware Arduino
+├── docs/                   # Documentation MkDocs
+├── docker-compose.yml      # Déploiement serveurs
+└── mkdocs.yml              # Configuration documentation
 ```
 
-## Prérequis
+## Documentation en ligne
 
-### Matériel
-- LilyGo T-A7670G
-- Antenne GPS active
-- Antenne 4G/LTE
-- Carte SIM avec forfait data (Hologram recommandé)
-- Carte microSD (optionnel, pour backup)
-- Alimentation 5V (USB ou convertisseur 12V-5V pour véhicule)
-
-### Logiciel
-- Arduino IDE 1.8.x ou 2.x
-- ESP32 Board Support Package
-- Bibliothèques TinyGSM (fork LilyGo)
-
-## Installation rapide
-
-### 1. Cloner le dépôt
-```bash
-git clone https://github.com/votre-repo/trackteur.git
-cd trackteur
-```
-
-### 2. Configurer le firmware
-Éditez `code/TraccarGPS/config.h`:
-```cpp
-#define TRACCAR_DEVICE_ID    "VOTRE_ID_UNIQUE"
-#define TRACCAR_SERVER_URL   "https://votre-serveur.com"
-#define NETWORK_APN          "hologram"
-```
-
-### 3. Téléverser le code
-1. Ouvrez `code/TraccarGPS/TraccarGPS.ino` dans Arduino IDE
-2. Sélectionnez la carte "ESP32 Dev Module"
-3. Téléversez le code
-
-### 4. Déployer le serveur (optionnel)
-```bash
-cp docker-compose.example.yml docker-compose.yml
-# Éditez docker-compose.yml avec vos paramètres
-docker-compose up -d
-```
-
-## Documentation
-
-La documentation complète est disponible via MkDocs:
-
-```bash
-pip install mkdocs mkdocs-mermaid2-plugin
-mkdocs serve
-```
-
-Puis ouvrez http://localhost:8000
-
-### Guides disponibles
-- [Fabrication du traceur GPS](docs/fabrication_traceur_gps.md)
-- [Programmation du LilyGo A7670G](docs/programmation_liligo_a7670g.md)
-- [Déploiement des serveurs Traccar](docs/installation_docker.md)
-- [Configuration de Cloudflare](docs/configuration_cloudflare.md)
-- [Création de carte SIM Hologram](docs/creation_carte_sim_hologram.md)
-- [Installation dans un véhicule](docs/installation_vehicule.md)
-
-## Consommation d'énergie
-
-| Mode | Consommation |
-|------|--------------|
-| Lecture GPS + Envoi | 350-500 mA |
-| Mode veille | 2-3 mA |
-| Cycle moyen (2 min) | 5-10 mA |
-
-Avec une batterie de 3000 mAh, l'autonomie estimée est de 12-25 jours.
-
-## Format des données
-
-### Envoi vers Traccar (OsmAnd Protocol)
-```
-https://serveur.com/?id=DEVICE_ID&lat=48.8566&lon=2.3522&speed=15.5&altitude=35.2&bearing=270&timestamp=2025-12-08T10:30:00Z&hdop=1.2&batt=100
-```
-
-### Backup SD (CSV)
-```csv
-timestamp,latitude,longitude,speed,altitude,bearing,hdop
-2025-12-08 10:30:00,48.8566000,2.3522000,15.50,35.20,270.00,1.20
-```
-
-## Contribuer
-
-Les contributions sont les bienvenues! N'hésitez pas à ouvrir une issue ou une pull request.
+La documentation complète est disponible sur [https://trackteur.cc](https://trackteur.cc)
 
 ## Licence
 
-MIT License - Voir le fichier LICENSE pour plus de détails.
+MIT License
 
 ## Remerciements
 
-- [LilyGo](https://github.com/Xinyuan-LilyGO) pour le module T-A7670G et les bibliothèques
-- [Traccar](https://www.traccar.org/) pour la plateforme de tracking
-- [TinyGSM](https://github.com/vshymanskyy/TinyGSM) pour la bibliothèque GSM/LTE
+- [LilyGo](https://github.com/Xinyuan-LilyGO) - Module T-A7670G et fork TinyGSM
+- [Traccar](https://www.traccar.org/) - Plateforme de tracking open-source
+- [Hologram](https://www.hologram.io/) - Connectivité IoT globale
