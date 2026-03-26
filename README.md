@@ -4,6 +4,9 @@
 
 Système de traceur GPS DIY pour le suivi de véhicules et équipements agricoles. Ce projet documente la création et le déploiement d'un système de suivi GPS complet, depuis le matériel jusqu'à l'infrastructure serveur.
 
+<img width="301" height="167" alt="image" src="https://github.com/user-attachments/assets/d332ace6-9cfb-4089-aa02-08cbfe9ebc9a" />
+
+
 ## Vue d'ensemble de l'infrastructure
 
 L'architecture est conçue pour être résiliente et évolutive, en s'appuyant sur des services cloud modernes pour le routage et l'hébergement.
