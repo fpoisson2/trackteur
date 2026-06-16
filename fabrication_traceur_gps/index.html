@@ -62,21 +62,75 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal current" href="#">Fabrication du traceur GPS</a>
 <ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="#materiel-requis">Matériel requis</a>
+<li class="toctree-l2"><a class="reference internal" href="#1-materiel-requis">1. Matériel requis</a>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#schema-de-cablage">Schéma de câblage</a>
+<li class="toctree-l2"><a class="reference internal" href="#2-vue-densemble-du-systeme">2. Vue d’ensemble du système</a>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#3-schema-de-cablage">3. Schéma de câblage</a>
 <ul>
 <li class="toctree-l3"><a class="reference internal" href="#legende">Légende</a>
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#etapes-dassemblage">Étapes d'assemblage</a>
+<li class="toctree-l2"><a class="reference internal" href="#4-preparation-du-boitier">4. Préparation du boîtier</a>
 <ul>
-<li class="toctree-l3"><a class="reference internal" href="#etape-1-preparation-du-boitier">Étape 1 : Préparation du boîtier</a>
+<li class="toctree-l3"><a class="reference internal" href="#41-percer-le-trou-pour-le-presse-etoupe">4.1 Percer le trou pour le presse-étoupe</a>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#etape-2-installation-des-composants-dans-le-boitier">Étape 2 : Installation des composants dans le boîtier</a>
+<li class="toctree-l3"><a class="reference internal" href="#42-installer-le-presse-etoupe">4.2 Installer le presse-étoupe</a>
 </li>
 </ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#5-preparation-du-module-lilygo-a7670g">5. Préparation du module LilyGo A7670G</a>
+<ul>
+<li class="toctree-l3"><a class="reference internal" href="#51-installer-les-pattes-autocollantes">5.1 Installer les pattes autocollantes</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#52-brancher-lantenne-lte">5.2 Brancher l’antenne LTE</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#53-brancher-lantenne-gps">5.3 Brancher l’antenne GPS</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#54-brancher-le-cable-dalimentation">5.4 Brancher le câble d’alimentation</a>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#6-installation-des-composants-dans-le-boitier">6. Installation des composants dans le boîtier</a>
+<ul>
+<li class="toctree-l3"><a class="reference internal" href="#61-coller-le-lilygo-dans-le-boitier">6.1 Coller le LilyGo dans le boîtier</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#62-coller-lantenne-lte">6.2 Coller l’antenne LTE</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#63-coller-lantenne-gps">6.3 Coller l’antenne GPS</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#64-coller-le-bloc-dalimentation">6.4 Coller le bloc d’alimentation</a>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#7-passage-et-preparation-du-fil-dalimentation">7. Passage et préparation du fil d’alimentation</a>
+<ul>
+<li class="toctree-l3"><a class="reference internal" href="#71-inserer-le-fil-dans-le-presse-etoupe">7.1 Insérer le fil dans le presse-étoupe</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#72-denuder-le-fil-dalimentation">7.2 Dénuder le fil d’alimentation</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#73-etamer-les-fils">7.3 Étamer les fils</a>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#8-connexion-au-bloc-dalimentation">8. Connexion au bloc d’alimentation</a>
+<ul>
+<li class="toctree-l3"><a class="reference internal" href="#81-souder-les-fils">8.1 Souder les fils</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#82-isoler-les-soudures">8.2 Isoler les soudures</a>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#9-finition-du-montage">9. Finition du montage</a>
+<ul>
+<li class="toctree-l3"><a class="reference internal" href="#91-securiser-les-fils">9.1 Sécuriser les fils</a>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#92-verification-finale">9.2 Vérification finale</a>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#10-montage-termine">10. Montage terminé</a>
 </li>
 </ul>
 </li>
@@ -105,34 +159,37 @@
 </div>
 <div class="document" itemscope="itemscope" itemtype="http://schema.org/Article" role="main">
 <div class="section" itemprop="articleBody">
-<h1 id="fabrication-du-traceur-gps">Fabrication du traceur GPS</h1>
-<p>Ce guide détaille l'assemblage mécanique du traceur GPS Trackteur.</p>
-<h2 id="materiel-requis">Matériel requis</h2>
-<p>Référez-vous au <a href="../BOM/">BOM (Bill of Materials)</a> pour la liste complète des composants avec images.</p>
+<h1 id="fabrication-du-traceur-gps-trackteur">Fabrication du traceur GPS Trackteur</h1>
+<p>Ce guide présente l’assemblage mécanique et le câblage de base du traceur GPS <strong>Trackteur</strong>.</p>
+<h2 id="1-materiel-requis">1. Matériel requis</h2>
+<p>Référez-vous au <a href="../BOM/">BOM — Bill of Materials</a> pour la liste complète des composants avec images.</p>
 <p><img alt="image" height="1440" src="https://github.com/user-attachments/assets/67494daa-26a2-4684-aba2-0f6935360b2e" width="2985"/></p>
-<h2 id="schema-de-cablage">Schéma de câblage</h2>
+<h2 id="2-vue-densemble-du-systeme">2. Vue d’ensemble du système</h2>
+<p>Le traceur est installé dans un boîtier étanche IP67. Il est alimenté par le véhicule via le fil ACC 12 V et la masse. Un convertisseur abaisse la tension de 12 V vers 5 V pour alimenter le module LilyGo A7670G.</p>
+<p>Le connecteur externe permet de débrancher rapidement le traceur sans ouvrir le boîtier.</p>
+<h2 id="3-schema-de-cablage">3. Schéma de câblage</h2>
 <div class="mermaid">flowchart LR
-    subgraph vehicule["Véhicule (Tracteur, Voiture, etc.)"]
-        ACC[Fil ACC 12V]
+    subgraph vehicule["Véhicule"]
+        ACC[Fil ACC 12 V]
         GND[Masse]
     end
 
     subgraph jonction["Jonction 3 pattes"]
-        J[Connexion ACC]
+        J[Connexion ACC / GND]
     end
 
-    subgraph connecteur["Connecteur 2 pattes&lt;br/&gt;(extérieur boîtier)"]
+    subgraph connecteur["Connecteur 2 pattes&lt;br/&gt;(extérieur du boîtier)"]
         C[Déconnexion rapide]
     end
 
     subgraph boitier["Boîtier étanche IP67"]
         PE[Presse-étoupe]
-        CONV[Convertisseur&lt;br/&gt;12V → 5V]
+        CONV[Convertisseur&lt;br/&gt;12 V → 5 V]
         LILYGO[LilyGo A7670G]
         BAT[Batteries 18650&lt;br/&gt;backup]
         SD[Carte SD]
         ANT1[Antenne GPS]
-        ANT2[Antenne 4G]
+        ANT2[Antenne LTE / 4G]
     end
 
     ACC --&gt; J
@@ -140,62 +197,95 @@
     J --&gt;|Câble weatherproof| C
     C --&gt;|Câble weatherproof| PE
     PE --&gt; CONV
-    CONV --&gt;|USB 5V| LILYGO
+    CONV --&gt;|USB 5 V| LILYGO
     BAT -.-&gt;|Backup| LILYGO
     SD -.-&gt; LILYGO
     ANT1 -.-&gt; LILYGO
     ANT2 -.-&gt; LILYGO</div>
 <h3 id="legende">Légende</h3>
 <ul>
-<li><strong>Trait plein</strong> : Connexions d'alimentation</li>
-<li><strong>Trait pointillé</strong> : Connexions internes au boîtier</li>
+<li><strong>Trait plein</strong> : connexions d’alimentation</li>
+<li><strong>Trait pointillé</strong> : connexions internes au boîtier</li>
 </ul>
-<h2 id="etapes-dassemblage">Étapes d'assemblage</h2>
-<h3 id="etape-1-preparation-du-boitier">Étape 1 : Préparation du boîtier</h3>
-<ol>
-<li>Percez un trou dans le boîtier pour le presse-étoupe (diamètre de 12.5mm ou 1/2 pouce)
-<img alt="image" height="1920" src="https://github.com/user-attachments/assets/42c9418b-834a-42d7-9447-322003ebc5f7" width="1440"/></li>
-<li>Installez le presse-étoupe et serrez-le pour assurer l'étanchéité
-<img alt="image" height="273" src="https://github.com/user-attachments/assets/bd462352-a265-4979-a9f1-f41eb759ed26" width="303"/></li>
-</ol>
-<h3 id="etape-2-installation-des-composants-dans-le-boitier">Étape 2 : Installation des composants dans le boîtier</h3>
-<ol>
-<li>Poser les pattes autocollantes dans les trous du LilygoA7670G et retirer la pellicule verte.
-<img alt="image" height="1920" src="https://github.com/user-attachments/assets/e3b76e1d-88d5-4bd8-a8e9-e0f1917a29a9" width="1440"/>
-<img alt="image" height="1920" src="https://github.com/user-attachments/assets/b3091e58-6234-4b5c-a009-7035295e25de" width="1440"/></li>
-<li>Brancher l'antenne LTE autocollante
-<img alt="image" height="1920" src="https://github.com/user-attachments/assets/6359e923-b2cf-4724-8230-4ffdbd461d55" width="1440"/></li>
-<li>Brancher l'antenne GPS
-<img alt="image" height="1920" src="https://github.com/user-attachments/assets/267f575e-2e2a-441c-b963-96dfe97d88e7" width="1440"/></li>
-<li>Brancher le câble d'alimentation
-<img alt="image" height="1920" src="https://github.com/user-attachments/assets/6b677180-23c1-4251-b589-66eb5b796cce" width="1440"/></li>
-<li>Coller le Lilygo A7670G au fond du boîtier. Le place environ au centre.
-<img alt="image" height="1920" src="https://github.com/user-attachments/assets/831df10a-996d-4a53-8ed7-70a93542d98a" width="1440"/></li>
-<li>Coller l'antenne LTE sur la paroi du boîtier
-<img alt="image" height="1920" src="https://github.com/user-attachments/assets/4a2fa625-9a55-4beb-96da-9bc6836c81ca" width="1440"/>
-<img alt="image" height="1920" src="https://github.com/user-attachments/assets/3f305027-f5e9-4d01-b40a-2abe0cdee271" width="1440"/></li>
-<li>Coller l'antenne GPS à l'aide du ruban double-face, mettre 3 couches de ruban double face.
-<img alt="image" height="1920" src="https://github.com/user-attachments/assets/51e6fa70-1912-4951-a051-2b01e2bc5c0f" width="1440"/></li>
-<li>Coller le bloc d'alimentation au fond du boîtier à l'aide du ruban double face, une couche suffit ici.
-<img alt="image" height="1920" src="https://github.com/user-attachments/assets/7b6ff64e-5398-4153-a9a6-043a971625db" width="1440"/></li>
-<li>Insérer le fil d'alimentation à travers le presse-étoupe
-<img alt="image" height="1920" src="https://github.com/user-attachments/assets/a8a77d6a-9725-454c-8aa5-37a8fa81979f" width="1440"/>
-<img alt="image" height="1920" src="https://github.com/user-attachments/assets/c877c51b-46a6-48b1-8dc5-525b4fba702f" width="1440"/></li>
-<li>Dénuder le fil d'alimentation
-<img alt="image" height="1920" src="https://github.com/user-attachments/assets/5a607419-0586-4142-8fa8-b046d654291a" width="1440"/>
-<img alt="image" height="1920" src="https://github.com/user-attachments/assets/8a679835-4d70-4df9-a401-bc1ad0fd10b7" width="1440"/></li>
-<li>Étamer les bouts de fils dénudés.
-<img alt="image" height="1920" src="https://github.com/user-attachments/assets/7b46ab0d-a296-45d8-80d6-2de44bb153f8" width="1440"/></li>
-<li>Souder avec les fils correspondandts du bloc d'alimentation
-<img alt="image" height="1920" src="https://github.com/user-attachments/assets/41f250ca-7469-4656-93e6-f4ac287b719e" width="1440"/>
-<img alt="image" height="1920" src="https://github.com/user-attachments/assets/7820e15a-13d7-4c28-a9d1-3e78bd7bce46" width="1440"/></li>
-<li>Mettre du ruban électrique autour des fils soudés
-<img alt="image" height="1920" src="https://github.com/user-attachments/assets/9266beb4-2f13-4888-a0c1-4ef91823baa6" width="1440"/></li>
-<li>Sécuriser à l'aide de tie-wrap les fils au fond du boîtier
-<img alt="image" height="1920" src="https://github.com/user-attachments/assets/9ffe6e58-c641-4cc7-80a7-b825dee20b2c" width="1440"/></li>
-<li>C'est terminé!
-<img alt="image" height="1920" src="https://github.com/user-attachments/assets/2190d82f-7dbe-4353-b673-b5b4f96c36e9" width="1440"/></li>
-</ol>
+<h2 id="4-preparation-du-boitier">4. Préparation du boîtier</h2>
+<h3 id="41-percer-le-trou-pour-le-presse-etoupe">4.1 Percer le trou pour le presse-étoupe</h3>
+<p>Percer un trou dans le boîtier pour installer le presse-étoupe.</p>
+<p>Diamètre recommandé :</p>
+<ul>
+<li><strong>12,5 mm</strong></li>
+<li>ou <strong>1/2 po</strong></li>
+</ul>
+<p><img alt="image" height="1920" src="https://github.com/user-attachments/assets/42c9418b-834a-42d7-9447-322003ebc5f7" width="1440"/></p>
+<h3 id="42-installer-le-presse-etoupe">4.2 Installer le presse-étoupe</h3>
+<p>Installer le presse-étoupe dans le trou, puis le serrer afin d’assurer l’étanchéité.</p>
+<p><img alt="image" height="273" src="https://github.com/user-attachments/assets/bd462352-a265-4979-a9f1-f41eb759ed26" width="303"/></p>
+<h2 id="5-preparation-du-module-lilygo-a7670g">5. Préparation du module LilyGo A7670G</h2>
+<h3 id="51-installer-les-pattes-autocollantes">5.1 Installer les pattes autocollantes</h3>
+<p>Poser les pattes autocollantes dans les trous du LilyGo A7670G, puis retirer la pellicule verte.</p>
+<p><img alt="image" height="1920" src="https://github.com/user-attachments/assets/e3b76e1d-88d5-4bd8-a8e9-e0f1917a29a9" width="1440"/></p>
+<p><img alt="image" height="1920" src="https://github.com/user-attachments/assets/b3091e58-6234-4b5c-a009-7035295e25de" width="1440"/></p>
+<h3 id="52-brancher-lantenne-lte">5.2 Brancher l’antenne LTE</h3>
+<p>Brancher l’antenne LTE autocollante sur le module LilyGo.</p>
+<p><img alt="image" height="1920" src="https://github.com/user-attachments/assets/6359e923-b2cf-4724-8230-4ffdbd461d55" width="1440"/></p>
+<h3 id="53-brancher-lantenne-gps">5.3 Brancher l’antenne GPS</h3>
+<p>Brancher l’antenne GPS sur le module LilyGo.</p>
+<p><img alt="image" height="1920" src="https://github.com/user-attachments/assets/267f575e-2e2a-441c-b963-96dfe97d88e7" width="1440"/></p>
+<h3 id="54-brancher-le-cable-dalimentation">5.4 Brancher le câble d’alimentation</h3>
+<p>Brancher le câble d’alimentation au module LilyGo.</p>
+<p><img alt="image" height="1920" src="https://github.com/user-attachments/assets/6b677180-23c1-4251-b589-66eb5b796cce" width="1440"/></p>
+<h2 id="6-installation-des-composants-dans-le-boitier">6. Installation des composants dans le boîtier</h2>
+<h3 id="61-coller-le-lilygo-dans-le-boitier">6.1 Coller le LilyGo dans le boîtier</h3>
+<p>Coller le LilyGo A7670G au fond du boîtier, environ au centre.</p>
+<p><img alt="image" height="1920" src="https://github.com/user-attachments/assets/831df10a-996d-4a53-8ed7-70a93542d98a" width="1440"/></p>
+<h3 id="62-coller-lantenne-lte">6.2 Coller l’antenne LTE</h3>
+<p>Coller l’antenne LTE sur une paroi intérieure du boîtier.</p>
+<p><img alt="image" height="1920" src="https://github.com/user-attachments/assets/4a2fa625-9a55-4beb-96da-9bc6836c81ca" width="1440"/></p>
+<p><img alt="image" height="1920" src="https://github.com/user-attachments/assets/3f305027-f5e9-4d01-b40a-2abe0cdee271" width="1440"/></p>
+<h3 id="63-coller-lantenne-gps">6.3 Coller l’antenne GPS</h3>
+<p>Coller l’antenne GPS à l’aide de ruban double-face.</p>
+<p>Utiliser <strong>3 couches de ruban double-face</strong>.</p>
+<p><img alt="image" height="1920" src="https://github.com/user-attachments/assets/51e6fa70-1912-4951-a051-2b01e2bc5c0f" width="1440"/></p>
+<h3 id="64-coller-le-bloc-dalimentation">6.4 Coller le bloc d’alimentation</h3>
+<p>Coller le bloc d’alimentation au fond du boîtier à l’aide de ruban double-face.</p>
+<p>Une seule couche de ruban double-face suffit pour cette pièce.</p>
+<p><img alt="image" height="1920" src="https://github.com/user-attachments/assets/7b6ff64e-5398-4153-a9a6-043a971625db" width="1440"/></p>
+<h2 id="7-passage-et-preparation-du-fil-dalimentation">7. Passage et préparation du fil d’alimentation</h2>
+<h3 id="71-inserer-le-fil-dans-le-presse-etoupe">7.1 Insérer le fil dans le presse-étoupe</h3>
+<p>Insérer le fil d’alimentation à travers le presse-étoupe.</p>
+<p><img alt="image" height="1920" src="https://github.com/user-attachments/assets/a8a77d6a-9725-454c-8aa5-37a8fa81979f" width="1440"/></p>
+<p><img alt="image" height="1920" src="https://github.com/user-attachments/assets/c877c51b-46a6-48b1-8dc5-525b4fba702f" width="1440"/></p>
+<h3 id="72-denuder-le-fil-dalimentation">7.2 Dénuder le fil d’alimentation</h3>
+<p>Dénuder les conducteurs du fil d’alimentation.</p>
+<p><img alt="image" height="1920" src="https://github.com/user-attachments/assets/5a607419-0586-4142-8fa8-b046d654291a" width="1440"/></p>
+<p><img alt="image" height="1920" src="https://github.com/user-attachments/assets/8a679835-4d70-4df9-a401-bc1ad0fd10b7" width="1440"/></p>
+<h3 id="73-etamer-les-fils">7.3 Étamer les fils</h3>
+<p>Étamer les bouts des fils dénudés.</p>
+<p><img alt="image" height="1920" src="https://github.com/user-attachments/assets/7b46ab0d-a296-45d8-80d6-2de44bb153f8" width="1440"/></p>
+<h2 id="8-connexion-au-bloc-dalimentation">8. Connexion au bloc d’alimentation</h2>
+<h3 id="81-souder-les-fils">8.1 Souder les fils</h3>
+<p>Souder les fils du câble d’alimentation aux fils correspondants du bloc d’alimentation.</p>
+<p><img alt="image" height="1920" src="https://github.com/user-attachments/assets/41f250ca-7469-4656-93e6-f4ac287b719e" width="1440"/></p>
+<p><img alt="image" height="1920" src="https://github.com/user-attachments/assets/7820e15a-13d7-4c28-a9d1-3e78bd7bce46" width="1440"/></p>
+<h3 id="82-isoler-les-soudures">8.2 Isoler les soudures</h3>
+<p>Mettre du ruban électrique autour des fils soudés afin d’isoler les connexions.</p>
+<p><img alt="image" height="1920" src="https://github.com/user-attachments/assets/9266beb4-2f13-4888-a0c1-4ef91823baa6" width="1440"/></p>
+<h2 id="9-finition-du-montage">9. Finition du montage</h2>
+<h3 id="91-securiser-les-fils">9.1 Sécuriser les fils</h3>
+<p>Sécuriser les fils au fond du boîtier à l’aide de tie-wraps.</p>
+<p><img alt="image" height="1920" src="https://github.com/user-attachments/assets/9ffe6e58-c641-4cc7-80a7-b825dee20b2c" width="1440"/></p>
+<h3 id="92-verification-finale">9.2 Vérification finale</h3>
+<p>Avant de refermer le boîtier, vérifier que :</p>
+<ul>
+<li>le LilyGo A7670G est solidement fixé;</li>
+<li>les antennes GPS et LTE sont branchées;</li>
+<li>le câble d’alimentation est bien retenu par le presse-étoupe;</li>
+<li>les soudures sont isolées;</li>
+<li>les fils ne bougent pas librement dans le boîtier;</li>
+<li>rien ne force sur les connecteurs du LilyGo.</li>
+</ul>
+<h2 id="10-montage-termine">10. Montage terminé</h2>
+<p>Le traceur GPS Trackteur est maintenant assemblé.</p>
+<p><img alt="image" height="1920" src="https://github.com/user-attachments/assets/2190d82f-7dbe-4353-b673-b5b4f96c36e9" width="1440"/></p>
 </div>
 </div><footer>
 <div aria-label="Footer Navigation" class="rst-footer-buttons" role="navigation">
