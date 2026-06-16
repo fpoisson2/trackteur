@@ -74,29 +74,9 @@
 <ul>
 <li class="toctree-l3"><a class="reference internal" href="#etape-1-preparation-du-boitier">Étape 1 : Préparation du boîtier</a>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#etape-2-preparation-du-cablage-dalimentation">Étape 2 : Préparation du câblage d'alimentation</a>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#etape-3-preparation-du-lilygo">Étape 3 : Préparation du LilyGo</a>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#etape-4-installation-des-composants-dans-le-boitier">Étape 4 : Installation des composants dans le boîtier</a>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#etape-5-preparation-du-cable-cote-vehicule">Étape 5 : Préparation du câble côté véhicule</a>
+<li class="toctree-l3"><a class="reference internal" href="#etape-2-installation-des-composants-dans-le-boitier">Étape 2 : Installation des composants dans le boîtier</a>
 </li>
 </ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#installation-dans-le-vehicule">Installation dans le véhicule</a>
-<ul>
-<li class="toctree-l3"><a class="reference internal" href="#connexion-electrique">Connexion électrique</a>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#fixation-du-boitier">Fixation du boîtier</a>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#connexion-finale">Connexion finale</a>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#verification">Vérification</a>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#conseils">Conseils</a>
 </li>
 </ul>
 </li>
@@ -129,6 +109,7 @@
 <p>Ce guide détaille l'assemblage mécanique du traceur GPS Trackteur.</p>
 <h2 id="materiel-requis">Matériel requis</h2>
 <p>Référez-vous au <a href="../BOM/">BOM (Bill of Materials)</a> pour la liste complète des composants avec images.</p>
+<p><img alt="image" height="1440" src="https://github.com/user-attachments/assets/67494daa-26a2-4684-aba2-0f6935360b2e" width="2985"/></p>
 <h2 id="schema-de-cablage">Schéma de câblage</h2>
 <div class="mermaid">flowchart LR
     subgraph vehicule["Véhicule (Tracteur, Voiture, etc.)"]
@@ -172,69 +153,49 @@
 <h2 id="etapes-dassemblage">Étapes d'assemblage</h2>
 <h3 id="etape-1-preparation-du-boitier">Étape 1 : Préparation du boîtier</h3>
 <ol>
-<li>Percez un trou dans le boîtier pour le presse-étoupe (diamètre selon PG7 ou PG9)</li>
-<li>Installez le presse-étoupe et serrez-le pour assurer l'étanchéité</li>
+<li>Percez un trou dans le boîtier pour le presse-étoupe (diamètre de 12.5mm ou 1/2 pouce)
+<img alt="image" height="1920" src="https://github.com/user-attachments/assets/42c9418b-834a-42d7-9447-322003ebc5f7" width="1440"/></li>
+<li>Installez le presse-étoupe et serrez-le pour assurer l'étanchéité
+<img alt="image" height="273" src="https://github.com/user-attachments/assets/bd462352-a265-4979-a9f1-f41eb759ed26" width="303"/></li>
 </ol>
-<h3 id="etape-2-preparation-du-cablage-dalimentation">Étape 2 : Préparation du câblage d'alimentation</h3>
+<h3 id="etape-2-installation-des-composants-dans-le-boitier">Étape 2 : Installation des composants dans le boîtier</h3>
 <ol>
-<li>Passez le câble weatherproof à travers le presse-étoupe</li>
-<li>À l'intérieur du boîtier :</li>
-<li>Connectez les fils du câble au convertisseur 12V-5V (entrée)</li>
-<li>Connectez la sortie 5V du convertisseur au port USB du LilyGo</li>
-<li>À l'extérieur du boîtier :</li>
-<li>Installez le connecteur 2 pattes weatherproof sur le câble (côté mâle)</li>
+<li>Poser les pattes autocollantes dans les trous du LilygoA7670G et retirer la pellicule verte.
+<img alt="image" height="1920" src="https://github.com/user-attachments/assets/e3b76e1d-88d5-4bd8-a8e9-e0f1917a29a9" width="1440"/>
+<img alt="image" height="1920" src="https://github.com/user-attachments/assets/b3091e58-6234-4b5c-a009-7035295e25de" width="1440"/></li>
+<li>Brancher l'antenne LTE autocollante
+<img alt="image" height="1920" src="https://github.com/user-attachments/assets/6359e923-b2cf-4724-8230-4ffdbd461d55" width="1440"/></li>
+<li>Brancher l'antenne GPS
+<img alt="image" height="1920" src="https://github.com/user-attachments/assets/267f575e-2e2a-441c-b963-96dfe97d88e7" width="1440"/></li>
+<li>Brancher le câble d'alimentation
+<img alt="image" height="1920" src="https://github.com/user-attachments/assets/6b677180-23c1-4251-b589-66eb5b796cce" width="1440"/></li>
+<li>Coller le Lilygo A7670G au fond du boîtier. Le place environ au centre.
+<img alt="image" height="1920" src="https://github.com/user-attachments/assets/831df10a-996d-4a53-8ed7-70a93542d98a" width="1440"/></li>
+<li>Coller l'antenne LTE sur la paroi du boîtier
+<img alt="image" height="1920" src="https://github.com/user-attachments/assets/4a2fa625-9a55-4beb-96da-9bc6836c81ca" width="1440"/>
+<img alt="image" height="1920" src="https://github.com/user-attachments/assets/3f305027-f5e9-4d01-b40a-2abe0cdee271" width="1440"/></li>
+<li>Coller l'antenne GPS à l'aide du ruban double-face, mettre 3 couches de ruban double face.
+<img alt="image" height="1920" src="https://github.com/user-attachments/assets/51e6fa70-1912-4951-a051-2b01e2bc5c0f" width="1440"/></li>
+<li>Coller le bloc d'alimentation au fond du boîtier à l'aide du ruban double face, une couche suffit ici.
+<img alt="image" height="1920" src="https://github.com/user-attachments/assets/7b6ff64e-5398-4153-a9a6-043a971625db" width="1440"/></li>
+<li>Insérer le fil d'alimentation à travers le presse-étoupe
+<img alt="image" height="1920" src="https://github.com/user-attachments/assets/a8a77d6a-9725-454c-8aa5-37a8fa81979f" width="1440"/>
+<img alt="image" height="1920" src="https://github.com/user-attachments/assets/c877c51b-46a6-48b1-8dc5-525b4fba702f" width="1440"/></li>
+<li>Dénuder le fil d'alimentation
+<img alt="image" height="1920" src="https://github.com/user-attachments/assets/5a607419-0586-4142-8fa8-b046d654291a" width="1440"/>
+<img alt="image" height="1920" src="https://github.com/user-attachments/assets/8a679835-4d70-4df9-a401-bc1ad0fd10b7" width="1440"/></li>
+<li>Étamer les bouts de fils dénudés.
+<img alt="image" height="1920" src="https://github.com/user-attachments/assets/7b46ab0d-a296-45d8-80d6-2de44bb153f8" width="1440"/></li>
+<li>Souder avec les fils correspondandts du bloc d'alimentation
+<img alt="image" height="1920" src="https://github.com/user-attachments/assets/41f250ca-7469-4656-93e6-f4ac287b719e" width="1440"/>
+<img alt="image" height="1920" src="https://github.com/user-attachments/assets/7820e15a-13d7-4c28-a9d1-3e78bd7bce46" width="1440"/></li>
+<li>Mettre du ruban électrique autour des fils soudés
+<img alt="image" height="1920" src="https://github.com/user-attachments/assets/9266beb4-2f13-4888-a0c1-4ef91823baa6" width="1440"/></li>
+<li>Sécuriser à l'aide de tie-wrap les fils au fond du boîtier
+<img alt="image" height="1920" src="https://github.com/user-attachments/assets/9ffe6e58-c641-4cc7-80a7-b825dee20b2c" width="1440"/></li>
+<li>C'est terminé!
+<img alt="image" height="1920" src="https://github.com/user-attachments/assets/2190d82f-7dbe-4353-b673-b5b4f96c36e9" width="1440"/></li>
 </ol>
-<h3 id="etape-3-preparation-du-lilygo">Étape 3 : Préparation du LilyGo</h3>
-<ol>
-<li>Installez les batteries 18650 dans le support du LilyGo</li>
-<li>Insérez la carte SIM dans le slot du LilyGo</li>
-<li>Insérez la carte SD 16 Go pour le backup des données GPS</li>
-<li>Connectez les antennes GPS et 4G au module</li>
-</ol>
-<h3 id="etape-4-installation-des-composants-dans-le-boitier">Étape 4 : Installation des composants dans le boîtier</h3>
-<p>Tous les composants sont fixés au fond du boîtier avec des tie-wraps :</p>
-<ol>
-<li><strong>LilyGo A7670G</strong> (avec batteries déjà installées) : Fixez-le solidement avec 2-3 tie-wraps</li>
-<li><strong>Convertisseur 12V-5V</strong> : Fixez-le à côté du LilyGo</li>
-</ol>
-<h3 id="etape-5-preparation-du-cable-cote-vehicule">Étape 5 : Préparation du câble côté véhicule</h3>
-<ol>
-<li>Installez le connecteur 2 pattes weatherproof (côté femelle) sur un nouveau segment de câble</li>
-<li>À l'autre extrémité, connectez la jonction 3 pattes weatherproof</li>
-<li>La jonction 3 pattes servira à raccorder le câble aux fils ACC (12V) du véhicule</li>
-</ol>
-<h2 id="installation-dans-le-vehicule">Installation dans le véhicule</h2>
-<h3 id="connexion-electrique">Connexion électrique</h3>
-<ol>
-<li>Identifiez un fil ACC (accessoires) 12V dans le véhicule</li>
-<li>Ce fil est alimenté uniquement quand le contact est mis</li>
-<li>Idéal pour tracteurs, voitures, camions, etc.</li>
-<li>Utilisez la jonction 3 pattes pour vous raccorder aux fils ACC (+12V et masse)</li>
-</ol>
-<h3 id="fixation-du-boitier">Fixation du boîtier</h3>
-<ol>
-<li>Choisissez un emplacement discret et protégé dans le véhicule</li>
-<li>Fixez le boîtier avec des tie-wraps sur un support existant</li>
-<li>Assurez-vous que les antennes GPS et 4G ont une bonne réception</li>
-</ol>
-<h3 id="connexion-finale">Connexion finale</h3>
-<ol>
-<li>Branchez le connecteur 2 pattes pour alimenter le traceur</li>
-<li>Le connecteur externe permet de retirer facilement le traceur pour maintenance ou changement de véhicule</li>
-</ol>
-<h2 id="verification">Vérification</h2>
-<ol>
-<li>Mettez le contact du véhicule</li>
-<li>Vérifiez que le LilyGo s'allume (LED)</li>
-<li>Attendez l'acquisition GPS (peut prendre 1-2 minutes au premier démarrage)</li>
-<li>Vérifiez sur votre serveur Traccar que les positions sont reçues</li>
-</ol>
-<h2 id="conseils">Conseils</h2>
-<ul>
-<li>Gardez les antennes à l'intérieur du boîtier mais orientées vers le haut pour une meilleure réception</li>
-<li>Si possible, placez le boîtier près du pare-brise ou dans un endroit avec vue dégagée vers le ciel</li>
-<li>Le boîtier étanche IP65/IP67 protège contre la poussière et les projections d'eau</li>
-</ul>
 </div>
 </div><footer>
 <div aria-label="Footer Navigation" class="rst-footer-buttons" role="navigation">
