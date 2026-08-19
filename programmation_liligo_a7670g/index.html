@@ -72,21 +72,29 @@
     </li>
         </ul>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#installation">📦 Installation</a>
+    <li class="toctree-l2"><a class="reference internal" href="#installation-de-lenvironnement">📦 Installation de l'environnement</a>
         <ul>
     <li class="toctree-l3"><a class="reference internal" href="#1-installation-de-larduino-ide">1. Installation de l'Arduino IDE</a>
     </li>
     <li class="toctree-l3"><a class="reference internal" href="#2-installation-du-support-esp32">2. Installation du support ESP32</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#3-installation-de-la-bibliotheque-tinygsm">3. Installation de la bibliothèque TinyGSM</a>
+    <li class="toctree-l3"><a class="reference internal" href="#3-installation-des-bibliotheques-lilygo">3. Installation des bibliothèques LilyGo</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#4-configuration-du-code">4. Configuration du code</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#5-configuration-de-la-carte-dans-arduino-ide">5. Configuration de la carte dans Arduino IDE</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#6-compilation-et-televersement">6. Compilation et téléversement</a>
+    <li class="toctree-l3"><a class="reference internal" href="#4-ouverture-de-lexemple-traccar">4. Ouverture de l'exemple Traccar</a>
     </li>
         </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#configuration-du-code">⚙️ Configuration du code</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#a-fichier-utilitiesh-choix-de-la-carte">a) Fichier utilities.h — choix de la carte</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#b-fichier-principal-ino-parametres-du-projet">b) Fichier principal .ino — paramètres du projet</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#televersement">🔌 Téléversement</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#verification-au-moniteur-serie">🖥️ Vérification au moniteur série</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#format-des-donnees">📊 Format des données</a>
         <ul>
@@ -96,21 +104,13 @@
     </li>
         </ul>
     </li>
+    <li class="toctree-l2"><a class="reference internal" href="#ajout-de-lappareil-dans-traccar">📡 Ajout de l'appareil dans Traccar</a>
+    </li>
     <li class="toctree-l2"><a class="reference internal" href="#diagnostic">🔍 Diagnostic</a>
         <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#led-de-statut">LED de statut</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#moniteur-serie">Moniteur série</a>
-    </li>
     <li class="toctree-l3"><a class="reference internal" href="#messages-derreur-courants">Messages d'erreur courants</a>
     </li>
-        </ul>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#configuration-traccar">📡 Configuration Traccar</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#ajout-de-lappareil-sur-le-serveur">Ajout de l'appareil sur le serveur</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#verification-de-la-reception">Vérification de la réception</a>
+    <li class="toctree-l3"><a class="reference internal" href="#moniteur-serie">Moniteur série</a>
     </li>
         </ul>
     </li>
@@ -138,11 +138,17 @@
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#changelog">🔄 Changelog</a>
         <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#version-11-2026-06-29">Version 1.1 (2026-06-29)</a>
+    </li>
     <li class="toctree-l3"><a class="reference internal" href="#version-10-2025-12-08">Version 1.0 (2025-12-08)</a>
     </li>
         </ul>
     </li>
     </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../ajout_appareil_traccar/">Ajout d'un appareil dans Traccar</a>
                 </li>
               </ul>
               <ul>
@@ -176,12 +182,17 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
             <div class="section" itemprop="articleBody">
               
-                <h1 id="code-gps-tracker-lilygo-a7670g-pour-traccar">Code GPS Tracker - LilyGo A7670G pour Traccar</h1>
-<p>Ce dossier contient le code Arduino pour le module LilyGo A7670G afin d'envoyer les données GPS au serveur Traccar.</p>
+                <h1 id="programmation-du-lilygo-t-a7670g">Programmation du LilyGo T-A7670G</h1>
+<p>Guide complet pour programmer le traceur GPS (module LilyGo T-A7670G, microcontrôleur
+ESP32) et l'envoi des positions vers le serveur Traccar.</p>
+<blockquote>
+<p>Procédure vérifiée pas à pas lors du 2<sup>e</sup> bloc de formation (29 juin 2026),
+depuis un poste Windows.</p>
+</blockquote>
 <h2 id="fonctionnalites">📋 Fonctionnalités</h2>
 <ul>
-<li>✅ Envoi automatique des données GPS toutes les 2 minutes</li>
-<li>✅ Serveur Traccar: <code>serveur1d.trackteur.cc:5055</code></li>
+<li>✅ Envoi automatique des positions GPS (intervalle configurable, 2 minutes par défaut)</li>
+<li>✅ Envoi vers le serveur Traccar (protocole OsmAnd)</li>
 <li>✅ Logique de retry avec 3 tentatives en cas d'échec</li>
 <li>✅ Sauvegarde automatique sur carte SD si l'envoi échoue</li>
 <li>✅ Mode veille pour économiser la batterie</li>
@@ -191,143 +202,277 @@
 <h2 id="prerequis">🔧 Prérequis</h2>
 <h3 id="materiel">Matériel</h3>
 <ul>
-<li>LilyGo T-A7670G (avec GPS intégré)</li>
-<li>Carte SIM avec données mobiles actives</li>
-<li>Carte microSD (optionnel, pour backup)</li>
-<li>Antenne GPS</li>
-<li>Antenne 4G/LTE</li>
+<li>LilyGo T-A7670G (avec GPS intégré) — le traceur assemblé au bloc de formation précédent</li>
+<li>Carte SIM Hologram <strong>activée</strong> (voir <a href="../creation_carte_sim_hologram/">Création de carte SIM Hologram</a>)</li>
+<li>Carte microSD (optionnel, pour le backup)</li>
+<li>Antenne GPS et antenne 4G/LTE branchées</li>
+<li><strong>Un câble USB-A → USB-C</strong></li>
 </ul>
+<blockquote>
+<p>⚠️ <strong>Le type de câble USB est déterminant</strong></p>
+<p>Le LilyGo T-A7670G <strong>ne s'alimente pas</strong> avec un câble <strong>USB-C → USB-C</strong> : aucune
+LED ne s'allume et la carte n'apparaît pas dans la liste des ports de l'Arduino IDE.
+Il faut absolument un câble <strong>USB-A (grosse prise rectangulaire) → USB-C</strong>,
+branché sur un port USB-A de l'ordinateur. Un câble de ce type est fourni dans
+la boîte du traceur.</p>
+<p>Si la prise USB-C du boîtier est difficile d'accès, appuyer sur les supports
+blancs pour sortir délicatement la carte LilyGo du boîtier le temps de la
+programmation.</p>
+<p>📌 <strong>La batterie n'est pas nécessaire</strong></p>
+<p>Pour la programmation, l'alimentation par le port USB suffit. Inutile d'installer
+les piles 18650 ni de brancher le câble d'alimentation 12 V du véhicule.</p>
+</blockquote>
 <h3 id="logiciel">Logiciel</h3>
 <ul>
 <li>Arduino IDE 1.8.x ou 2.x</li>
-<li>Bibliothèque TinyGSM (version fork LilyGo)</li>
-<li>ESP32 Board Support Package</li>
+<li>Support de carte ESP32 (Espressif)</li>
+<li>Bibliothèques du dépôt LilyGO-T-A76XX (fork TinyGSM de LilyGo)</li>
 </ul>
-<h2 id="installation">📦 Installation</h2>
+<h2 id="installation-de-lenvironnement">📦 Installation de l'environnement</h2>
 <h3 id="1-installation-de-larduino-ide">1. Installation de l'Arduino IDE</h3>
-<p>Téléchargez et installez Arduino IDE depuis <a href="https://www.arduino.cc/en/software">arduino.cc</a></p>
+<p>Téléchargez et installez Arduino IDE depuis <a href="https://www.arduino.cc/en/software">arduino.cc</a>.
+Au démarrage, les invitations à mettre à jour peuvent être ignorées.</p>
 <h3 id="2-installation-du-support-esp32">2. Installation du support ESP32</h3>
+<p>L'ESP32 est le microcontrôleur monté sur la carte LilyGo (le petit module argenté).
+Il remplace l'Arduino Nano utilisé lors des formations précédentes; il est plus
+performant et le module cellulaire est intégré directement sur la même carte.</p>
 <ol>
-<li>Ouvrez Arduino IDE</li>
-<li>Allez dans <code>File</code> &gt; <code>Preferences</code></li>
-<li>Dans "Additional Board Manager URLs", ajoutez:
-   <pre class="highlight"><code>https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json</code></pre></li>
-<li>Allez dans <code>Tools</code> &gt; <code>Board</code> &gt; <code>Boards Manager</code></li>
-<li>Recherchez "ESP32" et installez "esp32 by Espressif Systems"</li>
+<li>Ouvrir Arduino IDE</li>
+<li>Menu <strong>Outils</strong> (<em>Tools</em>) → <strong>Carte</strong> (<em>Board</em>) → <strong>Gestionnaire de carte</strong> (<em>Boards Manager</em>)</li>
+<li>Dans la barre de recherche du panneau de gauche, saisir <code>ESP32</code></li>
+<li>Dans la liste, choisir <strong>esp32 by Espressif Systems</strong> (2<sup>e</sup> résultat) → <strong>Installer</strong></li>
 </ol>
-<h3 id="3-installation-de-la-bibliotheque-tinygsm">3. Installation de la bibliothèque TinyGSM</h3>
-<p>⚠️ <strong>IMPORTANT</strong>: Utilisez la version fork de LilyGo, pas la version standard!</p>
+<blockquote>
+<p>⚠️ <strong>Prévoir du temps</strong></p>
+<p>L'installation du support ESP32 est volumineuse et peut prendre <strong>30 à 60 minutes</strong>
+selon la connexion. La mention <em>traitement en cours</em> reste affichée en bas à droite
+de la fenêtre pendant tout ce temps. Ne pas fermer l'Arduino IDE et ne pas relancer
+l'installation. <strong>Il est fortement recommandé de faire cette étape à l'avance</strong>,
+avant une séance de formation ou une installation sur le terrain.</p>
+</blockquote>
+<h3 id="3-installation-des-bibliotheques-lilygo">3. Installation des bibliothèques LilyGo</h3>
+<blockquote>
+<p>⚠️ <strong>IMPORTANT</strong>: utiliser la version fork de LilyGo, pas la version standard de TinyGSM.</p>
+</blockquote>
 <ol>
-<li>Téléchargez le dépôt: https://github.com/Xinyuan-LilyGO/LilyGO-T-A76XX</li>
-<li>Copiez tous les dossiers du répertoire <code>lib</code> vers le dossier Arduino libraries:</li>
+<li>Ouvrir <a href="https://github.com/Xinyuan-LilyGO/LilyGO-T-A76XX">https://github.com/Xinyuan-LilyGO/LilyGO-T-A76XX</a></li>
+<li>Cliquer sur le bouton vert <strong>Code</strong> → <strong>Download ZIP</strong> (≈ 128 Mo, prévoir quelques minutes)</li>
+<li>Dans l'explorateur Windows, ouvrir le dossier <strong>Téléchargements</strong>, clic droit sur
+   l'archive → <strong>Extraire tout</strong></li>
+<li>Entrer dans le dossier extrait, puis dans le sous-dossier <strong><code>lib</code></strong></li>
+<li>Sélectionner tout son contenu (<code>Ctrl+A</code>) et copier (<code>Ctrl+C</code>)</li>
+<li>Coller (<code>Ctrl+V</code>) dans le dossier des bibliothèques Arduino:</li>
 <li>Windows: <code>C:\Users\[VotreNom]\Documents\Arduino\libraries\</code></li>
 <li>Mac: <code>~/Documents/Arduino/libraries/</code></li>
 <li>Linux: <code>~/Arduino/libraries/</code></li>
 </ol>
-<p>Les bibliothèques nécessaires sont:
-- TinyGSM (fork LilyGo)
-- StreamDebugger (si DUMP_AT_COMMANDS est activé)</p>
-<h3 id="4-configuration-du-code">4. Configuration du code</h3>
-<p>Ouvrez le fichier <code>TraccarGPS.ino</code> et modifiez les paramètres suivants:</p>
-<pre class="highlight"><code class="language-cpp">// ID unique de votre appareil (OBLIGATOIRE)
-const char *client_id = "DEVICE_ID_001";  // Remplacez par un ID unique
-
-// URL du serveur Traccar (déjà configuré)
-const char *request_url = "http://serveur1d.trackteur.cc:5055";
-
-// APN de votre opérateur (si nécessaire)
-// Décommentez et modifiez selon votre opérateur:
-// #define NETWORK_APN "internet"      // Orange/Sosh
-// #define NETWORK_APN "free"          // Free Mobile
-// #define NETWORK_APN "sl2sfr"        // SFR
-// #define NETWORK_APN "mmsbouygtel.com"  // Bouygues</code></pre>
-<h3 id="5-configuration-de-la-carte-dans-arduino-ide">5. Configuration de la carte dans Arduino IDE</h3>
+<blockquote>
+<p>⚠️ <strong>Windows + OneDrive: deux dossiers « Documents »</strong></p>
+<p>Lorsque OneDrive est activé, il existe souvent <strong>deux</strong> dossiers Documents:
+<code>C:\Users\[Nom]\Documents\</code> et <code>C:\Users\[Nom]\OneDrive\Documents\</code>.
+L'Arduino IDE peut utiliser l'un ou l'autre selon la configuration.
+En cas d'erreur de compilation du type <em>bibliothèque introuvable</em>,
+<strong>copier les bibliothèques dans les deux emplacements</strong> — c'est sans risque.</p>
+<p>Le chemin réellement utilisé est visible dans Arduino IDE:
+<strong>Fichier</strong> → <strong>Préférences</strong> → <em>Emplacement du croquis</em>.</p>
+</blockquote>
+<p>Les bibliothèques nécessaires (toutes présentes dans <code>lib</code>) sont notamment:</p>
+<ul>
+<li>TinyGSM (fork LilyGo)</li>
+<li>StreamDebugger (si <code>DUMP_AT_COMMANDS</code> est activé)</li>
+</ul>
+<h3 id="4-ouverture-de-lexemple-traccar">4. Ouverture de l'exemple Traccar</h3>
 <ol>
-<li>Connectez la carte LilyGo A7670G via USB</li>
-<li>Dans Arduino IDE:</li>
-<li><code>Tools</code> &gt; <code>Board</code> &gt; <code>ESP32 Arduino</code> &gt; <code>ESP32 Dev Module</code></li>
-<li><code>Tools</code> &gt; <code>Port</code> &gt; Sélectionnez le port COM correspondant</li>
-<li><code>Tools</code> &gt; <code>Upload Speed</code> &gt; <code>115200</code></li>
-<li><code>Tools</code> &gt; <code>Flash Size</code> &gt; <code>4MB (32Mb)</code></li>
-<li><code>Tools</code> &gt; <code>Partition Scheme</code> &gt; <code>Default 4MB with spiffs</code></li>
+<li>Dans Arduino IDE: <strong>Fichier</strong> → <strong>Ouvrir</strong></li>
+<li>Naviguer jusqu'au dossier extrait dans <strong>Téléchargements</strong>, puis
+   <code>examples</code> → <code>Traccar</code> → ouvrir le fichier <code>.ino</code></li>
 </ol>
-<h3 id="6-compilation-et-televersement">6. Compilation et téléversement</h3>
+<blockquote>
+<p>⚠️ <strong>Ouvrir le croquis depuis le dossier extrait</strong></p>
+<p>Si le croquis est ouvert depuis une copie placée ailleurs, la compilation échoue
+avec des erreurs de bibliothèques manquantes (ex. <code>SoftwareSerial</code>). Ouvrir bien
+le fichier situé dans le dossier extrait du dépôt LilyGo. Le dossier peut être
+déplacé plus tard, une fois la configuration validée.</p>
+</blockquote>
+<h2 id="configuration-du-code">⚙️ Configuration du code</h2>
+<h3 id="a-fichier-utilitiesh-choix-de-la-carte">a) Fichier <code>utilities.h</code> — choix de la carte</h3>
+<p>Ouvrir l'onglet <strong><code>utilities.h</code></strong> en haut de la fenêtre.</p>
 <ol>
-<li>Vérifiez le code: Cliquez sur ✓ (Verify)</li>
-<li>Téléversez: Cliquez sur → (Upload)</li>
-<li>Ouvrez le moniteur série: <code>Tools</code> &gt; <code>Serial Monitor</code></li>
-<li>Configurez le baud rate à <code>115200</code></li>
+<li>Aller à la <strong>ligne 22</strong> (ou la ligne correspondant à la carte <strong>T-A7670G</strong>)</li>
+<li><strong>Retirer les deux barres obliques <code>//</code></strong> en début de ligne pour décommenter
+   la définition de la carte</li>
+<li><strong>Remettre <code>//</code></strong> devant la ligne de la carte qui était active auparavant</li>
+<li>Vérifier qu'il <strong>ne reste aucun espace avant le <code>#</code></strong> — le <code>#define</code> doit
+   commencer en toute première colonne, sinon la compilation échoue</li>
 </ol>
+<pre class="highlight"><code class="language-cpp">// Définir le board utilisé (décommenter celui que vous utilisez)
+#define LILYGO_T_A7670G</code></pre>
+<h3 id="b-fichier-principal-ino-parametres-du-projet">b) Fichier principal <code>.ino</code> — paramètres du projet</h3>
+<p>Toujours dans le même croquis, onglet du fichier <code>.ino</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Ligne (indicative)</th>
+<th>Paramètre</th>
+<th>Valeur à mettre</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>24</td>
+<td><code>REPORT_LOCATION_RATE_SECOND</code></td>
+<td><code>120</code> (2 minutes). L'exemple est réglé à 20 s, ce qui consomme trop de données</td>
+</tr>
+<tr>
+<td>43</td>
+<td><code>NETWORK_APN</code></td>
+<td>Décommenter la ligne et remplacer <code>ctlte</code> par <code>hologram</code> (<strong>en minuscules</strong>)</td>
+</tr>
+<tr>
+<td>55</td>
+<td><code>client_id</code> (Traccar device ID)</td>
+<td>L'identifiant de l'appareil, ex. <code>tracteur_pro_1</code> (<strong>en minuscules</strong>, sans espace ni accent)</td>
+</tr>
+<tr>
+<td>56</td>
+<td><code>request_url</code></td>
+<td>L'URL du serveur, ex. <code>https://serveur1e.trackteur.cc</code></td>
+</tr>
+</tbody>
+</table>
+<pre class="highlight"><code class="language-cpp">#define REPORT_LOCATION_RATE_SECOND   120          // intervalle d'envoi
+#define NETWORK_APN                   "hologram"   // APN Hologram
+
+const char *client_id   = "tracteur_pro_1";                 // identique à Traccar
+const char *request_url = "https://serveur1e.trackteur.cc"; // serveur Traccar</code></pre>
+<blockquote>
+<p>📌 <strong>L'identifiant doit être identique partout</strong></p>
+<p>Le <code>client_id</code> du code, l'<strong>Identifiant</strong> de l'appareil dans Traccar et le <strong>nom
+du dispositif</strong> dans Hologram doivent correspondre. Écrire aussi ce nom sur le
+boîtier du traceur. Sans cette correspondance, les positions arrivent au serveur
+mais ne sont associées à aucun appareil.</p>
+</blockquote>
+<p>Sauvegarder (<code>Ctrl+S</code>).</p>
+<h2 id="televersement">🔌 Téléversement</h2>
+<ol>
+<li>Brancher le traceur avec le <strong>câble USB-A → USB-C</strong></li>
+<li><strong>Outils</strong> → <strong>Carte</strong> → <strong>ESP32 Arduino</strong> → <strong>ESP32 Dev Module</strong></li>
+<li><strong>Outils</strong> → <strong>Port</strong> → sélectionner le port COM apparu au branchement (ex. <code>COM3</code>)</li>
+<li>Cliquer sur la flèche <strong>→</strong> (Téléverser) au centre de la barre d'outils</li>
+<li>Agrandir la zone du bas (<strong>Sortie</strong> / <strong>Moniteur série</strong>) pour suivre la compilation</li>
+</ol>
+<p>Si aucune erreur n'apparaît et que le message de fin de téléversement s'affiche,
+le firmware est en place.</p>
+<p>Réglages complémentaires (généralement corrects par défaut):</p>
+<ul>
+<li><strong>Upload Speed</strong>: <code>115200</code></li>
+<li><strong>Flash Size</strong>: <code>4MB (32Mb)</code></li>
+<li><strong>Partition Scheme</strong>: <code>Default 4MB with spiffs</code></li>
+</ul>
+<h2 id="verification-au-moniteur-serie">🖥️ Vérification au moniteur série</h2>
+<ol>
+<li><strong>Outils</strong> → <strong>Moniteur série</strong></li>
+<li>En bas à droite du moniteur, changer la vitesse de <code>9600</code> à <strong><code>115200</code></strong></li>
+</ol>
+<p>Séquence attendue:</p>
+<pre class="highlight"><code>Signal quality: 99
+Network registered!
+Connecting to network... OK
+IP Address: 10.x.x.x
+GPS enabled
+GPS fix acquired
+HTTP POST ... 200</code></pre>
+<blockquote>
+<p>💡 <strong>Le premier fix GPS peut être long</strong></p>
+<p>À la première mise sous tension, ou après un long arrêt, le module peut mettre
+<strong>plusieurs minutes</strong> à obtenir un fix GPS. Placer le traceur <strong>près d'une fenêtre
+ou à l'extérieur</strong>, antenne GPS dégagée, et attendre. Tant que le fix n'est pas
+obtenu, aucune position n'est envoyée: ce n'est pas une panne, c'est un délai.
+Débrancher/rebrancher le câble USB permet de repartir d'un état propre.</p>
+</blockquote>
 <h2 id="format-des-donnees">📊 Format des données</h2>
 <h3 id="donnees-envoyees-a-traccar">Données envoyées à Traccar</h3>
-<p>Le code envoie les données au format Traccar OsmAnd protocol:
-<pre class="highlight"><code>http://serveur1d.trackteur.cc:5055/?id=DEVICE_ID&amp;lat=48.8566&amp;lon=2.3522&amp;speed=15.5&amp;altitude=35.2&amp;bearing=270&amp;timestamp=2025-12-08T10:30:00Z&amp;hdop=1.2&amp;batt=100</code></pre></p>
+<p>Format OsmAnd:</p>
+<pre class="highlight"><code>https://serveur1e.trackteur.cc/?id=tracteur_pro_1&amp;lat=48.8566&amp;lon=2.3522&amp;speed=15.5&amp;altitude=35.2&amp;bearing=270&amp;timestamp=2026-06-29T10:30:00Z&amp;hdop=1.2&amp;batt=100</code></pre>
 <h3 id="donnees-sauvegardees-sur-sd-csv">Données sauvegardées sur SD (CSV)</h3>
-<p>Format du fichier <code>gps_data.csv</code>:
+<p>Fichier <code>gps_data.csv</code>:</p>
 <pre class="highlight"><code class="language-csv">timestamp,latitude,longitude,speed,altitude,bearing,hdop
-2025-12-08 10:30:00,48.8566000,2.3522000,15.50,35.20,270.00,1.20</code></pre></p>
+2026-06-29 10:30:00,48.8566000,2.3522000,15.50,35.20,270.00,1.20</code></pre>
+<blockquote>
+<p>📌 <strong>Enregistrement sur carte SD</strong></p>
+<p>L'exemple <code>Traccar</code> fourni par LilyGo <strong>n'inclut pas</strong> l'enregistrement des
+positions sur la carte SD. Cette fonction est ajoutée dans le firmware du projet
+(<code>code/TraccarGPS/</code>), à téléverser en remplacement une fois l'exemple validé.
+La procédure de téléversement est identique.</p>
+</blockquote>
+<h2 id="ajout-de-lappareil-dans-traccar">📡 Ajout de l'appareil dans Traccar</h2>
+<p>À faire <strong>avant</strong> ou pendant la programmation, voir la page dédiée:
+<a href="../ajout_appareil_traccar/">Ajout d'un appareil dans Traccar</a>.</p>
+<p>En résumé:</p>
+<ol>
+<li>Se connecter au serveur Traccar</li>
+<li><strong>Paramètres</strong> → <strong>Appareils</strong> → <strong>+</strong></li>
+<li><strong>Nom</strong>: libellé lisible (ex. <code>Tracteur pro 1</code>)</li>
+<li><strong>Identifiant</strong>: exactement le <code>client_id</code> du code, en minuscules (ex. <code>tracteur_pro_1</code>)</li>
+<li><strong>Enregistrer</strong></li>
+</ol>
 <h2 id="diagnostic">🔍 Diagnostic</h2>
-<h3 id="led-de-statut">LED de statut</h3>
-<ul>
-<li>LED allumée: GPS en cours de lecture</li>
-<li>LED éteinte: Mode veille</li>
-</ul>
-<h3 id="moniteur-serie">Moniteur série</h3>
-<p>Le moniteur série affiche:
-- État du modem (démarrage, enregistrement réseau)
-- État de la carte SIM
-- Qualité du signal
-- Données GPS reçues
-- Résultat des envois HTTP
-- Sauvegarde sur SD</p>
 <h3 id="messages-derreur-courants">Messages d'erreur courants</h3>
 <table>
 <thead>
 <tr>
-<th>Erreur</th>
+<th>Erreur / symptôme</th>
 <th>Solution</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td>Aucune LED, aucun port COM au branchement</td>
+<td>Utiliser un câble <strong>USB-A → USB-C</strong> (les câbles USB-C → USB-C ne fonctionnent pas)</td>
+</tr>
+<tr>
+<td><code>SoftwareSerial.h: No such file or directory</code> ou autre bibliothèque introuvable</td>
+<td>Croquis ouvert hors du dossier extrait, ou bibliothèques copiées dans le mauvais dossier <code>Documents</code> (voir OneDrive ci-dessus)</td>
+</tr>
+<tr>
+<td><code>#define</code> non reconnu dans <code>utilities.h</code></td>
+<td>Un espace subsiste avant le <code>#</code> en début de ligne</td>
+</tr>
+<tr>
 <td><code>No SD card attached</code></td>
-<td>Vérifiez que la carte SD est bien insérée</td>
+<td>Vérifier que la carte SD est bien insérée</td>
 </tr>
 <tr>
 <td><code>Network registration denied</code></td>
-<td>Vérifiez l'APN et que la carte SIM a un forfait data actif</td>
+<td>Vérifier l'APN <code>hologram</code>, l'activation de la SIM et le <strong>solde du compte Hologram</strong></td>
 </tr>
 <tr>
 <td><code>HTTP request failed! Error code: XXX</code></td>
-<td>Vérifiez la connexion réseau et l'URL du serveur</td>
+<td>Vérifier l'URL du serveur et la connexion réseau</td>
 </tr>
 <tr>
 <td><code>GPS fix not available</code></td>
-<td>Placez l'antenne GPS à l'extérieur ou près d'une fenêtre</td>
+<td>Antenne GPS à l'extérieur ou près d'une fenêtre; patienter plusieurs minutes</td>
 </tr>
 <tr>
 <td><code>SIM card locked</code></td>
-<td>Déverrouillez la carte SIM (retirez le code PIN)</td>
+<td>Retirer le code PIN de la carte SIM</td>
+</tr>
+<tr>
+<td>Aucune position dans Traccar alors que le moniteur série envoie</td>
+<td>L'<strong>Identifiant</strong> de l'appareil dans Traccar ne correspond pas au <code>client_id</code></td>
 </tr>
 </tbody>
 </table>
-<h2 id="configuration-traccar">📡 Configuration Traccar</h2>
-<h3 id="ajout-de-lappareil-sur-le-serveur">Ajout de l'appareil sur le serveur</h3>
-<ol>
-<li>Connectez-vous à votre serveur Traccar: <code>http://serveur1d.trackteur.cc</code></li>
-<li>Allez dans <code>Settings</code> &gt; <code>Devices</code> &gt; <code>Add Device</code></li>
-<li>Configurez:</li>
-<li><strong>Name</strong>: Nom de votre tracker</li>
-<li><strong>Identifier</strong>: L'ID que vous avez mis dans <code>client_id</code> (ex: DEVICE_ID_001)</li>
-<li><strong>Group</strong>: (optionnel)</li>
-<li>Cliquez sur <code>Add</code></li>
-</ol>
-<h3 id="verification-de-la-reception">Vérification de la réception</h3>
-<ol>
-<li>Dans Traccar, sélectionnez votre appareil</li>
-<li>Vous devriez voir la position mise à jour toutes les 2 minutes</li>
-<li>Consultez les logs pour voir les données reçues</li>
-</ol>
+<h3 id="moniteur-serie">Moniteur série</h3>
+<p>Le moniteur série (115200 baud) affiche:</p>
+<ul>
+<li>État du modem (démarrage, enregistrement réseau)</li>
+<li>État de la carte SIM et qualité du signal</li>
+<li>Obtention de l'adresse IP</li>
+<li>Activation du GPS et données reçues</li>
+<li>Résultat des envois HTTP et sauvegarde sur SD</li>
+</ul>
 <h2 id="consommation-denergie">⚡ Consommation d'énergie</h2>
 <ul>
 <li><strong>Lecture GPS + Envoi</strong>: ~350-500 mA</li>
@@ -343,30 +488,44 @@ const char *request_url = "http://serveur1d.trackteur.cc:5055";
 <h3 id="desactiver-la-sauvegarde-sd">Désactiver la sauvegarde SD</h3>
 <pre class="highlight"><code class="language-cpp">#define USE_SD_CARD                     false</code></pre>
 <h3 id="activer-le-debug-at">Activer le debug AT</h3>
-<p>Décommentez pour voir toutes les commandes AT:
-<pre class="highlight"><code class="language-cpp">#define DUMP_AT_COMMANDS</code></pre></p>
+<p>Décommenter pour voir toutes les commandes AT échangées avec le modem:</p>
+<pre class="highlight"><code class="language-cpp">#define DUMP_AT_COMMANDS</code></pre>
+<p>Utile pour diagnostiquer un problème réseau; à <strong>recommenter</strong> ensuite (<code>Ctrl+Z</code>
+juste après le test), car cette option rend le moniteur série très verbeux.</p>
 <h2 id="structure-du-projet">📝 Structure du projet</h2>
 <pre class="highlight"><code>code/
-├── README.md                 # Ce fichier
+├── README.md                 # Notes de développement
 └── TraccarGPS/
     ├── TraccarGPS.ino       # Code principal
+    ├── config.h             # Paramètres du projet (ID, serveur, APN)
     └── utilities.h          # Configuration des pins</code></pre>
 <h2 id="securite">🔒 Sécurité</h2>
-<p>⚠️ <strong>Important</strong>:
-- Ne partagez pas votre <code>client_id</code> publiquement
-- Utilisez un ID unique pour chaque appareil
-- Changez les identifiants par défaut</p>
+<p>⚠️ <strong>Important</strong>:</p>
+<ul>
+<li>Ne pas partager le <code>client_id</code> publiquement</li>
+<li>Utiliser un identifiant unique pour chaque appareil</li>
+<li>Changer les identifiants par défaut</li>
+</ul>
 <h2 id="support">🆘 Support</h2>
-<p>Pour obtenir de l'aide:
-1. Vérifiez les messages du moniteur série
-2. Consultez la documentation LilyGo: https://github.com/Xinyuan-LilyGO/LilyGO-T-A76XX
-3. Documentation Traccar: https://www.traccar.org/osmand/</p>
+<ol>
+<li>Vérifier les messages du moniteur série</li>
+<li>Documentation LilyGo: <a href="https://github.com/Xinyuan-LilyGO/LilyGO-T-A76XX">https://github.com/Xinyuan-LilyGO/LilyGO-T-A76XX</a></li>
+<li>Documentation Traccar: <a href="https://www.traccar.org/osmand/">https://www.traccar.org/osmand/</a></li>
+</ol>
 <h2 id="licence">📄 Licence</h2>
 <p>MIT License - Libre d'utilisation et de modification</p>
 <h2 id="changelog">🔄 Changelog</h2>
+<h3 id="version-11-2026-06-29">Version 1.1 (2026-06-29)</h3>
+<ul>
+<li>Procédure détaillée validée en formation (activation SIM, IDE, exemple Traccar)</li>
+<li>Ajout des exigences de câblage USB-A → USB-C</li>
+<li>Ajout des lignes précises à modifier dans <code>utilities.h</code> et le <code>.ino</code></li>
+<li>Ajout des pièges Windows/OneDrive sur le dossier <code>libraries</code></li>
+<li>Rappel: l'exemple LilyGo n'inclut pas l'enregistrement sur carte SD</li>
+</ul>
 <h3 id="version-10-2025-12-08">Version 1.0 (2025-12-08)</h3>
 <ul>
-<li>Envoi initial vers serveur1d.trackteur.cc</li>
+<li>Envoi initial vers le serveur Traccar</li>
 <li>Support carte SD avec sauvegarde CSV</li>
 <li>Logique de retry (3 tentatives)</li>
 <li>Intervalle de 2 minutes</li>
@@ -377,7 +536,7 @@ const char *request_url = "http://serveur1d.trackteur.cc:5055";
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
         <a href="../creation_carte_sim_hologram/" class="btn btn-neutral float-left" title="Création de carte SIM Hologram"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-        <a href="../fabrication_traceur_gps/" class="btn btn-neutral float-right" title="Fabrication du traceur GPS">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../ajout_appareil_traccar/" class="btn btn-neutral float-right" title="Ajout d'un appareil dans Traccar">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>
@@ -403,7 +562,7 @@ const char *request_url = "http://serveur1d.trackteur.cc:5055";
       <span><a href="../creation_carte_sim_hologram/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
     
-      <span><a href="../fabrication_traceur_gps/" style="color: #fcfcfc">Next &raquo;</a></span>
+      <span><a href="../ajout_appareil_traccar/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>

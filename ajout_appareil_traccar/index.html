@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Ajout d'un appareil dans Traccar - Trackteur Arduino</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Ajout d\u0027un appareil dans Traccar";
+        var mkdocs_page_input_path = "ajout_appareil_traccar.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Trackteur Arduino
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Accueil</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../BOM/">BOM (Liste des composants)</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation_docker/">Déploiement des serveurs Traccar</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../configuration_cloudflare/">Configuration de Cloudflare</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../creation_carte_sim_hologram/">Création de carte SIM Hologram</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../programmation_liligo_a7670g/">Programmation du Lilygo A7670G</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Ajout d'un appareil dans Traccar</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#quand-le-faire">Quand le faire</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#procedure">Procédure</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#regles-de-nommage">Règles de nommage</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#verification-de-la-reception">Vérification de la réception</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#si-rien-narrive">Si rien n'arrive</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#ressources">Ressources</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../fabrication_traceur_gps/">Fabrication du traceur GPS</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation_vehicule/">Installation dans le véhicule</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Trackteur Arduino</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Ajout d'un appareil dans Traccar</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="ajout-dun-appareil-dans-traccar">Ajout d'un appareil dans Traccar</h1>
+<p>Avant qu'un traceur puisse apparaître sur la carte, il doit être déclaré dans
+Traccar. Le serveur accepte les positions uniquement pour les appareils dont
+l'<strong>identifiant</strong> est déjà enregistré.</p>
+<blockquote>
+<p>Procédure réalisée lors du 2<sup>e</sup> bloc de formation (29 juin 2026).</p>
+</blockquote>
+<h2 id="quand-le-faire">Quand le faire</h2>
+<p>À faire <strong>avant le premier téléversement</strong> du firmware, ou pendant que
+l'installation du support ESP32 se termine dans l'Arduino IDE. L'identifiant
+choisi ici doit ensuite être recopié dans le code (<code>client_id</code> / <code>TRACCAR_DEVICE_ID</code>).</p>
+<h2 id="procedure">Procédure</h2>
+<ol>
+<li>Se connecter à l'interface web du serveur Traccar
+   (ex. <a href="https://serveur1e.trackteur.cc">https://serveur1e.trackteur.cc</a>)</li>
+<li>Ouvrir le menu <strong>Paramètres</strong> (<em>Settings</em>) → <strong>Appareils</strong> (<em>Devices</em>)</li>
+<li>Cliquer sur <strong>+</strong> / <strong>Ajouter un appareil</strong> (<em>Add Device</em>)</li>
+<li>
+<p>Remplir la fiche:</p>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Valeur</th>
+<th>Exemple</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Nom</strong></td>
+<td>Libellé lisible pour l'utilisateur</td>
+<td><code>Tracteur pro 1</code></td>
+</tr>
+<tr>
+<td><strong>Identifiant</strong></td>
+<td>Identifiant technique, <strong>en minuscules</strong>, sans espace ni accent</td>
+<td><code>tracteur_pro_1</code></td>
+</tr>
+<tr>
+<td><strong>Groupe</strong></td>
+<td>Optionnel (utile pour regrouper par site ou par service)</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+</li>
+<li>
+<p>Cliquer sur <strong>Enregistrer</strong> (<em>Save</em>)</p>
+</li>
+</ol>
+<p>L'appareil apparaît alors dans la liste, sans position tant qu'aucune donnée
+n'a été reçue.</p>
+<h2 id="regles-de-nommage">Règles de nommage</h2>
+<blockquote>
+<p>⚠️ <strong>L'identifiant est la clé de tout le système</strong></p>
+<p>La même chaîne doit se retrouver à trois endroits:</p>
+<ol>
+<li>le champ <strong>Identifiant</strong> de l'appareil dans Traccar;</li>
+<li>la variable <code>client_id</code> (ou <code>TRACCAR_DEVICE_ID</code> dans <code>config.h</code>) du firmware;</li>
+<li>le <strong>nom du dispositif</strong> dans le dashboard Hologram.</li>
+</ol>
+<p>Écrire également ce nom <strong>au marqueur sur le boîtier</strong> du traceur. C'est ce qui
+permet, six mois plus tard, de savoir quel boîtier correspond à quelle ligne sur
+la carte et à quelle carte SIM facturée.</p>
+</blockquote>
+<p>Conventions retenues pour le projet:</p>
+<ul>
+<li>minuscules uniquement, pas de majuscules;</li>
+<li>pas d'espaces, pas d'accents; utiliser le tiret bas <code>_</code>;</li>
+<li>une numérotation séquentielle: <code>tracteur_1</code>, <code>tracteur_2</code>, <code>tracteur_pro_1</code>…</li>
+</ul>
+<p>Le <strong>Nom</strong> affiché, lui, peut être modifié à tout moment sans rien casser.
+L'<strong>Identifiant</strong>, non: le changer coupe la réception des positions tant que le
+firmware n'est pas retéléversé.</p>
+<h2 id="verification-de-la-reception">Vérification de la réception</h2>
+<ol>
+<li>Téléverser le firmware et ouvrir le moniteur série à 115200 baud</li>
+<li>Attendre le fix GPS (peut prendre plusieurs minutes, voir
+   <a href="../programmation_liligo_a7670g/">Programmation du LilyGo A7670G</a>)</li>
+<li>Dans Traccar, sélectionner l'appareil: la position doit apparaître, puis se
+   mettre à jour selon l'intervalle configuré (2 minutes par défaut)</li>
+</ol>
+<h3 id="si-rien-narrive">Si rien n'arrive</h3>
+<table>
+<thead>
+<tr>
+<th>Symptôme</th>
+<th>Cause probable</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Le moniteur série indique un envoi réussi, mais l'appareil reste « inconnu » dans Traccar</td>
+<td>L'<strong>Identifiant</strong> ne correspond pas exactement au <code>client_id</code> (majuscules, espace, faute de frappe)</td>
+</tr>
+<tr>
+<td>Aucun envoi dans le moniteur série</td>
+<td>Pas encore de fix GPS, ou pas de connexion réseau (voir dépannage Hologram)</td>
+</tr>
+<tr>
+<td>Erreur HTTP dans le moniteur série</td>
+<td>URL du serveur erronée dans le code</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ressources">Ressources</h2>
+<ul>
+<li><a href="https://www.traccar.org/documentation/">Documentation Traccar</a></li>
+<li><a href="https://www.traccar.org/osmand/">Protocole OsmAnd</a></li>
+</ul>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../programmation_liligo_a7670g/" class="btn btn-neutral float-left" title="Programmation du Lilygo A7670G"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../fabrication_traceur_gps/" class="btn btn-neutral float-right" title="Fabrication du traceur GPS">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../programmation_liligo_a7670g/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../fabrication_traceur_gps/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

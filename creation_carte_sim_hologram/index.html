@@ -66,11 +66,19 @@
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#etape-2-commander-les-cartes-sim">Étape 2: Commander les cartes SIM</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#etape-3-activation-de-la-sim">Étape 3: Activation de la SIM</a>
+    <li class="toctree-l2"><a class="reference internal" href="#etape-3-activation-de-la-sim-procedure-detaillee">Étape 3: Activation de la SIM (procédure détaillée)</a>
         <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#via-dashboard">Via Dashboard</a>
+    <li class="toctree-l3"><a class="reference internal" href="#verification-de-lapn">Vérification de l'APN</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#configuration-du-device">Configuration du device</a>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#gestion-du-solde-et-facturation">Gestion du solde et facturation</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#consulter-le-solde">Consulter le solde</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#ajouter-des-fonds">Ajouter des fonds</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#cout-recurrent">Coût récurrent</a>
     </li>
         </ul>
     </li>
@@ -80,7 +88,7 @@
         <ul>
     <li class="toctree-l3"><a class="reference internal" href="#dans-le-dashboard-hologram">Dans le dashboard Hologram</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#sur-le-tracker">Sur le tracker</a>
+    <li class="toctree-l3"><a class="reference internal" href="#sur-le-traceur">Sur le traceur</a>
     </li>
         </ul>
     </li>
@@ -96,6 +104,8 @@
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#depannage">Dépannage</a>
         <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#iccid-refuse-a-lactivation">ICCID refusé à l'activation</a>
+    </li>
     <li class="toctree-l3"><a class="reference internal" href="#sim-non-reconnue">SIM non reconnue</a>
     </li>
     <li class="toctree-l3"><a class="reference internal" href="#pas-de-reseau">Pas de réseau</a>
@@ -104,7 +114,7 @@
     </li>
         </ul>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#tarification-hologram-2025">Tarification Hologram (2025)</a>
+    <li class="toctree-l2"><a class="reference internal" href="#tarification-hologram">Tarification Hologram</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#ressources">Ressources</a>
     </li>
@@ -113,6 +123,10 @@
               </ul>
               <ul>
                 <li class="toctree-l1"><a class="reference internal" href="../programmation_liligo_a7670g/">Programmation du Lilygo A7670G</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../ajout_appareil_traccar/">Ajout d'un appareil dans Traccar</a>
                 </li>
               </ul>
               <ul>
@@ -146,8 +160,12 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
             <div class="section" itemprop="articleBody">
               
-                <h1 id="creation-de-carte-sim-hologram">Création de carte SIM Hologram</h1>
-<p>Guide pour activer et configurer une carte SIM Hologram IoT pour le tracker GPS.</p>
+                <h1 id="creation-et-activation-dune-carte-sim-hologram">Création et activation d'une carte SIM Hologram</h1>
+<p>Guide pour activer et configurer une carte SIM Hologram IoT pour le traceur GPS.</p>
+<blockquote>
+<p>Cette procédure a été réalisée pas à pas lors du 2<sup>e</sup> bloc de formation
+(29 juin 2026) sur le dashboard Hologram.</p>
+</blockquote>
 <h2 id="pourquoi-hologram">Pourquoi Hologram?</h2>
 <ul>
 <li><strong>Couverture mondiale</strong>: Roaming automatique dans 200+ pays</li>
@@ -158,16 +176,25 @@
 </ul>
 <h2 id="prerequis">Prérequis</h2>
 <ul>
-<li>Compte Hologram (gratuit)</li>
-<li>Carte de crédit pour l'activation</li>
-<li>Carte SIM Hologram (commandée sur hologram.io)</li>
+<li>Un compte Hologram (créé ou reçu par invitation d'un administrateur du projet)</li>
+<li>Un <strong>solde disponible</strong> suffisant sur le compte (voir <a href="#gestion-du-solde-et-facturation">Gestion du solde</a>)</li>
+<li>La carte SIM Hologram déjà insérée dans le traceur, <strong>ou</strong> son support cartonné
+  (l'ICCID est imprimé sur les deux)</li>
 </ul>
 <h2 id="etape-1-creation-du-compte">Étape 1: Création du compte</h2>
 <ol>
 <li>Aller sur <a href="https://dashboard.hologram.io/register">https://dashboard.hologram.io/register</a></li>
-<li>Créer un compte avec email professionnel</li>
-<li>Valider l'email de confirmation</li>
+<li>Créer un compte avec une adresse courriel professionnelle</li>
+<li>Valider le courriel de confirmation</li>
 </ol>
+<blockquote>
+<p>Si un membre de l'équipe vous a envoyé une invitation, il suffit de l'accepter puis
+de se connecter avec <strong>Login / Se connecter</strong> sur <a href="https://www.hologram.io">hologram.io</a>.</p>
+<p>💡 <strong>Page qui ne charge pas</strong></p>
+<p>Il arrive que le dashboard affiche une erreur au premier chargement.
+Rafraîchir la page (F5) règle le problème dans la majorité des cas;
+sinon, essayer un autre navigateur (Chrome ↔ Edge).</p>
+</blockquote>
 <h2 id="etape-2-commander-les-cartes-sim">Étape 2: Commander les cartes SIM</h2>
 <ol>
 <li>Dans le dashboard, aller sur <strong>Devices</strong> → <strong>Order SIMs</strong></li>
@@ -177,27 +204,118 @@
 <li>Quantité selon besoin</li>
 <li>Livraison: ~1-2 semaines vers le Sénégal</li>
 </ol>
-<h2 id="etape-3-activation-de-la-sim">Étape 3: Activation de la SIM</h2>
-<h3 id="via-dashboard">Via Dashboard</h3>
+<h2 id="etape-3-activation-de-la-sim-procedure-detaillee">Étape 3: Activation de la SIM (procédure détaillée)</h2>
+<p>Le tableau de bord d'accueil affiche l'état du parc: <em>cartes SIM actives</em>,
+<em>cartes SIM connectées</em> et <em>cartes SIM prêtes à l'emploi</em>. On active ici une
+carte parmi les cartes prêtes à l'emploi.</p>
 <ol>
-<li>Aller sur <strong>Devices</strong> → <strong>Activate SIM</strong></li>
-<li>Scanner ou entrer le <strong>ICCID</strong> (numéro sur la carte SIM)</li>
-<li>Donner un nom au device: <code>TRACTEUR_001</code></li>
-<li>Sélectionner le plan:</li>
-<li><strong>Pay-as-you-go</strong>: $0.40/MB (petits volumes)</li>
-<li><strong>Pooled plan</strong>: À partir de $1/mois pour 1MB partagé</li>
+<li>Cliquer sur la tuile <strong>Cartes SIM actives</strong> (<em>Active SIMs</em>)</li>
+<li>Cliquer sur le gros bouton bleu <strong>Activer les cartes SIM</strong> (<em>Activate SIMs</em>)</li>
+<li>
+<p><strong>Saisir l'ICCID</strong> de la carte à activer</p>
+<ul>
+<li>L'ICCID est la longue séquence de chiffres imprimée <strong>sur la carte SIM
+  elle-même</strong> et <strong>sur le support cartonné</strong> dans lequel elle était livrée.</li>
+<li>Il commence par <code>89</code> et compte 18 à 20 chiffres.</li>
+<li>Si la carte est déjà montée dans le traceur, utiliser le support cartonné.</li>
+</ul>
+<blockquote>
+<p>⚠️ <strong>Carte invalide</strong></p>
+<p>Si le message <em>carte invalide</em> apparaît, c'est presque toujours une erreur
+de saisie. Revérifier la séquence chiffre par chiffre. Le support cartonné
+porte parfois <strong>deux séquences différentes</strong> (ICCID et numéro de lot):
+si la première est refusée, essayer l'autre.</p>
+</blockquote>
+</li>
+<li>
+<p>Cliquer sur <strong>Vérifier les cartes SIM</strong> (<em>Verify SIMs</em>)</p>
+</li>
+<li>Descendre en bas de page et cliquer sur <strong>Confirmer les cartes SIM sélectionnées</strong></li>
+<li><strong>Couverture et tarifs</strong>: laisser les valeurs par défaut, cliquer sur le bouton bleu</li>
+<li>
+<p><strong>Limite d'utilisation des données</strong>: choisir <strong>Ne pas interrompre</strong> (<em>Don't pause</em>)</p>
+<blockquote>
+<p>Ce réglage évite que la carte soit coupée automatiquement si elle dépasse
+un seuil de données. Avec le volume d'un traceur (quelques Mo/mois), le
+risque financier est nul et une coupure ferait perdre le suivi.</p>
+</blockquote>
+</li>
+<li>
+<p><strong>Nom du dispositif</strong>: donner un identifiant clair et reconnaissable, par exemple
+   <code>tracteur_pro_1</code>, <code>tracteur_2</code>, <code>tracteur_3</code>…</p>
+<blockquote>
+<p>💡 <strong>Astuce</strong></p>
+<p>Utiliser la <strong>même convention de nommage</strong> que l'identifiant de l'appareil
+dans Traccar et dans <code>config.h</code>, et <strong>inscrire le nom sur le boîtier</strong> du
+traceur au marqueur. C'est ce qui permet de faire le lien entre un boîtier
+physique, une carte SIM et un appareil sur la carte.</p>
+</blockquote>
+</li>
+<li>
+<p><strong>Confirmer la configuration</strong></p>
+</li>
+<li>Section <strong>Solde du compte</strong>: cliquer sur <strong>Payer et activer</strong> (<em>Pay &amp; Activate</em>)</li>
+<li>
+<p>Retourner à la liste des cartes SIM</p>
+<p>La carte apparaît d'abord comme <em>dispositif non identifié</em>, avec le statut
+<strong>En attente</strong> (<em>Pending</em>). <strong>Rafraîchir la page</strong> pour voir apparaître le nom
+choisi à l'étape 8. L'activation complète prend quelques minutes.</p>
+</li>
 </ol>
-<h3 id="configuration-du-device">Configuration du device</h3>
+<h3 id="verification-de-lapn">Vérification de l'APN</h3>
 <ol>
 <li>Cliquer sur le device activé</li>
 <li>Aller dans <strong>Configuration</strong></li>
-<li>Vérifier l'APN: <code>hologram</code> (par défaut)</li>
-<li>Activer <strong>Data</strong> (toggle ON)</li>
+<li>Vérifier l'APN: <code>hologram</code> (valeur par défaut, à ne pas modifier)</li>
+<li>Vérifier que <strong>Data</strong> est activé (toggle ON)</li>
 </ol>
+<h2 id="gestion-du-solde-et-facturation">Gestion du solde et facturation</h2>
+<p>Les cartes SIM Hologram fonctionnent avec un <strong>solde prépayé</strong>, comme une recharge
+de téléphone portable. Sans solde disponible, les cartes cessent de fonctionner.</p>
+<h3 id="consulter-le-solde">Consulter le solde</h3>
+<ol>
+<li>Menu de gauche → <strong>Billing</strong> (Facturation) → <strong>Account</strong> (Compte)</li>
+<li>La ligne <strong>Solde disponible</strong> (<em>Available balance</em>) affiche le crédit restant,
+   en <strong>dollars canadiens</strong></li>
+</ol>
+<h3 id="ajouter-des-fonds">Ajouter des fonds</h3>
+<ol>
+<li>Menu de gauche → <strong>Billing</strong> → <strong>Account</strong></li>
+<li>Cliquer sur le bouton bleu <strong>Add balance</strong> (Ajouter au solde)</li>
+<li>Saisir le montant à ajouter (ex. <code>5</code> pour 5 $)</li>
+<li>
+<p>Confirmer avec la carte de crédit enregistrée</p>
+<blockquote>
+<p>📌 <strong>Note</strong></p>
+<p>Il faut disposer des droits de facturation sur le compte pour voir ce bouton.
+Demander à un administrateur du projet de vous les accorder au besoin.</p>
+</blockquote>
+</li>
+</ol>
+<h3 id="cout-recurrent">Coût récurrent</h3>
+<ul>
+<li><strong>1 $ par carte SIM active et par mois</strong>, prélevé automatiquement sur le solde
+  au début de chaque mois.</li>
+<li>S'y ajoute la consommation de données (voir tableau plus bas).</li>
+<li>Prévoir de recharger le solde avant qu'il ne tombe à zéro; désactiver dans le
+  dashboard les cartes SIM qui ne servent plus, pour ne pas payer le 1 $/mois inutilement.</li>
+</ul>
+<blockquote>
+<p>⚠️ <strong>Transfert de la facturation</strong></p>
+<p>Trois abonnements sont à la charge du projet: <strong>Hologram</strong> (cartes SIM),
+<strong>l'hébergement cloud</strong> des serveurs Traccar et le <strong>nom de domaine</strong>.
+À la fin du projet, la carte de crédit utilisée devra être remplacée par
+celle de l'organisation qui exploite le système.</p>
+</blockquote>
 <h2 id="etape-4-configuration-firmware">Étape 4: Configuration firmware</h2>
-<p>Dans <code>config.h</code> du tracker:</p>
+<p>Dans <code>code/TraccarGPS/config.h</code> du traceur:</p>
 <pre class="highlight"><code class="language-cpp">#define NETWORK_APN "hologram"</code></pre>
-<p>C'est tout! L'APN Hologram ne nécessite ni username ni password.</p>
+<p>L'APN Hologram s'écrit <strong>en minuscules</strong> et ne nécessite ni nom d'utilisateur ni
+mot de passe.</p>
+<blockquote>
+<p>Dans les exemples fournis par LilyGo, l'APN est préconfiguré à <code>ctlte</code>
+(opérateur chinois). Il faut impérativement le remplacer par <code>hologram</code>.</p>
+</blockquote>
 <h2 id="etape-5-verification">Étape 5: Vérification</h2>
 <h3 id="dans-le-dashboard-hologram">Dans le dashboard Hologram</h3>
 <ol>
@@ -205,13 +323,13 @@
 <li><strong>Device Logs</strong> → Voir les connexions réseau</li>
 <li><strong>Coverage Map</strong> → Vérifier la couverture dans votre zone</li>
 </ol>
-<h3 id="sur-le-tracker">Sur le tracker</h3>
-<p>Moniteur série (115200 baud):
+<h3 id="sur-le-traceur">Sur le traceur</h3>
+<p>Moniteur série (115200 baud):</p>
 <pre class="highlight"><code>Setting network APN: hologram
 Registering on network...
 Network registered!
 Activating network...
-IP Address: 10.x.x.x</code></pre></p>
+IP Address: 10.x.x.x</code></pre>
 <h2 id="consommation-data-estimee">Consommation data estimée</h2>
 <table>
 <thead>
@@ -252,11 +370,20 @@ IP Address: 10.x.x.x</code></pre></p>
 <li>Notification par email</li>
 </ol>
 <h3 id="webhook-optionnel">Webhook (optionnel)</h3>
-<p>Pour recevoir les événements device:
-1. <strong>Devices</strong> → <strong>Webhooks</strong>
-2. URL de votre endpoint
-3. Events: <code>device.connect</code>, <code>device.disconnect</code></p>
+<p>Pour recevoir les événements device:</p>
+<ol>
+<li><strong>Devices</strong> → <strong>Webhooks</strong></li>
+<li>URL de votre endpoint</li>
+<li>Events: <code>device.connect</code>, <code>device.disconnect</code></li>
+</ol>
 <h2 id="depannage">Dépannage</h2>
+<h3 id="iccid-refuse-a-lactivation">ICCID refusé à l'activation</h3>
+<pre class="highlight"><code>Carte invalide / Invalid SIM</code></pre>
+<ul>
+<li>Revérifier chaque chiffre de la séquence (les <code>0</code>/<code>O</code> et <code>1</code>/<code>7</code> sont les pièges classiques)</li>
+<li>Essayer la seconde séquence imprimée sur le support cartonné</li>
+<li>Vérifier que la carte n'est pas déjà activée sur un autre compte</li>
+</ul>
 <h3 id="sim-non-reconnue">SIM non reconnue</h3>
 <pre class="highlight"><code>SIM status: SIM_ERROR</code></pre>
 <ul>
@@ -268,17 +395,17 @@ IP Address: 10.x.x.x</code></pre></p>
 <pre class="highlight"><code>Network registration denied!</code></pre>
 <ul>
 <li>Vérifier la couverture dans la zone</li>
-<li>Vérifier que le plan est actif (solde suffisant)</li>
-<li>Essayer de redémarrer le tracker</li>
+<li>Vérifier que le plan est actif et que le <strong>solde du compte est suffisant</strong></li>
+<li>Essayer de redémarrer le traceur</li>
 </ul>
 <h3 id="data-ne-fonctionne-pas">Data ne fonctionne pas</h3>
 <pre class="highlight"><code>Failed to activate network</code></pre>
 <ul>
-<li>Vérifier l'APN dans config.h: <code>hologram</code></li>
+<li>Vérifier l'APN dans <code>config.h</code>: <code>hologram</code></li>
 <li>Vérifier que Data est activé dans le dashboard</li>
 <li>Attendre 1-2 minutes après insertion SIM</li>
 </ul>
-<h2 id="tarification-hologram-2025">Tarification Hologram (2025)</h2>
+<h2 id="tarification-hologram">Tarification Hologram</h2>
 <table>
 <thead>
 <tr>
@@ -288,6 +415,11 @@ IP Address: 10.x.x.x</code></pre></p>
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>Frais par SIM active</td>
+<td>-</td>
+<td>$1.00/mois</td>
+</tr>
 <tr>
 <td>Pay-as-you-go</td>
 <td>-</td>
@@ -310,7 +442,7 @@ IP Address: 10.x.x.x</code></pre></p>
 </tr>
 </tbody>
 </table>
-<p>Pour un tracker à 2 min d'intervalle: <strong>1MB Pool</strong> suffit.</p>
+<p>Pour un traceur à 2 min d'intervalle: <strong>1MB Pool</strong> suffit.</p>
 <h2 id="ressources">Ressources</h2>
 <ul>
 <li><a href="https://www.hologram.io/docs/">Documentation Hologram</a></li>
