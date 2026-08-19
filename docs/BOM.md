@@ -144,8 +144,19 @@ Ce document liste tous les composants nécessaires à la fabrication d'un traceu
 |---|---|
 | **Description** | Carte SIM IoT avec connectivité mondiale |
 | **Quantité** | 1 |
-| **Prix** | 5 $ + forfait data |
+| **Prix** | 5 $ + 1 $/mois par SIM active + données |
 | **Fournisseur** | [Hologram.io](https://www.hologram.io/) |
+
+---
+
+### 12. Câble USB-A vers USB-C
+
+| | |
+|---|---|
+| **Description** | Câble de programmation, **USB-A vers USB-C** (les câbles USB-C vers USB-C n'alimentent pas la carte LilyGo) |
+| **Quantité** | 1 par poste de programmation |
+| **Prix** | 2-5 $ |
+| **Fournisseur** | Fourni avec le module, ou tout revendeur local |
 
 ---
 

@@ -57,7 +57,8 @@ flowchart TB
 | [Programmation du LilyGo A7670G](docs/programmation_liligo_a7670g.md) | Guide pour flasher le firmware |
 | [Déploiement des serveurs Traccar](docs/installation_docker.md) | Mise en place des serveurs avec Docker |
 | [Configuration de Cloudflare](docs/configuration_cloudflare.md) | Mise en place du tunnel et du Worker |
-| [Création de carte SIM Hologram](docs/creation_carte_sim_hologram.md) | Pour la connectivité cellulaire |
+| [Création de carte SIM Hologram](docs/creation_carte_sim_hologram.md) | Activation de la SIM, APN et gestion du solde |
+| [Ajout d'un appareil dans Traccar](docs/ajout_appareil_traccar.md) | Déclarer le traceur sur le serveur Traccar |
 | [Installation dans un véhicule](docs/installation_vehicule.md) | Conseils pour l'installation physique |
 
 ## Installation rapide

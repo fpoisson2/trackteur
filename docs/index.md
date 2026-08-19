@@ -42,5 +42,6 @@ graph LR
 -   **[Programmation du Liligo A7670G](programmation_liligo_a7670g.md)**: Guide pour flasher le firmware du traceur.
 -   **[Déploiement des serveurs Traccar](installation_docker.md)**: Comment mettre en place les serveurs Traccar avec Docker.
 -   **[Configuration de Cloudflare](configuration_cloudflare.md)**: Mise en place du tunnel et du Worker.
--   **[Création de carte SIM Hologram](creation_carte_sim_hologram.md)**: Pour la connectivité cellulaire.
+-   **[Création de carte SIM Hologram](creation_carte_sim_hologram.md)**: Activation, configuration et gestion du solde.
+-   **[Ajout d'un appareil dans Traccar](ajout_appareil_traccar.md)**: Déclarer le traceur sur le serveur.
 -   **[Installation dans un véhicule](installation_vehicule.md)**: Conseils pour l'installation physique du traceur.

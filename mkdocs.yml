@@ -7,6 +7,7 @@ nav:
   - Configuration de Cloudflare: configuration_cloudflare.md
   - Création de carte SIM Hologram: creation_carte_sim_hologram.md
   - Programmation du Lilygo A7670G: programmation_liligo_a7670g.md
+  - Ajout d'un appareil dans Traccar: ajout_appareil_traccar.md
   - Fabrication du traceur GPS: fabrication_traceur_gps.md
   - Installation dans le véhicule: installation_vehicule.md
 theme:
